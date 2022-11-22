@@ -39,22 +39,23 @@ class _ReplayBuffer:
 
 
 class Qlearner:
-    #TODO: add replaybuffer
-    def __init__(self, environment, DQN, gpu=True) -> None:
-        self.device = torch.device('cuda' if torch.cuda.is_available() and gpu else 'cpu')
+    def __init__(self, environment, DQN, config) -> None:
+        self.device = torch.device(config.get('device','gpu') if torch.cuda.is_available() else 'cpu')
 
         self.env = environment
         self.targetDQN = DQN().to(self.device)
         self.currentDQN = DQN().to(self.device)
 
         # training parameters
-        self.batch_size = 32
-        self.num_frames = 20000
-        self.gamma = 0.99
+        self.batch_size = config.get('batch_size',32)
+        self.num_frames = config.get('num_frames', 20000)
+        self.gamma = config.get('gamma',0.99)
 
         # network training:
-        self.optimizer = torch.optim.Adam(self.currentDQN.parameters())
-        self.loss_function = torch.nn.MSELoss()
+        self.__optimizer = torch.optim.Adam(self.currentDQN.parameters())
+        self.__loss_function = torch.nn.MSELoss()
+
+        self.__replay_buffer = _ReplayBuffer(config.get('replay_size',50000))
 
     def train(self):
         episode_reward = 0
@@ -80,9 +81,11 @@ class Qlearner:
         pass
 
     def save(self, filename: str):
+        #TODO: add support for saving a model
         pass
 
     def load (self, filename: str):
+        #TODO: add support for loading a model
         pass
 
     def __epsilon_by_frame(self, frame):
@@ -95,6 +98,15 @@ class Qlearner:
         self.targetDQN.load_state_dict(self.currentDQN.state_dict())
 
     def __computeLoss(self, state, action, reward, next_state, done):
+        state, action, reward, next_state, done = self.__replay_buffer.sample(self.batch_size)
+
+        state = torch.from_numpy(state).to(self.device)
+        next_state = torch.from_numpy(next_state).to(self.device)
+        action = torch.from_numpy(action).to(self.device)
+        reward = torch.from_numpy(reward).to(self.device)
+        done = torch.from_numpy(done).to(self.device)
+
+
         q_values = self.currentDQN.forward(state)
         next_q_values = self.targetDQN.forward(next_state)
 
@@ -103,15 +115,24 @@ class Qlearner:
         next_q_value = next_q_values.max(dim=1).values * (done == False).int()
         expected_q_value = reward + torch.mul(next_q_value, self.gamma)
 
-        loss = self.loss_function(q_value.to(torch.float64), expected_q_value.to(torch.float64))
+        loss = self.__loss_function(q_value.to(torch.float64), expected_q_value.to(torch.float64))
 
-        self.optimizer.zero_grad()
+        self.__optimizer.zero_grad()
         loss.backward()
-        self.optimizer.step()
+        self.__optimizer.step()
         return loss
 
 
 if __name__ == "__main__":
+    #config = optional, default values have been set in the qlearning framework
+    config = {
+        'device':'gpu',
+        'batch_size':32,
+        'num_frames':20000,
+        'gamma':0.99,
+        'replay_size':50000
+    }
     env = Environment()
-    qlearning = Qlearner(env, DQN, True)
+    qlearning = Qlearner(env, DQN, config)
     qlearning.train()
+    qlearning.save("TrainedModel.save")
