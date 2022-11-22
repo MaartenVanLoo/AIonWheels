@@ -171,11 +171,11 @@ def main():
         # --------------
         # Place spectator on ego spawning
         # --------------
-
+"""
         spectator = world.get_spectator()
         world_snapshot = world.wait_for_tick()
         spectator.set_transform(ego_vehicle.get_transform())
-
+"""
 
         # --------------
         # Enable autopilot for ego vehicle
