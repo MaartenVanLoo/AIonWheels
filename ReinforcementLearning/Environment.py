@@ -19,8 +19,8 @@ class DrivingCar:
         self.acceleration = acceleration
 
         self.target_speed = 20  # 20m/s = 72 km/h
-        self.maxBreaking = 3.5  # m/s²
-        self.maxThrottle = 5.5  # m/s²
+        self.maxBreaking = 3  # m/s²
+        self.maxThrottle = 2  # m/s²
         self.dragArea = 0.8
         self.airDensity = 1.204  # kg/m³
         self.mass = 1000  # kg
@@ -44,18 +44,24 @@ class DrivingCar:
     def getSpeed(self):
         return self.speed
 
-    def updatePos(self, dt):
+    def setSpeed(self, speed):
+        self.speed = speed
+
+    def updatePos(self, dt=1.0):
         self.position += self.speed * dt
 
-    def updateSpeed(self, dt):
+    def updateSpeed(self, dt=1.0):
         self.speed += self.acceleration * dt
+        if (self.speed < 0 ):
+            self.speed = 0
 
-    def updateAcceleration(self, action=None, dt=1):
+    def updateAcceleration(self, action=None, dt=1.0):
         # compute force from action
         if action is None:
             force = 0.05
         else:
-            force = self.actions[action]
+            force = action # continues action space
+            #force = self.actions[action] # descrete action space
             if (force < 0):
                 # break force
                 force *= self.maxBreaking
@@ -65,29 +71,47 @@ class DrivingCar:
 
         # compute force from drag
         drag = self.dragArea * self.speed * self.airDensity / (2 * self.mass) * self.speed
+        if (self.speed < 0):
+            drag = -drag
+
         self.acceleration = force - drag
 
     def printStats(self):
-        print("speed: ", self.speed / 3.6)
+        print("speed: ", self.speed)
         print("position: ", self.position)
         print("acceleration: ", self.acceleration)
 
-    def step(self, action=None, dt=1):
+    def step(self, action=None, dt=1.0):
         self.updateAcceleration(action, dt)
         self.updateSpeed(dt)
         self.updatePos(dt)
 
+class SinusCar(DrivingCar):
+
+    def __init__(self, num_actions, speed, position, acceleration):
+        super().__init__(num_actions, speed, position, acceleration)
+        self.frame = 0
+
+    def step(self, action=None, dt=1.0):
+        self.setSpeed(2*math.sin(self.frame/50)+3)
+        self.updatePos()
+        self.frame += 1
+
 
 class Environment:
     def __init__(self, config: dict):
-        self.config = config;
+        self.config = config
         self.agent_config = config.get("agent", dict())
         self.car_config = config.get("car", dict())
         self.agent = DrivingCar(7, 0, 0, 45)
         self.car = DrivingCar(7, 50, 200, 0)
 
-        self.stepCount = 0;
-        self.history = {'agent': [], 'car': []};
+        self.stepCount = 0
+        self.history = {'agent': [], 'car': [], 'agent_speed':[], 'car_speed':[]}
+
+        #https://nl.mathworks.com/help/reinforcement-learning/ug/train-ddpg-agent-for-adaptive-cruise-control.html
+        self.distance_default = 4  # m
+        self.t_gap = 1.4
 
     def __str__(self) -> str:
         string = ""
@@ -97,12 +121,14 @@ class Environment:
         return string
 
     def step(self, action):
-        self.car.step(dt=0.05)
-        self.agent.step(action=action, dt=0.05)
+        self.car.step(dt=0.1)
+        self.agent.step(action=action, dt=0.1)
         self.stepCount += 1
 
         self.history['agent'].append(self.agent.getPos())
         self.history['car'].append(self.car.getPos())
+        self.history['agent_speed'].append(self.agent.getSpeed())
+        self.history['car_speed'].append(self.car.getSpeed())
 
         return self.__getState(), self.__getReward(), self.__isTerminal(), self.__info()
 
@@ -110,7 +136,7 @@ class Environment:
         self.agent = DrivingCar(
             num_actions=self.config.get("num_actions", 7),
             position=self.agent_config.get("position", 0),
-            speed=self.agent_config.get("speed", 0),
+            speed=self.agent_config.get("speed", 1),
             acceleration=self.agent_config.get("acceleration", 0))
         self.car = DrivingCar(
             num_actions=self.config.get("num_actions", 7),
@@ -119,7 +145,7 @@ class Environment:
             acceleration=self.agent_config.get("acceleration", 0))
 
         self.stepCount = 0
-        self.history = {'agent': [], 'car': []}
+        self.history = {'agent': [], 'car': [], 'agent_speed':[], 'car_speed':[]}
 
         return self.__getState()
 
@@ -129,7 +155,11 @@ class Environment:
         :return:
         """
         distance = self.car.getPos() - self.agent.getPos()
-        return distance, self.agent.getSpeed()
+        if (len(self.history['car']) >1):
+            prevDistance = self.history['car'][-2] - self.history['agent'][-2]
+        else:
+            prevDistance = distance
+        return distance, prevDistance ,self.agent.getSpeed()
 
     def __getReward(self):
         """
@@ -137,10 +167,22 @@ class Environment:
         """
         #TODO: think about the reward function
         distance = self.car.getPos() - self.agent.getPos()
-        reward = 1 / math.sqrt(distance);  # closer = better
+        #distance_reward = sigmoid(-(distance-8)/3)  # closer = better
 
-        dv = self.agent.target_speed - self.agent.getSpeed()  # slower = higher dv
-        reward += sigmoid(-dv)-.5
+        save_distance = self.t_gap * self.agent.getSpeed()+self.distance_default
+        if distance > save_distance:
+            target_speed = self.agent.target_speed
+        else:
+            target_speed = self.car.getSpeed()
+        e = target_speed - self.agent.getSpeed()
+        m_t = 1 if e*e <= 0.25 else 0
+        u = 0 ## TODO: what is U???? https://nl.mathworks.com/help/reinforcement-learning/ug/train-ddpg-agent-for-adaptive-cruise-control.html
+        reward = -(0.1* e*e + u * u) + m_t
+        #speed_reward = -sigmoid(abs(dv/5))*2+2
+
+        #combined_reward = distance_reward*sigmoid(-distance+10)+\
+        #                  speed_reward*sigmoid(distance - 10)
+
         return reward
 
     def __isTerminal(self):
@@ -148,7 +190,7 @@ class Environment:
         Return true when a terminal state is reached
         """
         distance = self.car.getPos() - self.agent.getPos()
-        return self.agent.position > 2000 or distance < 4 or self.stepCount > 4000
+        return self.agent.position > 2000 or distance < 4 or self.stepCount > 4000 or self.agent.getSpeed() < 0
 
     def __info(self):
         info = dict()
@@ -163,7 +205,22 @@ class Environment:
         self.car.printStats()
 
     def plot(self):
+        if (len(self.history['agent']) <= 1):
+            print("Empty history")
+            return
+        distance = []
+        for ego,agent in zip(self.history['agent'],self.history['car']):
+            distance.append(agent-ego)
+
+        fig, (ax1, ax2, ax3) = plt.subplots(1,3)
+
         x = np.linspace(0, self.stepCount - 1, num=self.stepCount)
-        plt.plot(x, self.history['agent'])
-        plt.plot(x, self.history['car'])
+        ax1.plot(x, self.history['agent'])
+        ax1.plot(x, self.history['car'])
+        ax1.set_title('position')
+        ax2.plot(x, self.history['agent_speed'])
+        ax2.plot(x, self.history['car_speed'])
+        ax2.set_title('speed')
+        ax3.plot(x,distance)
+        ax3.set_title('distance')
         plt.show()
