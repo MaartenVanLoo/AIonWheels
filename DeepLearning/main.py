@@ -48,6 +48,8 @@ def main():
         ego_obs = None
         ego_gnss = None
         ego_imu = None
+        sem_cam = None
+
 
         # --------------
         # Start recording
@@ -92,12 +94,13 @@ def main():
         cam_rotation = carla.Rotation(0,0,0)
         cam_transform = carla.Transform(cam_location,cam_rotation)
         ego_cam = world.spawn_actor(cam_bp,cam_transform,attach_to=ego_vehicle, attachment_type=carla.AttachmentType.Rigid)
-        ego_cam.listen(lambda image: image.save_to_disk('~/tutorial/output/%.6d.jpg' % image.frame))
+        ego_cam.listen(lambda image: image.save_to_disk('tutorial/output/%.6d.jpg' % image.frame))
         
         # --------------
         # Add a new semantic segmentation camera to my ego
         # --------------
-        sem_cam = None
+
+        sem_bp = None
         sem_bp = world.get_blueprint_library().find('sensor.camera.semantic_segmentation')
         sem_bp.set_attribute("image_size_x",str(1920))
         sem_bp.set_attribute("image_size_y",str(1080))
