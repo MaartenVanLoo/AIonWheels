@@ -796,7 +796,7 @@ def game_loop(args):
             vehicle_bp.apply_control(control)
 
             # First car control
-            control_model = agent_follower.step()
+            control_model = agent_follower.run_step()
             control_model.manual_gear_shift = False
             world.player.apply_control(control_model)
 
