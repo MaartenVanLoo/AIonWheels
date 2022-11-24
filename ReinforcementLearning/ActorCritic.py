@@ -38,6 +38,7 @@ class Actor(nn.Module):
     def forward(self, x):
         x = self.base(x)
         mu = self.mu(x)
+
         var = self.var(x)
         #var = torch.where(var <= 0, 1e-6,var)
         return torch.distributions.Normal(mu, var)
@@ -145,7 +146,7 @@ class ActorCriticLearner:
         self.__actor_optim.zero_grad()
         actor_loss.backward()
         self.__actor_optim.step()
-
+        self.__actor_optim.step()
         #critic
         critic_loss = torch.nn.functional.mse_loss(td_target, value)
         self.__critic_optim.zero_grad()

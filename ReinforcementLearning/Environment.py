@@ -47,15 +47,27 @@ class DrivingCar:
         return self.speed
 
     def setSpeed(self, speed):
-        self.speed = speed
+        if (self.speed < 0 ):
+            self.speed = 0
+        else:
+            self.speed = speed
 
     def updatePos(self, dt=1.0):
         self.position += self.speed * dt
 
     def updateSpeed(self, dt=1.0):
         self.speed += self.acceleration * dt
-        if (self.speed < 0 ):
+        if self.speed < 0 :
             self.speed = 0
+
+    def setAcceleration(self,acceleration):
+        if acceleration>self.maxThrottle:
+            self.acceleration=self.maxThrottle
+        elif acceleration<(-self.maxBreaking):
+            self.acceleration = -self.maxBreaking
+        else:
+            self.acceleration = acceleration
+
 
     def updateAcceleration(self, action=None, dt=1.0):
         # compute force from action
@@ -85,13 +97,13 @@ class DrivingCar:
 
     def step(self, action=None, dt=1.0):
         self.updateAcceleration(action, dt)
-        self.updateSpeed(dt)
-        self.updatePos(dt)
+        self.updateSpeed()
+        self.updatePos()
 
 class SinusCar(DrivingCar):
 
     def __init__(self, num_actions, speed, position, acceleration):
-        super().__init__(num_actions, speed, position, acceleration)
+        super().__init__(num_actions, speed, position, 0)
         self.frame = 0
 
     def step(self, action=None, dt=1.0):
@@ -103,22 +115,79 @@ class SinusCar(DrivingCar):
 class ConstantCar(DrivingCar):
 
     def __init__(self, num_actions, speed, position, acceleration):
-        super().__init__(num_actions, speed, position, acceleration)
+        super().__init__(num_actions, speed, position, 0)
         self.frame = 0
 
     def step(self, action=None, dt=1.0):
-        self.setSpeed(30)
         self.updatePos()
         self.frame += 1
 
+class NoDrivingCar(DrivingCar):
+
+    def __init__(self, num_actions, speed, position, acceleration):
+        super().__init__(num_actions, 0, position, 0)
+        self.frame = 0
+
+    def step(self, action=None, dt=1.0):
+        self.frame += 1
+
+class SpeedUpBrakeCar(DrivingCar):
+
+    def __init__(self, num_actions, speed, position, acceleration):
+        super().__init__(num_actions, speed, position, acceleration)
+        self.frame = 0
+        self.brakeCounter = 0
+
+    def step(self, action=None, dt=1.0):
+        if self.speed<=0:
+            self.setAcceleration(np.random.randint(1,self.maxThrottle)) #random acceleration
+            self.updateSpeed()
+            self.brakeCounter=0
+        else:
+            if self.speed<83:
+                self.updateSpeed()
+            else:
+                if self.brakeCounter<100:
+                    self.speed = 83
+                    self.brakeCounter += 1
+                else:
+                    self.setAcceleration(-self.maxBreaking)
+                    self.updateSpeed()
+                    self.brakeCounter +=1
+        self.updatePos()
+        self.frame += 1
+
+class RandomCar(DrivingCar):
+    def __init__(self, num_actions, speed, position, acceleration):
+        super().__init__(num_actions, speed, position, acceleration)
+        self.frame = 0
+        self.counter=0
+        self.constant=np.random.randint(0,100)
+
+    def step(self, action=None, dt=1.0):
+        if self.counter<self.constant:
+            self.counter +=1
+        else:
+            if self.speed<=0:
+                self.setAcceleration(np.random.randint(1,self.maxThrottle)*(np.random.random()))
+            else:
+                if self.speed>=80:
+                    self.setAcceleration(np.random.randint(1,self.maxThrottle)*(-1+np.random.random()))
+                else:
+                    self.setAcceleration(-1+2*np.random.random())
+            self.counter=0
+            self.constant = np.random.randint(0, 100)
+        self.updateSpeed()
+        self.updatePos()
+        self.frame += 1
 
 class Environment:
     def __init__(self, config: dict):
         self.config = config
         self.agent_config = config.get("agent", dict())
         self.car_config = config.get("car", dict())
-        self.agent = DrivingCar(7, 0, 0, 45)
-        self.car = DrivingCar(7, 50, 200, 0)
+        self.agent = DrivingCar(1, 0, 0, 2) #num_actions, startspeed, startposition, starting acceleration
+        self.car = self.chooseRandomCar(1,20,200,2)
 
         self.stepCount = 0
         self.history = {'agent': [], 'car': [], 'agent_speed':[], 'car_speed':[]}
@@ -134,6 +203,19 @@ class Environment:
         string += "State:\t" + str(self.__getState()) + "\n"
         return string
 
+    def chooseRandomCar(self,num_actions,speed,position,acceleration):
+        choice=np.random.randint(0,5)
+        if choice==0:
+            return ConstantCar(num_actions,speed,position,acceleration)
+        elif choice==1:
+            return SinusCar(num_actions,speed,position,acceleration)
+        elif choice==2:
+            return RandomCar(num_actions,speed,position,acceleration)
+        elif choice==3:
+            return SpeedUpBrakeCar(num_actions,speed,position,acceleration)
+        elif choice==4:
+            return NoDrivingCar(num_actions,speed,position,acceleration)
+
     def step(self, action):
         self.car.step(dt=0.1)
         self.agent.step(action=action, dt=0.1)
@@ -148,18 +230,18 @@ class Environment:
 
     def reset(self):
         self.agent = DrivingCar(
-            num_actions=self.config.get("num_actions", 7),
+            num_actions=self.config.get("num_actions", 1),
             position=self.agent_config.get("position", 0),
-            speed=self.agent_config.get("speed", 1),
-            acceleration=self.agent_config.get("acceleration", 0))
-        self.car = SinusCar(
-            num_actions=self.config.get("num_actions", 7),
-            position=self.agent_config.get("position", 20),
+            speed=self.agent_config.get("speed", 0),
+            acceleration=self.agent_config.get("acceleration", 2))
+        self.car = self.chooseRandomCar(
+            num_actions=self.config.get("num_actions", 1),
+            position=self.agent_config.get("position", 200),
             speed=self.agent_config.get("speed", 5),
             acceleration=self.agent_config.get("acceleration", 0))
 
         self.stepCount = 0
-        self.history = {'agent': [], 'car': [], 'agent_speed':[], 'car_speed':[]}
+        self.history = {'agent': [], 'car': [], 'agent_speed': [], 'car_speed': []}
 
         return self.__getState()
 
