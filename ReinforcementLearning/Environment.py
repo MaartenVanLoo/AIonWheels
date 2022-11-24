@@ -138,7 +138,7 @@ class Environment:
             position=self.agent_config.get("position", 0),
             speed=self.agent_config.get("speed", 1),
             acceleration=self.agent_config.get("acceleration", 0))
-        self.car = DrivingCar(
+        self.car = SinusCar(
             num_actions=self.config.get("num_actions", 7),
             position=self.agent_config.get("position", 20),
             speed=self.agent_config.get("speed", 5),
