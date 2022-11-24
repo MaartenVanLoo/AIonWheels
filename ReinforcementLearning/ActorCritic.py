@@ -2,6 +2,7 @@ import os
 from collections import deque
 import random
 
+import gym
 import torch
 from torch import nn
 import math
@@ -17,36 +18,56 @@ class Actor(nn.Module):
         super().__init__()
         self.device = torch.device(config.get('device', 'cuda') if torch.cuda.is_available() else 'cpu')
 
-        self.num_inputs = config.get('num_inputs', 3)
-        self._hidden = config.get('hidden', 128)
-        if isinstance(self._hidden,list):
-            self._hidden = 128 if (len(self._hidden)== 0) else self._hidden[0]
-        self.num_actions = config.get('num_actions', 7)
+        #self.num_inputs = config.get('num_inputs', 3)
+        #self._hidden = config.get('hidden', 128)
+        #if isinstance(self._hidden,list):
+        #    self._hidden = 128 if (len(self._hidden)== 0) else self._hidden[0]
+        #self.num_actions = config.get('num_actions', 7)
+#
+        #self.base = torch.nn.Sequential(
+        #    torch.nn.Linear(self.num_inputs, self._hidden),
+        #    torch.nn.ReLU(),
+        #)
+        #self.mu = torch.nn.Sequential(
+        #    torch.nn.Linear(self._hidden, self.num_actions),
+        #    torch.nn.Sigmoid()
+        #)
+        #self.var = torch.nn.Sequential(
+        #    torch.nn.Linear(self._hidden, self.num_actions),
+        #    torch.nn.Sigmoid()
+        #)
+        state_dim = config.get('num_inputs', 3)
+        self.n_actions =  config.get('num_actions', 7)
+        self.model = nn.Sequential(
+            nn.Linear(state_dim, 64),
+            nn.Tanh(),
+            nn.Linear(64, 64),
+            nn.Tanh(),
+            nn.Linear(64, self.n_actions)
+        )
 
-        self.base = torch.nn.Sequential(
-            torch.nn.Linear(self.num_inputs, self._hidden),
-            torch.nn.ReLU(),
-        )
-        self.mu = torch.nn.Sequential(
-            torch.nn.Linear(self._hidden, self.num_actions),
-            torch.nn.Tanh()
-        )
-        self.var = torch.nn.Sequential(
-            torch.nn.Linear(self._hidden, self.num_actions),
-            torch.nn.Softplus()
-        )
+        logstds_param = nn.Parameter(torch.full((self.n_actions,), 0.1))
+        self.register_parameter("logstds", logstds_param)
     def forward(self, x):
-        x = self.base(x)
-        mu = self.mu(x)
-        var = self.var(x)
+        #base_out = self.base(x.squeeze(dim=-1))
+        #mu = self.mu(base_out)
+        #if torch.isnan(mu).any().item():
+        #    for param in self.base.parameters():
+        #        print(param.data)
+        #    pass
+        #var = self.var(base_out)
         #var = torch.where(var <= 0, 1e-6,var)
-        return torch.distributions.Normal(mu, var)
+        #return torch.distributions.Normal(mu, var)
+        means = self.model(x.squeeze(dim=-1))
+        stds = torch.clamp(self.logstds.exp(), 1e-3, 50)
+
+        return torch.distributions.Normal(means, stds)
     def act(self,state):
         with torch.no_grad():
             state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
         action = self.forward(state)
         action = action.sample().detach()
-        action = torch.clip(action,-1,1)
+        action = torch.clip(action,-2,2)
         return action
 
 class Critic(nn.Module):
@@ -54,22 +75,31 @@ class Critic(nn.Module):
         super().__init__()
         self.device = torch.device(config.get('device', 'cuda') if torch.cuda.is_available() else 'cpu')
 
-        self.num_inputs = config.get('num_inputs', 3)
-        self._hidden = config.get('hidden', 128)
-        if isinstance(self._hidden,list):
-            self._hidden = 128 if (len(self._hidden)== 0) else self._hidden[0]
-        self.num_actions = config.get('num_actions', 7)
+        #self.num_inputs = config.get('num_inputs', 3)
+        #self._hidden = config.get('hidden', 128)
+        #if isinstance(self._hidden,list):
+        #    self._hidden = 128 if (len(self._hidden)== 0) else self._hidden[0]
+        #self.num_actions = config.get('num_actions', 7)
 
-        self.base = torch.nn.Sequential(
-            torch.nn.Linear(self.num_inputs, self._hidden),
-            torch.nn.ReLU(),
+        #self.base = torch.nn.Sequential(
+        #    torch.nn.Linear(self.num_inputs, self._hidden),
+        #    torch.nn.ReLU(),
+        #)
+        #self.value = torch.nn.Linear(self._hidden, 1)
+        state_dim = config.get('num_inputs', 3)
+        self.n_actions =  config.get('num_actions', 7)
+        self.model = nn.Sequential(
+            nn.Linear(state_dim, 64),
+            nn.Tanh(),
+            nn.Linear(64, 64),
+            nn.Tanh(),
+            nn.Linear(64, 1),
         )
-        self.value = torch.nn.Linear(self._hidden, 1)
 
     def forward(self, x):
-        x = self.base(x)
-        return self.value(x)
-
+        #x = self.base(x)
+        #return self.value(x)
+        return self.model(x)
 
 class _ReplayBuffer:
     def __init__(self, capacity):
@@ -82,6 +112,11 @@ class _ReplayBuffer:
         self.buffer = deque(maxlen=capacity)
 
     def push(self, state, action, reward, next_state, done):
+        if (state.shape[-1] == 1):
+            state=np.squeeze(state,-1)
+        if (next_state.shape[-1] == 1):
+            next_state=np.squeeze(next_state,-1)
+
         state = np.expand_dims(state, 0)
         next_state = np.expand_dims(next_state, 0)
 
@@ -132,7 +167,7 @@ class ActorCriticLearner:
         reward = torch.FloatTensor(reward).to(self.device)
         done = torch.FloatTensor(done).to(self.device)
 
-        td_target = reward + self.gamma*self.critic(next_state).squeeze()*(1-done)
+        td_target = reward.squeeze() * self.gamma*self.critic(next_state).squeeze()*(1-done)
         value = self.critic(state).squeeze()
         advantage = td_target - value
 
@@ -166,25 +201,31 @@ class ActorCriticLearner:
         for frame_idx in range(1, self.num_frames + 1):
             action = self.actor.act(state)
 
-            next_state, reward, done, info = self.env.step(action.item())
+            next_state, reward, done, info = self.env.step(action.numpy(force = True))
 
             #print(env)
             #print(done)
             if not 'TimeLimit.truncated' in info.keys() or not info['TimeLimit.truncated']:
                 self.__replay_buffer.push(state, action, reward, next_state, done)
 
+            #print(info)
+            #print(not 'TimeLimit.truncated' in info.keys() or not info['TimeLimit.truncated'])
+            #print(done)
+            #print(len(state),end=";")
+            #print(len(next_state))
+
             state = next_state
             episode_reward += reward
 
             if (len(self.__replay_buffer) > self.batch_size):
                 actor_loss , critic_loss = self.__update()
-                wandb.log({'actor_loss' : actor_loss, 'critic_loss' : critic_loss})
+                wandb.log({'actor_loss' : actor_loss, 'critic_loss' : critic_loss, 'action':action})
                 #loss = loss.data.cpu().numpy().tolist()
                 #losses.append(loss)
 
 
             if done:
-                self.env.plot()
+                #self.env.plot()
                 state = self.env.reset()
                 all_rewards.append(episode_reward)
                 wandb.log({'episode_reward':episode_reward})
@@ -243,15 +284,15 @@ if __name__ == "__main__":
         'gamma':0.99,
         'replay_size':10000,
 
-        'num_inputs':4, #=size of states!
+        'num_inputs':3, #=size of states!
         'num_actions':1,
         'hidden':128,
 
         'continous_actions':True,
     }
 
-
-    env = Environment(config)
+    env = gym.make('Pendulum-v1')
+    #env = Environment(config)
     a2cLearner = ActorCriticLearner(env, config)
     #a2cLearner.load('working.pt')
     #a2cLearner.eval()
