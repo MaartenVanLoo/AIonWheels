@@ -742,7 +742,7 @@ def game_loop(args):
         transform = world.player.get_transform()
         transform_fv = transform.get_forward_vector()
         transform_fv.x, transform_fv.y, transform_fv.z = normalize3Dvector(transform_fv.x, transform_fv.y, transform_fv.z)
-        new_location = transform.location + (transform_fv * 50)
+        new_location = transform.location + (transform_fv * -50)
         transform.location = new_location
 
         vehicle_bp = world.world.spawn_actor(random.choice(world.world.get_blueprint_library().filter('vehicle.*.*')), transform)
@@ -791,15 +791,16 @@ def game_loop(args):
                     print("The target has been reached, stopping the simulation")
                     break
 
-            # Second car control
-            control = agent.run_step()
-            control.manual_gear_shift = False
-            vehicle_bp.apply_control(control)
-
             # First car control
             control_model = agent_follower.run_step()
             control_model.manual_gear_shift = False
             world.player.apply_control(control_model)
+
+
+            # Second car control
+            control = agent.run_step()
+            control.manual_gear_shift = False
+            vehicle_bp.apply_control(control)
 
     finally:
 
