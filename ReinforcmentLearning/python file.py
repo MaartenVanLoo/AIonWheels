@@ -20,8 +20,6 @@ import re
 import sys
 import weakref
 
-from caffe2.python import control
-
 try:
     import pygame
     from collections import deque
