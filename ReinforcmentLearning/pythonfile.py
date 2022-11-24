@@ -91,7 +91,7 @@ def normalize3Dvector(x, y, z):
 
 def getVector3Dlength(x, y, z):
     """Computes vector 3D length"""
-    return math.sqrt((x*x) + (y*y) + (z*z))
+    return math.sqrt((x * x) + (y * y) + (z * z))
 
 
 # ==============================================================================
@@ -709,6 +709,9 @@ def game_loop(args):
     world = None
     locations_buffer = deque()
 
+    # follower agent, initially inactive
+    agent_follower = None
+
     try:
         if args.seed:
             random.seed(args.seed)
@@ -735,28 +738,26 @@ def game_loop(args):
         world = World(client.get_world(), hud, args)
         controller = KeyboardControl(world)
 
-        # spawn in camera one car
-        agent_follower = BasicAgent(world.player)
-
-        # spawn second car on front
+        '''
         transform = world.player.get_transform()
         transform_fv = transform.get_forward_vector()
         transform_fv.x, transform_fv.y, transform_fv.z = normalize3Dvector(transform_fv.x, transform_fv.y, transform_fv.z)
         new_location = transform.location + (transform_fv * -50)
         transform.location = new_location
+        '''
+        i = 0
 
-        vehicle_bp = world.world.spawn_actor(random.choice(world.world.get_blueprint_library().filter('vehicle.*.*')), transform)
-
+        # spawn followed car
+        blueprint = random.choice(world.world.get_blueprint_library().filter('vehicle.*.*'))
+        initial_transform = world.player.get_transform()
+        vehicle_bp = world.world.spawn_actor(blueprint, initial_transform)
         agent = BasicAgent(vehicle_bp)
 
-        # Set the agents destinations
+        # Set first destination
         spawn_points = world.map.get_spawn_points()
         destination = random.choice(spawn_points).location
         locations_buffer.append(destination)
-
-        # Initially set same destination
         agent.set_destination(destination)
-        agent_follower.set_destination(destination)
 
         clock = pygame.time.Clock()
 
@@ -773,6 +774,7 @@ def game_loop(args):
             world.render(display)
             pygame.display.flip()
 
+            # Rerouting to new location for followed car
             if agent.done():
                 if args.loop:
                     new_dest = random.choice(spawn_points).location
@@ -783,6 +785,20 @@ def game_loop(args):
                     print("The target has been reached, stopping the simulation")
                     break
 
+            # Control of followed car
+            control = agent.run_step()
+            control.manual_gear_shift = False
+            vehicle_bp.apply_control(control)
+
+            # after 100 iters of 0.05 seconds(5 seconds) initialize follower car
+            if agent_follower is None:
+                i += 1
+                if i == 100:
+                    agent_follower = BasicAgent(world.player)
+                    agent_follower.set_destination(destination)
+                continue
+
+            # Rerouting to new location for follower car
             if agent_follower.done():
                 if args.loop:
                     agent_follower.set_destination(locations_buffer.popleft())
@@ -791,16 +807,10 @@ def game_loop(args):
                     print("The target has been reached, stopping the simulation")
                     break
 
-            # First car control
+            # Control of follower car
             control_model = agent_follower.run_step()
             control_model.manual_gear_shift = False
             world.player.apply_control(control_model)
-
-
-            # Second car control
-            control = agent.run_step()
-            control.manual_gear_shift = False
-            vehicle_bp.apply_control(control)
 
     finally:
 
@@ -812,6 +822,9 @@ def game_loop(args):
             traffic_manager.set_synchronous_mode(True)
 
             world.destroy()
+            if agent_follower is not None:
+                agent_follower.destroy()
+            agent.destroy()
 
         pygame.quit()
 
