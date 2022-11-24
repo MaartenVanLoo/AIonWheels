@@ -57,7 +57,6 @@ except IndexError:
 import carla
 from carla import ColorConverter as cc
 
-from agents.navigation.behavior_agent import BehaviorAgent  # pylint: disable=import-error
 from agents.navigation.basic_agent import BasicAgent  # pylint: disable=import-error
 
 
@@ -740,9 +739,10 @@ def game_loop(args):
         agent_follower = BasicAgent(world.player)
 
         # spawn second car on front
-        transform = world.player.get_transform
-        new_location = transform.location + (transform.get_forward_vector() * 10)
-        new_location.x, new_location.y, new_location.z = normalize3Dvector(new_location.x, new_location.y, new_location.z)
+        transform = world.player.get_transform()
+        transform_fv = transform.get_forward_vector()
+        transform_fv.x, transform_fv.y, transform_fv.z = normalize3Dvector(transform_fv.x, transform_fv.y, transform_fv.z)
+        new_location = transform.location + (transform_fv * 10)
         transform.location = new_location
         vehicle_bp = random.choice(world.get_blueprint_library().filter('vehicle.*.*'), transform)
 
