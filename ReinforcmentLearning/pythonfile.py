@@ -744,7 +744,8 @@ def game_loop(args):
         transform_fv.x, transform_fv.y, transform_fv.z = normalize3Dvector(transform_fv.x, transform_fv.y, transform_fv.z)
         new_location = transform.location + (transform_fv * 10)
         transform.location = new_location
-        vehicle_bp = random.choice(world.get_blueprint_library().filter('vehicle.*.*'), transform)
+
+        vehicle_bp = random.choice(client.get_world().get_blueprint_library().filter('vehicle.*.*'), transform)
 
         agent = BasicAgent(vehicle_bp)
 
