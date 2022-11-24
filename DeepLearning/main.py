@@ -60,7 +60,7 @@ def main():
         # Spawn ego vehicle
         # --------------
 
-        ego_bp = world.get_blueprint_library().find('vehicle.tesla.model3')
+        ego_bp = world.get_blueprint_library().find('vehicle.tesla.cybertruck')
         ego_bp.set_attribute('role_name','ego')
         print('\nEgo role_name is set')
         ego_color = random.choice(ego_bp.get_attribute('color').recommended_values)
