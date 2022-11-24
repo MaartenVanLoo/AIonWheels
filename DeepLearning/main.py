@@ -89,7 +89,7 @@ def main():
         cam_bp.set_attribute("image_size_y",str(1080))
         cam_bp.set_attribute("fov",str(105))
         cam_location = carla.Location(2,0,1)
-        cam_rotation = carla.Rotation(0,180,0)
+        cam_rotation = carla.Rotation(0,0,0)
         cam_transform = carla.Transform(cam_location,cam_rotation)
         ego_cam = world.spawn_actor(cam_bp,cam_transform,attach_to=ego_vehicle, attachment_type=carla.AttachmentType.Rigid)
         ego_cam.listen(lambda image: image.save_to_disk('~/tutorial/output/%.6d.jpg' % image.frame))
@@ -103,7 +103,7 @@ def main():
         sem_bp.set_attribute("image_size_y",str(1080))
         sem_bp.set_attribute("fov",str(105))
         sem_location = carla.Location(2,0,1)
-        sem_rotation = carla.Rotation(0,180,0)
+        sem_rotation = carla.Rotation(0,0,0)
         sem_transform = carla.Transform(sem_location,sem_rotation)
         sem_cam = world.spawn_actor(sem_bp,sem_transform,attach_to=ego_vehicle, attachment_type=carla.AttachmentType.Rigid)
         # This time, a color converter is applied to the image, to get the semantic segmentation view
