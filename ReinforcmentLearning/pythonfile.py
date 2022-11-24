@@ -752,6 +752,7 @@ def game_loop(args):
         # Set the agents destinations
         spawn_points = world.map.get_spawn_points()
         destination = random.choice(spawn_points).location
+        locations_buffer.append(destination)
 
         # Initially set same destination
         agent.set_destination(destination)
