@@ -742,7 +742,7 @@ def game_loop(args):
         transform = world.player.get_transform()
         transform_fv = transform.get_forward_vector()
         transform_fv.x, transform_fv.y, transform_fv.z = normalize3Dvector(transform_fv.x, transform_fv.y, transform_fv.z)
-        new_location = transform.location + (transform_fv * 10)
+        new_location = transform.location + (transform_fv * 50)
         transform.location = new_location
 
         vehicle_bp = world.world.spawn_actor(random.choice(world.world.get_blueprint_library().filter('vehicle.*.*')), transform)
