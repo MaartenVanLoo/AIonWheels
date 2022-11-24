@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 
+import wandb
+
 __initialDistance = 20
 
 
@@ -98,6 +100,18 @@ class SinusCar(DrivingCar):
         self.frame += 1
 
 
+class ConstantCar(DrivingCar):
+
+    def __init__(self, num_actions, speed, position, acceleration):
+        super().__init__(num_actions, speed, position, acceleration)
+        self.frame = 0
+
+    def step(self, action=None, dt=1.0):
+        self.setSpeed(30)
+        self.updatePos()
+        self.frame += 1
+
+
 class Environment:
     def __init__(self, config: dict):
         self.config = config
@@ -159,7 +173,8 @@ class Environment:
             prevDistance = self.history['car'][-2] - self.history['agent'][-2]
         else:
             prevDistance = distance
-        return distance, prevDistance ,self.agent.getSpeed()
+        distance = np.clip(distance,-200, 200)
+        return distance, prevDistance ,self.agent.getSpeed(), self.agent.target_speed
 
     def __getReward(self):
         """
@@ -177,7 +192,7 @@ class Environment:
         e = target_speed - self.agent.getSpeed()
         m_t = 1 if e*e <= 0.25 else 0
         u = 0 ## TODO: what is U???? https://nl.mathworks.com/help/reinforcement-learning/ug/train-ddpg-agent-for-adaptive-cruise-control.html
-        reward = -(0.1* e*e + u * u) + m_t
+        reward = -(0.1 * e*e + u * u) + m_t
         #speed_reward = -sigmoid(abs(dv/5))*2+2
 
         #combined_reward = distance_reward*sigmoid(-distance+10)+\
@@ -190,7 +205,7 @@ class Environment:
         Return true when a terminal state is reached
         """
         distance = self.car.getPos() - self.agent.getPos()
-        return self.agent.position > 2000 or distance < 4 or self.stepCount > 4000 or self.agent.getSpeed() < 0
+        return self.agent.position > 2000 or distance < 4 or self.stepCount > 4000
 
     def __info(self):
         info = dict()
@@ -224,3 +239,10 @@ class Environment:
         ax3.plot(x,distance)
         ax3.set_title('distance')
         plt.show()
+
+        wandb.log({'agent_pos': self.history['agent'],
+                   'car_pos':self.history['car'],
+                   'agent_vel': self.history['agent_speed'],
+                   'car_vel': self.history['car_speed'],
+                   'distance': distance
+                    })

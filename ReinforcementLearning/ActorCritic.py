@@ -1,3 +1,4 @@
+import os
 from collections import deque
 import random
 
@@ -8,6 +9,8 @@ import numpy as np
 from Environment import Environment
 import matplotlib
 import matplotlib.pyplot as plt
+import wandb
+
 
 class Actor(nn.Module):
     def __init__(self, config) -> None:
@@ -36,6 +39,9 @@ class Actor(nn.Module):
         x = self.base(x)
         mu = self.mu(x)
         var = self.var(x)
+        #if var <= 0:
+        #    torch.where()
+        #    var = torch.tensor(1e-6).to(self.device)
         return torch.distributions.Normal(mu, var)
     def act(self,state):
         with torch.no_grad():
@@ -97,6 +103,8 @@ class _ReplayBuffer:
 
 class ActorCriticLearner:
     def __init__(self, environment, config) -> None:
+        self.config = config
+
         self.device = torch.device(config.get('device', 'cuda') if torch.cuda.is_available() else 'cpu')
         self.env = environment
 
@@ -145,14 +153,16 @@ class ActorCriticLearner:
         critic_loss.backward()
 
         return actor_loss,critic_loss
-        pass
 
     def train(self):
+        self.initwandb()
         episode_reward = 0
+        episode_count = 0
         losses = []
         all_rewards = []
 
         state = self.env.reset()
+        log = dict()
         for frame_idx in range(1, self.num_frames + 1):
             action = self.actor.act(state)
 
@@ -167,17 +177,19 @@ class ActorCriticLearner:
             episode_reward += reward
 
             if (len(self.__replay_buffer) > self.batch_size):
-                loss = self.__update()
+                actor_loss , critic_loss = self.__update()
+                wandb.log({'actor_loss' : actor_loss, 'critic_loss' : critic_loss})
                 #loss = loss.data.cpu().numpy().tolist()
                 #losses.append(loss)
 
 
             if done:
-                if random.random() > 0.9:
-                    self.env.plot()
+                self.env.plot()
                 state = self.env.reset()
                 all_rewards.append(episode_reward)
+                wandb.log({'episode_reward':episode_reward})
                 episode_reward = 0
+                episode_count += 1
             if frame_idx % 2000 == 0:
                 # plot if required
                 plt.plot(all_rewards)
@@ -186,6 +198,13 @@ class ActorCriticLearner:
                 pass
             if frame_idx % 4000 == 0:
                 self.save(f"{frame_idx}.pt")
+
+    def initwandb(self):
+        os.environ["WANDB_API_KEY"] ='827fc9095ed2096f0d61efa2cca1450526099892'
+
+        wandb.login()
+        wandb.init(project="a2c",config=self.config)
+
 
     def save(self, filename: str):
         # TODO: add support for saving a model
@@ -222,7 +241,7 @@ if __name__ == "__main__":
         'gamma':0.99,
         'replay_size':50000,
 
-        'num_input':3, #=size of states!
+        'num_inputs':4, #=size of states!
         'num_actions':1,
         'hidden':128,
 
@@ -232,8 +251,8 @@ if __name__ == "__main__":
 
     env = Environment(config)
     a2cLearner = ActorCriticLearner(env, config)
-    a2cLearner.load('working.pt')
-    a2cLearner.eval()
+    #a2cLearner.load('working.pt')
+    #a2cLearner.eval()
 
-    #a2cLearner.train()
-    #a2cLearner.save("TrainedModel.save")
+    a2cLearner.train()
+    a2cLearner.save("TrainedModel.save")
