@@ -95,7 +95,7 @@ class SinusCar(DrivingCar):
         self.frame = 0
 
     def step(self, action=None, dt=1.0):
-        self.setSpeed(2*math.sin(self.frame/50)+3)
+        self.setSpeed(2*math.sin(self.frame/200)+3)
         self.updatePos()
         self.frame += 1
 
@@ -205,7 +205,7 @@ class Environment:
         Return true when a terminal state is reached
         """
         distance = self.car.getPos() - self.agent.getPos()
-        return self.agent.position > 2000 or distance < 4 or self.stepCount > 4000
+        return self.agent.position > 2000 or distance < 4 or self.stepCount > 1000
 
     def __info(self):
         info = dict()

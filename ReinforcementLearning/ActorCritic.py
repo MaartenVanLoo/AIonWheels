@@ -39,9 +39,7 @@ class Actor(nn.Module):
         x = self.base(x)
         mu = self.mu(x)
         var = self.var(x)
-        #if var <= 0:
-        #    torch.where()
-        #    var = torch.tensor(1e-6).to(self.device)
+        #var = torch.where(var <= 0, 1e-6,var)
         return torch.distributions.Normal(mu, var)
     def act(self,state):
         with torch.no_grad():
@@ -146,11 +144,13 @@ class ActorCriticLearner:
         actor_loss = (-logs_probs * advantage.detach()).mean() - entropy * self.entropy_beta
         self.__actor_optim.zero_grad()
         actor_loss.backward()
+        self.__actor_optim.step()
 
         #critic
         critic_loss = torch.nn.functional.mse_loss(td_target, value)
         self.__critic_optim.zero_grad()
         critic_loss.backward()
+        self.__critic_optim.step()
 
         return actor_loss,critic_loss
 
@@ -188,6 +188,8 @@ class ActorCriticLearner:
                 state = self.env.reset()
                 all_rewards.append(episode_reward)
                 wandb.log({'episode_reward':episode_reward})
+                print(f'Episode reward:{episode_reward}')
+                print(f'Frame count:{frame_idx}')
                 episode_reward = 0
                 episode_count += 1
             if frame_idx % 2000 == 0:
@@ -239,7 +241,7 @@ if __name__ == "__main__":
         'batch_size':256,
         'num_frames':200000,
         'gamma':0.99,
-        'replay_size':50000,
+        'replay_size':10000,
 
         'num_inputs':4, #=size of states!
         'num_actions':1,
