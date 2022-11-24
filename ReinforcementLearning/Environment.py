@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+import gym
+from gym import spaces
 
 import wandb
 
@@ -181,8 +183,17 @@ class RandomCar(DrivingCar):
         self.updatePos()
         self.frame += 1
 
-class Environment:
+class Environment(gym.Env):
     def __init__(self, config: dict):
+        self.setpoint=20
+        self.action_space=gym.spaces.Box(np.array([-1]),np.array([1]))
+        spaces= {
+            'distance': gym.spaces.Box(low=0,high=np.inf),
+            'speedAgent_t': gym.spaces.Box(low=0,high=np.inf),
+            'targetSpeedAgent_t': gym.spaces.Box(low=0,high=np.inf),
+            'distance_prev': gym.spaces.Box(low=0,high=np.inf)
+        }
+        self.observation_space=gym.spaces.Dict(spaces)
         self.config = config
         self.agent_config = config.get("agent", dict())
         self.car_config = config.get("car", dict())
