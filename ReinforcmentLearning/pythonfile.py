@@ -745,7 +745,7 @@ def game_loop(args):
         new_location = transform.location + (transform_fv * 10)
         transform.location = new_location
 
-        vehicle_bp = random.choice(client.get_world().get_blueprint_library().filter('vehicle.*.*'), transform)
+        vehicle_bp = world.world.spawn_actor(random.choice(world.world.get_blueprint_library().filter('vehicle.*.*')), transform)
 
         agent = BasicAgent(vehicle_bp)
 
