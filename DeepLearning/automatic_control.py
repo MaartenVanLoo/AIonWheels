@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # Copyright (c) 2018 Intel Labs.
 # authors: German Ros (german.ros@intel.com)
 #
@@ -22,7 +24,6 @@ import weakref
 
 try:
     import pygame
-    from collections import deque
     from pygame.locals import KMOD_CTRL
     from pygame.locals import K_ESCAPE
     from pygame.locals import K_q
@@ -57,6 +58,7 @@ except IndexError:
 import carla
 from carla import ColorConverter as cc
 
+from agents.navigation.behavior_agent import BehaviorAgent  # pylint: disable=import-error
 from agents.navigation.basic_agent import BasicAgent  # pylint: disable=import-error
 
 
@@ -68,9 +70,7 @@ from agents.navigation.basic_agent import BasicAgent  # pylint: disable=import-e
 def find_weather_presets():
     """Method to find weather presets"""
     rgx = re.compile('.+?(?:(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|$)')
-
     def name(x): return ' '.join(m.group(0) for m in rgx.finditer(x))
-
     presets = [x for x in dir(carla.WeatherParameters) if re.match('[A-Z].+', x)]
     return [(getattr(carla.WeatherParameters, x), name(x)) for x in presets]
 
@@ -79,19 +79,6 @@ def get_actor_display_name(actor, truncate=250):
     """Method to get actor display name"""
     name = ' '.join(actor.type_id.replace('_', '.').title().split('.')[1:])
     return (name[:truncate - 1] + u'\u2026') if len(name) > truncate else name
-
-
-def normalize3Dvector(x, y, z):
-    length = getVector3Dlength(x, y, z)
-    x = x / length
-    y = y / length
-    z = z / length
-    return x, y, z
-
-
-def getVector3Dlength(x, y, z):
-    """Computes vector 3D length"""
-    return math.sqrt((x * x) + (y * y) + (z * z))
 
 
 # ==============================================================================
@@ -182,7 +169,7 @@ class World(object):
         self.player.get_world().set_weather(preset[0])
 
     def modify_vehicle_physics(self, actor):
-        # If actor is not a vehicle, we cannot use the physics control
+        #If actor is not a vehicle, we cannot use the physics control
         try:
             physics_control = actor.get_physics_control()
             physics_control.use_sweep_wheel_collision = True
@@ -239,7 +226,6 @@ class KeyboardControl(object):
     def _is_quit_shortcut(key):
         """Shortcut for quitting"""
         return (key == K_ESCAPE) or (key == K_q and pygame.key.get_mods() & KMOD_CTRL)
-
 
 # ==============================================================================
 # -- HUD -----------------------------------------------------------------------
@@ -301,7 +287,7 @@ class HUD(object):
             'Map:     % 20s' % world.map.name.split('/')[-1],
             'Simulation time: % 12s' % datetime.timedelta(seconds=int(self.simulation_time)),
             '',
-            'Speed:   % 15.0f km/h' % (3.6 * math.sqrt(vel.x ** 2 + vel.y ** 2 + vel.z ** 2)),
+            'Speed:   % 15.0f km/h' % (3.6 * math.sqrt(vel.x**2 + vel.y**2 + vel.z**2)),
             u'Heading:% 16.0f\N{DEGREE SIGN} % 2s' % (transform.rotation.yaw, heading),
             'Location:% 20s' % ('(% 5.1f, % 5.1f)' % (transform.location.x, transform.location.y)),
             'GNSS:% 24s' % ('(% 2.6f, % 3.6f)' % (world.gnss_sensor.lat, world.gnss_sensor.lon)),
@@ -331,9 +317,8 @@ class HUD(object):
             self._info_text += ['Nearby vehicles:']
 
         def dist(l):
-            return math.sqrt((l.x - transform.location.x) ** 2 + (l.y - transform.location.y)
-                             ** 2 + (l.z - transform.location.z) ** 2)
-
+            return math.sqrt((l.x - transform.location.x)**2 + (l.y - transform.location.y)
+                             ** 2 + (l.z - transform.location.z)**2)
         vehicles = [(dist(x.get_location()), x) for x in vehicles if x.id != world.player.id]
 
         for dist, vehicle in sorted(vehicles):
@@ -394,7 +379,6 @@ class HUD(object):
         self._notifications.render(display)
         self.help.render(display)
 
-
 # ==============================================================================
 # -- FadingText ----------------------------------------------------------------
 # ==============================================================================
@@ -429,7 +413,6 @@ class FadingText(object):
         """Render fading text method"""
         display.blit(self.surface, self.pos)
 
-
 # ==============================================================================
 # -- HelpText ------------------------------------------------------------------
 # ==============================================================================
@@ -461,7 +444,6 @@ class HelpText(object):
         """Render help text method"""
         if self._render:
             display.blit(self.surface, self.pos)
-
 
 # ==============================================================================
 # -- CollisionSensor -----------------------------------------------------------
@@ -506,7 +488,6 @@ class CollisionSensor(object):
         if len(self.history) > 4000:
             self.history.pop(0)
 
-
 # ==============================================================================
 # -- LaneInvasionSensor --------------------------------------------------------
 # ==============================================================================
@@ -537,7 +518,6 @@ class LaneInvasionSensor(object):
         lane_types = set(x.type for x in event.crossed_lane_markings)
         text = ['%r' % str(x).split()[-1] for x in lane_types]
         self.hud.notification('Crossed line %s' % ' and '.join(text))
-
 
 # ==============================================================================
 # -- GnssSensor --------------------------------------------------------
@@ -570,7 +550,6 @@ class GnssSensor(object):
             return
         self.lat = event.latitude
         self.lon = event.longitude
-
 
 # ==============================================================================
 # -- CameraManager -------------------------------------------------------------
@@ -631,7 +610,7 @@ class CameraManager(object):
         """Set a sensor"""
         index = index % len(self.sensors)
         needs_respawn = True if self.index is None else (
-                force_respawn or (self.sensors[index][0] != self.sensors[self.index][0]))
+            force_respawn or (self.sensors[index][0] != self.sensors[self.index][0]))
         if needs_respawn:
             if self.sensor is not None:
                 self.sensor.destroy()
@@ -692,7 +671,6 @@ class CameraManager(object):
         if self.recording:
             image.save_to_disk('_out/%08d' % image.frame)
 
-
 # ==============================================================================
 # -- Game Loop ---------------------------------------------------------
 # ==============================================================================
@@ -707,10 +685,6 @@ def game_loop(args):
     pygame.init()
     pygame.font.init()
     world = None
-    locations_buffer = deque()
-
-    # follower agent, initially inactive
-    agent_follower = None
 
     try:
         if args.seed:
@@ -737,26 +711,14 @@ def game_loop(args):
         hud = HUD(args.width, args.height)
         world = World(client.get_world(), hud, args)
         controller = KeyboardControl(world)
+        if args.agent == "Basic":
+            agent = BasicAgent(world.player)
+        else:
+            agent = BehaviorAgent(world.player, behavior=args.behavior)
 
-        '''
-        transform = world.player.get_transform()
-        transform_fv = transform.get_forward_vector()
-        transform_fv.x, transform_fv.y, transform_fv.z = normalize3Dvector(transform_fv.x, transform_fv.y, transform_fv.z)
-        new_location = transform.location + (transform_fv * -50)
-        transform.location = new_location
-        '''
-        i = 0
-
-        # spawn followed car
-        blueprint = random.choice(world.world.get_blueprint_library().filter('vehicle.*.*'))
-        initial_transform = world.player.get_transform()
-        vehicle_bp = world.world.spawn_actor(blueprint, initial_transform)
-        agent = BasicAgent(vehicle_bp)
-
-        # Set first destination
+        # Set the agent destination
         spawn_points = world.map.get_spawn_points()
         destination = random.choice(spawn_points).location
-        locations_buffer.append(destination)
         agent.set_destination(destination)
 
         clock = pygame.time.Clock()
@@ -774,43 +736,18 @@ def game_loop(args):
             world.render(display)
             pygame.display.flip()
 
-            # Rerouting to new location for followed car
             if agent.done():
                 if args.loop:
-                    new_dest = random.choice(spawn_points).location
-                    locations_buffer.append(new_dest)
-                    agent.set_destination(new_dest)
-                    print("Agent target: The target has been reached, searching for another target")
+                    agent.set_destination(random.choice(spawn_points).location)
+                    world.hud.notification("The target has been reached, searching for another target", seconds=4.0)
+                    print("The target has been reached, searching for another target")
                 else:
                     print("The target has been reached, stopping the simulation")
                     break
 
-            # Control of followed car
             control = agent.run_step()
             control.manual_gear_shift = False
-            vehicle_bp.apply_control(control)
-
-            # after 100 iters of 0.05 seconds(5 seconds) initialize follower car
-            if agent_follower is None:
-                i += 1
-                if i == 100:
-                    agent_follower = BasicAgent(world.player)
-                    agent_follower.set_destination(destination)
-                continue
-
-            # Rerouting to new location for follower car
-            if agent_follower.done():
-                if args.loop:
-                    agent_follower.set_destination(locations_buffer.popleft())
-                    print("Agent_controlled: The target has been reached, searching for another target")
-                else:
-                    print("The target has been reached, stopping the simulation")
-                    break
-
-            # Control of follower car
-            control_model = agent_follower.run_step()
-            control_model.manual_gear_shift = False
-            world.player.apply_control(control_model)
+            world.player.apply_control(control)
 
     finally:
 
@@ -822,23 +759,8 @@ def game_loop(args):
             traffic_manager.set_synchronous_mode(True)
 
             world.destroy()
-            if agent_follower is not None:
-                agent_follower.destroy()
-            agent.destroy()
 
         pygame.quit()
-
-
-class CarlaConnection:
-    def __init__(self) -> None:
-        super().__init__()
-
-    def getDistance(self):
-        """
-        Get the distance to the nearest car in the environment
-        :return:
-        """
-        pass
 
 
 # ==============================================================================
