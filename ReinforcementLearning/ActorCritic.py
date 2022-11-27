@@ -6,12 +6,14 @@ import torch
 from torch import nn
 import math
 import numpy as np
-from Environment import Environment
+import Environment
+
 import matplotlib
 import matplotlib.pyplot as plt
 import wandb
 
 
+ENABLE_WANDB = True
 def _init_weights(m):
     if isinstance(m, nn.Linear):
        torch.nn.init.xavier_uniform_(m.weight)
@@ -76,6 +78,7 @@ class Critic(nn.Module):
 
         self.base = torch.nn.Sequential(
             torch.nn.Linear(self.num_inputs, self._hidden),
+            torch.nn.BatchNorm1d(self._hidden),
             torch.nn.ReLU(),
         )
         self.value = torch.nn.Linear(self._hidden, 1)
@@ -93,7 +96,7 @@ class _Buffer:
         capacity: int
             the length of your buffer
         """
-        self.buffer = deque(maxlen=capacity)
+        self.buffer = deque()
 
 
     def push(self, state, action, reward, next_state, done):
@@ -102,16 +105,21 @@ class _Buffer:
 
         self.buffer.append((state, action, reward, next_state, done))
 
-    def get(self):
+    def get(self, batch_size):
         """
         batch_size: int
         """
+
         state, action, reward, next_state, done = zip(*self.buffer)
         self.buffer.clear()
         return np.concatenate(state), action, reward, np.concatenate(next_state), done
 
+    def clear(self):
+        self.buffer.clear()
+
     def isFull(self):
-        return len(self) == self.buffer.maxlen
+        return False
+        #return len(self) == self.buffer.maxlen
 
     def __len__(self):
         return len(self.buffer)
@@ -143,12 +151,15 @@ class ActorCriticLearner:
 
 
     def __update(self):
+        if (len(self.__buffer) < 3):
+            self.__buffer.clear()
+            return
         self.actor.train()
-        state, action, reward, next_state, done = self.__buffer.get()
+        state, action, reward, next_state, done = self.__buffer.get(self.batch_size)
 
         state = torch.FloatTensor(np.float32(state)).to(self.device)
         next_state = torch.FloatTensor(np.float32(next_state)).to(self.device)
-        action = torch.stack(action).to(self.device)
+        action = torch.stack(action).squeeze(-1).to(self.device)
         reward = torch.FloatTensor(reward).to(self.device)
         done = torch.BoolTensor(done).to(self.device)
 
@@ -171,7 +182,7 @@ class ActorCriticLearner:
         critic_loss.backward()
         self.__critic_optim.step()
 
-        return actor_loss,critic_loss
+        return actor_loss.cpu(),critic_loss.cpu()
 
     def train(self):
         self.initwandb()
@@ -189,14 +200,15 @@ class ActorCriticLearner:
         for frame_idx in range(1, self.num_frames + 1):
             self.actor.eval()
             action = self.actor.act(state)
-
             next_state, reward, done, info = self.env.step(action.item())
-
+            if ENABLE_WANDB:
+                wandb.log({'action':action.item(), 'reward':reward})
             #update
             self.__buffer.push(state,action,reward,next_state, done)
             if (self.__buffer.isFull() or done):
                 actor_loss, critic_loss = self.__update()
-                wandb.log({'actor_loss' : actor_loss, 'critic_loss' : critic_loss})
+                if ENABLE_WANDB:
+                    wandb.log({'actor_loss' : actor_loss, 'critic_loss' : critic_loss})
                 # loss = loss.data.cpu().numpy().tolist()
                 # losses.append(loss)
 
@@ -207,7 +219,8 @@ class ActorCriticLearner:
                 self.env.plot()
                 state = self.env.reset()
                 all_rewards.append(episode_reward)
-                wandb.log({'episode_reward':episode_reward})
+                if ENABLE_WANDB:
+                    wandb.log({'episode_reward':episode_reward})
                 print(f'Episode reward:{episode_reward}')
                 print(f'Frame count:{frame_idx}')
                 episode_reward = 0
@@ -224,6 +237,8 @@ class ActorCriticLearner:
                 self.save(f"{frame_idx}.pt")
 
     def initwandb(self):
+        if not ENABLE_WANDB:
+            return
         os.environ["WANDB_API_KEY"] ='827fc9095ed2096f0d61efa2cca1450526099892'
 
         wandb.login()
@@ -267,7 +282,7 @@ if __name__ == "__main__":
         'gamma':0.99,
         'replay_size':10000,
 
-        'num_inputs':5, #=size of states!
+        'num_inputs':6, #=size of states!
         'num_actions':1,
         'hidden':128,
         'entropy_beta':0.001,
@@ -276,7 +291,8 @@ if __name__ == "__main__":
     }
 
 
-    env = Environment(config)
+    Environment._DISCRETE = False
+    env = Environment.Environment(config)
     a2cLearner = ActorCriticLearner(env, config)
     #a2cLearner.load('working.pt')
     #a2cLearner.eval()
