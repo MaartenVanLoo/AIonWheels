@@ -296,7 +296,8 @@ class Environment(gym.Env):
         return string
 
     def chooseRandomCar(self, num_actions, speed, position, acceleration):
-        choice = np.random.randint(0, 2)
+        number_of_cars = 5
+        choice = np.random.randint(0, number_of_cars+1)
         if choice == 0:
             return DrivingCar(num_actions,speed, position, acceleration)
         elif choice == 1:
@@ -304,11 +305,11 @@ class Environment(gym.Env):
         elif choice == 2:
             return ConstantCar(num_actions, speed, position, acceleration)
         elif choice == 3:
-            return RandomCar(num_actions, speed, position, acceleration)
+            return NoDrivingCar(num_actions, speed, position, acceleration)
         elif choice == 4:
             return SpeedUpBrakeCar(num_actions, speed, position, acceleration)
         elif choice == 5:
-            return NoDrivingCar(num_actions, speed, position, acceleration)
+            return RandomCar(num_actions, speed, position, acceleration)
 
     def step(self, action):
         # step state
@@ -431,14 +432,20 @@ class Environment(gym.Env):
         """
         distance = abs(self.car.getPos() - self.agent.getPos())
         if self.evaluation:
-            done = distance < 4 or self.episodeReward > 500 or distance > 1000 or self.stepCount > 50000
+            done = distance < 4 or \
+                   self.episodeReward > 500 or \
+                   (distance > 1000 and self.agent.getSpeed() < self.car.getSpeed()) or \
+                   self.stepCount > 50000
         else:
-            done = distance < 4 or self.episodeReward > 500 or distance > 1000 or self.stepCount > 4000
+            done = distance < 4 or \
+                   self.episodeReward > 500 or \
+                   (distance > 1000 and self.agent.getSpeed() < self.car.getSpeed()) or \
+                   self.stepCount > 5000
         return done
 
     def __info(self):
         info = {}
-        if self.stepCount > 4000:
+        if self.stepCount > 5000:
             info['TimeLimit.truncated'] = True
         return info
 
