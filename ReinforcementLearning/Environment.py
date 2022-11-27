@@ -117,6 +117,38 @@ class DrivingCar:
         self.updateSpeed(dt)
         self.updatePos(dt)
 
+    def reset(self):
+        self.position = 0
+        self.speed = 0
+        self.acceleration = 0
+
+    def type(self):
+        return "DrivingCar"
+
+    def plot(self, stepCount,dt=1.0):
+        pos=[0.0]
+        speed=[0.0]
+        acc=[0.0]
+        self.reset()
+        for s in range(stepCount):
+            self.step(None, dt)
+            pos.append(self.getPos())
+            speed.append(self.getSpeed())
+            acc.append((speed[-1]-speed[-2])/dt)
+        pos= pos[2:]
+        speed= speed[2:]
+        acc= acc[2:]
+        x = np.linspace(0, stepCount-2, num=stepCount-1)
+        fig, (ax1,ax2,ax3) = plt.subplots(1,3)
+        plt.suptitle(self.type())
+        ax1.plot(x, pos)
+        ax1.set_title("position")
+        ax2.plot(x, speed)
+        ax2.set_title("speed")
+        ax3.plot(x, acc)
+        ax3.set_title("acceleration")
+        plt.show()
+
 
 class SinusCar(DrivingCar):
 
@@ -132,6 +164,9 @@ class SinusCar(DrivingCar):
         self.updatePos(dt)
         self.frame += 1
 
+    def type(self):
+        return "Sinuscar"
+
 
 class ConstantCar(DrivingCar):
 
@@ -143,6 +178,9 @@ class ConstantCar(DrivingCar):
         self.updatePos(dt)
         self.frame += 1
 
+    def type(self):
+        return "ConstantCar"
+
 
 class NoDrivingCar(DrivingCar):
 
@@ -152,6 +190,9 @@ class NoDrivingCar(DrivingCar):
 
     def step(self, action=None, dt=1.0):
         self.frame += 1
+
+    def type(self):
+        return "NoDrivingCar"
 
 
 class SpeedUpBrakeCar(DrivingCar):
@@ -167,19 +208,21 @@ class SpeedUpBrakeCar(DrivingCar):
             self.updateSpeed(dt)
             self.brakeCounter = 0
         else:
-            if self.speed < 83:
+            if self.speed < 20:
                 self.updateSpeed(dt)
             else:
                 if self.brakeCounter < 100:
-                    self.speed = 83
+                    self.speed = 20
                     self.brakeCounter += 1
                 else:
-                    self.setAcceleration(-self.maxBreaking)
+                    self.setAcceleration(-self.maxBreaking*0.8)
                     self.updateSpeed(dt)
                     self.brakeCounter += 1
         self.updatePos(dt)
         self.frame += 1
 
+    def type(self):
+        return "SpeedUpBrakeCar"
 
 class RandomCar(DrivingCar):
     def __init__(self, num_actions, speed, position, acceleration):
@@ -205,6 +248,8 @@ class RandomCar(DrivingCar):
         self.updatePos(dt)
         self.frame += 1
 
+    def type(self):
+        return "RandomCar"
 
 class Environment(gym.Env):
     def __init__(self, config: dict):
@@ -456,3 +501,20 @@ class Environment(gym.Env):
         self.evaluation = True
     def train(self):
         self.evaluation = False
+
+
+if __name__ == "__main__":
+    #plot all different cars:
+    drivingCar = DrivingCar(1,0,0,0)
+    sinusCar = SinusCar(1,0,0,0)
+    constantCar = ConstantCar(1,0,0,0)
+    noDrivingCar = NoDrivingCar(1,0,0,0)
+    speedUpBrakeCar = SpeedUpBrakeCar(1,0,0,0)
+    randomCar = RandomCar(1,0,0,0)
+
+    drivingCar.plot(4000,0.05)
+    sinusCar.plot(4000,0.05)
+    constantCar.plot(4000,0.05)
+    noDrivingCar.plot(4000,0.05)
+    speedUpBrakeCar.plot(4000,0.05)
+    randomCar.plot(4000,0.05)
