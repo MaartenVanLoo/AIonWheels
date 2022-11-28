@@ -291,8 +291,8 @@ if __name__ == "__main__":
     }
 
 
-    Environment._DISCRETE = False
-    env = Environment.Environment(config)
+    SimpleACC._DISCRETE = False
+    env = SimpleACC.SimpleACC(config)
     a2cLearner = ActorCriticLearner(env, config)
     #a2cLearner.load('working.pt')
     #a2cLearner.eval()

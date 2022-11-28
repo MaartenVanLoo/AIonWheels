@@ -6,7 +6,7 @@ from collections import deque, namedtuple
 import torch
 import math
 import numpy as np
-from Environment import Environment
+from Environment import SimpleACC
 import matplotlib
 import matplotlib.pyplot as plt
 
@@ -417,11 +417,14 @@ if __name__ == "__main__":
         'gamma': 0.99,
         'replay_size': 50000,
 
+        'history_frames': 3,
         'num_inputs': 6,  # =size of states!
         'num_actions': 7,
-        'hidden': [128, 128],
+        'hidden': [128, 128,64],
     }
-    env = Environment(config)
+    env = SimpleACC(config)
+    config['num_inputs'] = len(env.reset()) # always correct :D
+
     qlearning = Qlearner(env, DQN, config)
     qlearning.train()
     qlearning.save("models/TrainedModel.pth")

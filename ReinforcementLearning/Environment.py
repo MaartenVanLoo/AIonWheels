@@ -1,4 +1,5 @@
 import io
+import queue
 from random import random
 from PIL import Image
 import numpy as np
@@ -6,7 +7,7 @@ import matplotlib.pyplot as plt
 import math
 import gym
 from gym import spaces
-
+from collections import deque
 import wandb
 
 __initialDistance = 20
@@ -21,12 +22,8 @@ def _sigmoid(x):
         return 0
     return 1 / (1 + math.exp(-x))
 
-def flatten(data):
-    if isinstance(data, tuple):
-        for x in data:
-            yield from flatten(x)
-    else:
-        yield data
+def flatten(l: list) ->list:
+    return [item for sublist in l for item in sublist]
 
 class DrivingCar:
     def __init__(self, num_actions, speed, position, acceleration):
@@ -251,18 +248,26 @@ class RandomCar(DrivingCar):
     def type(self):
         return "RandomCar"
 
-class Environment(gym.Env):
+class SimpleACC(gym.Env):
     def __init__(self, config: dict):
         self.setpoint = 20
-        self.action_space = gym.spaces.Box(np.array([-1]), np.array([1]))
+        if _DISCRETE:
+
+            #self.action_space = gym.spaces.Box(low=np.array([0]),high=np.array([config.get("num_actions", 7)]),
+            #                                   dtype=int)
+            self.action_space = gym.spaces.Discrete(7)
+            low = np.tile(np.array([0, -np.inf, -np.inf, 0]), config.get('history_frames', 3)).flatten()
+            high = np.tile(np.array([np.inf, np.inf, np.inf, 7]), config.get('history_frames', 3)).flatten()
+            self.observation_space = gym.spaces.Box(low=low, high=high)
+        else:
+            self.action_space = gym.spaces.Box(np.array([-1]), np.array([1]))
+            low = np.tile(np.array([0, -np.inf, -np.inf, -1]), config.get('history_frames', 3)).flatten()
+            high = np.tile(np.array([np.inf, np.inf, np.inf, 1]), config.get('history_frames', 3)).flatten()
+            self.observation_space = gym.spaces.Box(low=low, high=high)
         #spaces = {
-        #    'distance': gym.spaces.Box(low=0, high=np.inf),
-        #    'speedAgent_t': gym.spaces.Box(low=0, high=np.inf),
-        #    'targetSpeedAgent_t': gym.spaces.Box(low=0, high=np.inf),
-        #    'distance_prev': gym.spaces.Box(low=0, high=np.inf)
+        # distance, self.agent.target_speed, self.agent.getSpeed(), self.prev_action
         #}
-        self.observation_space = gym.spaces.Box(low=np.array([0, 0, 0, 0,-1]), high=np.array([np.inf, np.inf, np.inf,
-                                                                                           np.inf,1]))
+        self.frames = deque(maxlen=config.get('history_frames', 3))
         # distance,distance prev,  speedAgent, targetspeed, prev_action
 
         self.config = config
@@ -273,6 +278,7 @@ class Environment(gym.Env):
 
         self.stepCount = 0
         self.history = {'agent': [], 'car': [], 'agent_speed': [], 'car_speed': [], 'target_speed':[], 'safe_dist':[]}
+
 
         # https://nl.mathworks.com/help/reinforcement-learning/ug/train-ddpg-agent-for-adaptive-cruise-control.html
         self.distance_default = 4  # m
@@ -288,6 +294,7 @@ class Environment(gym.Env):
         self.env_plot = fig
         self.env_plot_axis = (ax1, ax2, ax3)
 
+
     def __str__(self) -> str:
         string = ""
         string += "Agent:\t" + str(self.agent) + "\n"
@@ -298,6 +305,7 @@ class Environment(gym.Env):
     def chooseRandomCar(self, num_actions, speed, position, acceleration):
         number_of_cars = 5
         choice = np.random.randint(0, number_of_cars+1)
+
         if choice == 0:
             return DrivingCar(num_actions,speed, position, acceleration)
         elif choice == 1:
@@ -318,7 +326,8 @@ class Environment(gym.Env):
         self.agent.step(action=action, dt=dt)
         self.stepCount += 1
 
-        state = self.__getState()
+        self.frames.append(self.__getState())
+        state = np.array(list(self.frames)).flatten()
 
         # reward
         reward = self.__getReward(action)
@@ -342,21 +351,33 @@ class Environment(gym.Env):
 
     def reset(self, **kwargs):
         self.agent = DrivingCar(
-            num_actions=self.config.get("num_actions", 1),
+            num_actions=self.config.get("num_actions", 7),
             position=self.agent_config.get("position", 0),
             speed=self.agent_config.get("speed", 0),
             acceleration=self.agent_config.get("acceleration", 2))
+
+        position = self.agent_config.get("position", 200)
+        speed = self.agent_config.get("speed", 5)
+        acceleration = self.agent_config.get("acceleration", 0)
+        position += (random() - 0.5) * 200  # ±100m
+        speed += (random() - 0.25) * 20  # initial speed += [-5,15]
+        acceleration += random()
         self.car = self.chooseRandomCar(
-            num_actions=self.config.get("num_actions", 1),
-            position=self.agent_config.get("position", 200),
-            speed=self.agent_config.get("speed", 5),
-            acceleration=self.agent_config.get("acceleration", 0))
+            num_actions=self.config.get("num_actions", 7),
+            position=position,
+            speed=speed,
+            acceleration=acceleration)
 
         self.stepCount = 0
         self.history = {'agent': [], 'car': [], 'agent_speed': [], 'car_speed': [], 'target_speed':[], 'safe_dist':[]}
         self.prev_action = 0
         self.episodeReward = 0
-        return self.__getState()
+
+        self.frames = deque(maxlen=self.config.get('history_frames', 3))
+        while len(self.frames) < self.config.get('history_frames', 3):
+            self.frames.append(self.__getState())
+
+        return np.array(list(self.frames)).flatten()
 
     def __getState(self):
         """
@@ -364,15 +385,17 @@ class Environment(gym.Env):
         :return:
         """
         distance = self.car.getPos() - self.agent.getPos()
-        if (len(self.history['car']) > 1):
-            prevDistance = self.history['car'][-2] - self.history['agent'][-2]
-            prevSpeed = self.history['agent_speed'][-2]
-        else:
-            prevDistance = distance
-            prevSpeed = self.agent.getSpeed()
         distance = np.clip(distance, -500, 500)
-        prevDistance = np.clip(prevDistance,-500,500)
-        return distance, prevDistance, self.agent.target_speed, self.agent.getSpeed(), prevSpeed, self.prev_action
+        #if (len(self.history['car']) > 1):
+        #prevDistance = self.history['car'][-2] - self.history['agent'][-2]
+        #prevSpeed = self.history['agent_speed'][-2]
+        #else:
+        #prevDistance = distance
+        #prevSpeed = self.agent.getSpeed()
+
+        #prevDistance = np.clip(prevDistance,-500,500)
+
+        return distance, self.agent.target_speed, self.agent.getSpeed(), self.prev_action
 
     def __getReward(self,action):
         """
@@ -381,7 +404,7 @@ class Environment(gym.Env):
         # TODO: think about the reward function
         distance = abs(self.car.getPos() - self.agent.getPos())
 
-        distance_penalty = 100 if (distance < 4) else 0
+        distance_penalty = 2 if (distance < 4) else 0
 
 
         target_speed = self.__getTargetSpeed(distance)
@@ -395,7 +418,7 @@ class Environment(gym.Env):
             u = action-self.prev_action  ## TODO: what is U????
         # https://nl.mathworks.com/help/reinforcement-learning/ug/train-ddpg-agent
         # -for-adaptive-cruise-control.html
-        reward = -(0.1 * e * e + u * u) + m_t
+        reward = -(0.1 * e * e + u * u) + m_t - distance_penalty
         # speed_reward = -sigmoid(abs(dv/5))*2+2
 
         # combined_reward = distance_reward*sigmoid(-distance+10)+\
@@ -432,14 +455,14 @@ class Environment(gym.Env):
         """
         distance = abs(self.car.getPos() - self.agent.getPos())
         if self.evaluation:
-            done = distance < 4 or \
+            done = distance < 3 or \
                    self.episodeReward > 500 or \
-                   (distance > 1000 and self.agent.getSpeed() < self.car.getSpeed()) or \
+                   (distance > 1000 and self.agent.getSpeed() >= self.car.getSpeed()) or \
                    self.stepCount > 50000
         else:
-            done = distance < 4 or \
+            done = distance < 3 or \
                    self.episodeReward > 500 or \
-                   (distance > 1000 and self.agent.getSpeed() < self.car.getSpeed()) or \
+                   (distance > 1000 and self.agent.getSpeed() >= self.car.getSpeed()) or \
                    self.stepCount > 5000
         return done
 
@@ -508,6 +531,8 @@ class Environment(gym.Env):
         self.evaluation = True
     def train(self):
         self.evaluation = False
+    def render(self, mode="human"):
+        pass
 
 
 if __name__ == "__main__":
