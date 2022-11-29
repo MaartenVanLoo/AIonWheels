@@ -15,7 +15,7 @@ import carla
 import argparse
 import logging
 import random
-#import spawn_npc
+import generate_traffic
 
 
 def main():
