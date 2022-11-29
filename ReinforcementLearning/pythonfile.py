@@ -798,7 +798,6 @@ class CarlaConnection:
         spawn_points = self.world.map.get_spawn_points()
         try:
             while True:
-                print("loop ", self.clock_ticks)
                 self.clock.tick()
                 if self.sync:
                     self.world.world.tick()
@@ -829,6 +828,7 @@ class CarlaConnection:
                     if self.clock_ticks == 100:
                         self.agent = BasicAgent(self.world.player)
                         self.agent.set_destination(self.initial_destination)
+                        print("SPAWNED")
                         print(self.get_distance())
                     continue
 
@@ -853,7 +853,9 @@ class CarlaConnection:
 
                 self.world.destroy()
                 if self.leading_car is not None:
-                    self.leading_car.destroy()
+                    self.leading_car._vehicle.destroy()
+                if self.agent is not None:
+                    self.agent._vehicle.destroy()
 
             pygame.quit()
 
