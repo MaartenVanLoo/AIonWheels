@@ -780,9 +780,11 @@ class CarlaConnection:
         # spawn leading_car car
         blueprint = random.choice(self.world.world.get_blueprint_library().filter('vehicle.*.*'))
         initial_transform = self.world.player.get_transform()
-        vehicle_bp = self.world.world.spawn_actor(blueprint, initial_transform)
-        agent = BasicAgent(vehicle_bp)
         print(4)
+        vehicle_bp = self.world.world.spawn_actor(blueprint, initial_transform)
+        print(5)
+        agent = BasicAgent(vehicle_bp)
+        print(5)
         # Set first destination
         spawn_points = self.world.map.get_spawn_points()
         self.initial_destination = random.choice(spawn_points).location
