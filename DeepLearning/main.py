@@ -211,34 +211,36 @@ def main():
         ego_vehicle.set_autopilot(True)
 
 
-        # --------------
-        # Game loop. Prevents the script from finishing.
-        # --------------
-        # while True:
-        #     world_snapshot = world.wait_for_tick()
         # display = pygame.display.set_mode(
         #     (1280, 720),
         #     pygame.HWSURFACE | pygame.DOUBLEBUF)
-        clock = pygame.time.Clock()
+        # clock = pygame.time.Clock()
 
+
+        # --------------
+        # Game loop. Prevents the script from finishing.
+        # --------------
         while True:
-            clock.tick()
+            world_snapshot = world.wait_for_tick()
+
+        # while True:
+        #     clock.tick()
         # if args.sync:
             # world.tick()
         # else:
-            world.wait_for_tick()
+            # world.wait_for_tick()
 
-            world.tick(clock)
+            # world.tick(clock)
             # world.render(display)
 
-            if ego_vehicle.done():
-                ego_vehicle.set_destination(random.choice(spawn_points).location)
-                world.hud.notification("The target has been reached, searching for another target", seconds=4.0)
-                print("The target has been reached, searching for another target")
+            # if ego_vehicle.done():
+            #     ego_vehicle.set_destination(random.choice(spawn_points).location)
+            #     world.hud.notification("The target has been reached, searching for another target", seconds=4.0)
+            #     print("The target has been reached, searching for another target")
 
-            control = ego_vehicle.run_step()
-            control.manual_gear_shift = False
-            world.player.apply_control(control)
+            # control = ego_vehicle.run_step()
+            # control.manual_gear_shift = False
+            # world.player.apply_control(control)
 
     finally:
         # --------------
