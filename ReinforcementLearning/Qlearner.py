@@ -258,9 +258,10 @@ class Qlearner:
         self.__replay_buffer = _ReplayBuffer(config.get('replay_size', 50000))
 
         #plotting:
-        self.__episode_rewards_fig = plt.figure()
-        self.__episode_rewards_ax = self.__episode_rewards_fig.add_subplot(1,1,1)
+        #self.__episode_rewards_fig = plt.figure()
+        #self.__episode_rewards_ax = self.__episode_rewards_fig.add_subplot(1,1,1)
 
+        self.wandb_enabled = False
         self.initwandb()
 
 
@@ -279,7 +280,7 @@ class Qlearner:
     def __epsilon_by_frame(self, frame):
         epsilon_start = 1.0
         epsilon_final = 0.02
-        epsilon_decay = 200000
+        epsilon_decay = 500000
         return epsilon_final + (epsilon_start - epsilon_final) * math.exp(-1. * frame / epsilon_decay)
 
     def __update(self):
@@ -309,6 +310,7 @@ class Qlearner:
         return loss
 
     def train(self):
+        collisions = 0
         episode_reward = 0
         losses = []
         all_rewards = []
@@ -326,6 +328,10 @@ class Qlearner:
 
             next_state, reward, done, info = self.env.step(action)
             self.metrics['reward']=reward
+
+            if 'collision' in info.keys():
+                collisions += int(info['collision'])
+                self.metrics['collision'] = collisions
 
             if not 'TimeLimit.truncated' in info.keys() or not info['TimeLimit.truncated']:
                 self.__replay_buffer.push(state, action, reward, next_state, done)
@@ -346,6 +352,7 @@ class Qlearner:
                 if random.random()>0.5: # avoid plotting everything
                     self.env.plot()
                     pass
+                self.metrics['episode_length'] = env.stepCount
                 state = self.env.reset()
                 all_rewards.append(episode_reward)
                 movingAverage.append(sum(all_rewards[-_mov_average_size:]) / min(_mov_average_size, len(all_rewards)))
@@ -359,7 +366,7 @@ class Qlearner:
                 self.metrics['mov_avg_episode_reward']=movingAverage[-1]
                 self.metrics['episode_count'] = len(all_rewards)
                 episode_reward = 0
-            if frame_idx % 10000 == 0:
+            if frame_idx % 100000 == 0:
                 # plot if required
                 print()
                 print(f"Current episode:{episode_reward}")
@@ -443,18 +450,18 @@ if __name__ == "__main__":
     # config = optional, default values have been set in the qlearning framework
     config = {
         'device': 'cuda',
-        'batch_size': 1024,
-        'mini_batch': 16,  # only update once after n experiences
-        'num_frames': 1000000,
+        'batch_size': 2048,
+        'mini_batch': 24,  # only update once after n experiences
+        'num_frames': 2000000,
         'gamma': 0.90,
-        'replay_size': 200000,
+        'replay_size': 250000,
         'lr':0.0003,
         'reward_offset':1.5,
 
         'history_frames': 3,
         'num_inputs': 6,  # =size of states!
-        'num_actions': 7,
-        'hidden': [128,512, 512, 128,64],
+        'num_actions': 11,
+        'hidden': [128,512, 512, 128, 64],
     }
     env = SimpleACC(config)
     config['num_inputs'] = len(env.reset()) # always correct :D

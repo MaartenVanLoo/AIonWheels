@@ -32,7 +32,7 @@ class DrivingCar:
         self.speed = speed
         self.acceleration = acceleration
 
-        self.target_speed = 15  # 10m/s = 36 km/h
+        self.target_speed = 5+random()*15  # 10m/s = 36 km/h ; [5-20]m/s
         self.maxBreaking = 3  # m/s²
         self.maxThrottle = 2.5  # m/s²
         self.dragArea = 0.8
@@ -462,14 +462,14 @@ class SimpleACC(gym.Env):
         """
         Return true when a terminal state is reached
         """
-        distance = abs(self.car.getPos() - self.agent.getPos())
+        distance = self.car.getPos() - self.agent.getPos()
         if self.evaluation:
-            done = distance < 3 or \
-                   self.episodeReward > 9999 or \
+            done = distance <= 0 or \
+                   self.episodeReward > 50999 or \
                    self.stepCount > 50000
                    #(distance > 1000 and self.agent.getSpeed() >= self.car.getSpeed()) or \
         else:
-            done = distance < 3 or \
+            done = distance <= 0 or \
                    self.episodeReward > 9999 or\
                    self.stepCount > 5000
                    #(distance > 1000 and self.agent.getSpeed() >= self.car.getSpeed()) or \
@@ -479,6 +479,9 @@ class SimpleACC(gym.Env):
         info = {}
         if self.stepCount > 5000:
             info['TimeLimit.truncated'] = True
+        distance = self.car.getPos() - self.agent.getPos()
+        if distance <= 0.1:
+            info['collision'] = True
         return info
 
     def printCars(self):
