@@ -719,6 +719,9 @@ class CarlaConnection:
         self.clock_ticks = 0
         self.initial_destination = None
 
+        self.blueprint = None
+        self.initial_transform = None
+
     def main(self):
         """Main method"""
 
@@ -773,14 +776,14 @@ class CarlaConnection:
         transform_fv.x, transform_fv.y, transform_fv.z = normalize3Dvector(transform_fv.x, transform_fv.y, transform_fv.z)
         new_location = transform.location + (transform_fv * -50)
         transform.location = new_location
-        blueprint = random.choice(self.world.world.get_blueprint_library().filter('vehicle.*.*'))
-        initial_transform = self.world.player.get_transform()
-        vehicle_bp = self.world.world.spawn_actor(blueprint, initial_transform)
         '''
+        self.blueprint = random.choice(self.world.world.get_blueprint_library().filter('vehicle.*.*'))
+        self.initial_transform = self.world.player.get_transform()
+
         # spawn leading_car car
         self.leading_car = BasicAgent(self.world.player)
         transform = self.world.player.get_transform()
-        print(transform.location)
+
         # Set first destination
         spawn_points = self.world.map.get_spawn_points()
         self.initial_destination = random.choice(spawn_points).location
@@ -826,8 +829,7 @@ class CarlaConnection:
                 if self.agent is None:
                     self.clock_ticks += 1
                     if self.clock_ticks == 100:
-                        self.agent = BasicAgent(self.world.player)
-                        self.agent.set_destination(self.initial_destination)
+                        self.spawn_agent()
                         print("SPAWNED")
                         print(self.get_distance())
                     continue
@@ -858,6 +860,16 @@ class CarlaConnection:
                     self.agent._vehicle.destroy()
 
             pygame.quit()
+
+    def spawn_agent(self):
+        cam_index = self.world.camera_manager.index if self.world.camera_manager is not None else 0
+        cam_pos_id = self.world.camera_manager.transform_index if self.world.camera_manager is not None else 0
+        player = self.world.world.try_spawn_actor(self.blueprint, self.initial_transform)
+        self.agent = BasicAgent(self.world.player)
+        self.agent.set_destination(self.initial_destination)
+        self.world.camera_manager = CameraManager(player, self.world.hud)
+        self.world.camera_manager.transform_index = cam_pos_id
+        self.world.camera_manager.set_sensor(cam_index, notify=False)
 
     def get_distance(self):
         """
