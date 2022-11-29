@@ -454,7 +454,7 @@ if __name__ == "__main__":
     config['num_inputs'] = len(env.reset()) # always correct :D
 
     qlearning = Qlearner(env, DQN, config)
-    #qlearning.train()
-    #qlearning.save("models/TrainedModel.pth")
-    qlearning.load("models/TrainedModel.pth")
+    qlearning.train()
+    qlearning.save("models/TrainedModel.pth")
+    #qlearning.load("models/TrainedModel.pth")
     qlearning.eval()

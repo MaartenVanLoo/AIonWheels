@@ -423,7 +423,7 @@ class SimpleACC(gym.Env):
 
         # combined_reward = distance_reward*sigmoid(-distance+10)+\
         #                  speed_reward*sigmoid(distance - 10)
-
+        reward = max(reward,-10)
         return reward
 
     def __getTargetSpeed(self, distance):
