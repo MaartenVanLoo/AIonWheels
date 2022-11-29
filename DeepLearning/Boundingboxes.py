@@ -88,11 +88,16 @@ bounding_box_set = world.get_level_bbs(carla.CityObjectLabel.TrafficLight)
 ### Draw the bounding boxes ###
 # Set up the set of bounding boxes from the level
 # We filter for traffic lights and traffic signs
-bounding_box_set = world.get_level_bbs(carla.CityObjectLabel.TrafficLight)
-bounding_box_set.extend(world.get_level_bbs(carla.CityObjectLabel.TrafficSigns))
+
 
 # Remember the edge pairs
 edges = [[0,1], [1,3], [3,2], [2,0], [0,4], [4,5], [5,1], [5,7], [7,6], [6,4], [6,2], [7,3]]
+
+for i in range(50):
+    vehicle_bp = random.choice(bp_lib.filter('vehicle'))
+    npc = world.try_spawn_actor(vehicle_bp, random.choice(spawn_points))
+    if npc:
+        npc.set_autopilot(True)
 
 # Retrieve the first image
 world.tick()
@@ -117,33 +122,34 @@ while True:
     # Get the camera matrix
     world_2_camera = np.array(camera.get_transform().get_inverse_matrix())
 
-    for bb in bounding_box_set:
 
-        # Filter for distance from ego vehicle
-        if bb.location.distance(vehicle.get_transform().location) < 50:
+    for npc in world.get_actors().filter('*vehicle*'):
+
+        # Filter out the ego vehicle
+        if npc.id != vehicle.id:
+
+            bb = npc.bounding_box
+            dist = npc.get_transform().location.distance(vehicle.get_transform().location)
+
+            # Filter for the vehicles within 50m
+            if dist < 50:
 
             # Calculate the dot product between the forward vector
             # of the vehicle and the vector between the vehicle
-            # and the bounding box. We threshold this dot product
+            # and the other vehicle. We threshold this dot product
             # to limit to drawing bounding boxes IN FRONT OF THE CAMERA
-            forward_vec = vehicle.get_transform().get_forward_vector()
-            ray = bb.location - vehicle.get_transform().location
+                forward_vec = vehicle.get_transform().get_forward_vector()
+                ray = npc.get_transform().location - vehicle.get_transform().location
 
-            if forward_vec.dot(ray) > 1:
-                # Cycle through the vertices
-                verts = [v for v in bb.get_world_vertices(carla.Transform())]
-                for edge in edges:
-                    # Join the vertices into edges
-                    p1 = get_image_point(verts[edge[0]], K, world_2_camera)
-                    p2 = get_image_point(verts[edge[1]],  K, world_2_camera)
-                    # Draw the edges into the camera output
-                    cv2.line(img, (int(p1[0]),int(p1[1])), (int(p2[0]),int(p2[1])), (0,0,255, 255), 1)
+                if forward_vec.dot(ray) > 1:
+                    p1 = get_image_point(bb.location, K, world_2_camera)
+                    verts = [v for v in bb.get_world_vertices(npc.get_transform())]
+                    for edge in edges:
+                        p1 = get_image_point(verts[edge[0]], K, world_2_camera)
+                        p2 = get_image_point(verts[edge[1]],  K, world_2_camera)
+                        cv2.line(img, (int(p1[0]),int(p1[1])), (int(p2[0]),int(p2[1])), (255,0,0, 255), 1)
 
-    # Now draw the image into the OpenCV display window
     cv2.imshow('ImageWindowName',img)
-    # Break the loop if the user presses the Q key
     if cv2.waitKey(1) == ord('q'):
         break
-
-# Close the OpenCV display window when the game loop stops
 cv2.destroyAllWindows()
