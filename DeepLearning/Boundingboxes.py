@@ -76,7 +76,7 @@ fov = camera_bp.get_attribute("fov").as_float()
 K = build_projection_matrix(image_w, image_h, fov)
 
 ### Bounding boxes ###
-actor.get_world_vertices(actor.get_transform())
+
 # Get the bounding boxes from trafic lights
 # Retrieve all bounding boxes for traffic lights within the level
 bounding_box_set = world.get_level_bbs(carla.CityObjectLabel.TrafficLight)
