@@ -15,6 +15,7 @@ import carla
 import argparse
 import logging
 import random
+import spawn_npc
 
 
 def main():
