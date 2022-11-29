@@ -871,7 +871,7 @@ class CarlaConnection:
         Get the location of the front of the agent car
         :return: carla.Location(3D vector)
         """
-        location = self.leading_car.bounding_box.location
+        location = self.leading_car._vehicle.bounding_box.location
         location.y = location.y + self.leading_car.bounding_box.extent.y
         return location
 
@@ -880,7 +880,7 @@ class CarlaConnection:
         Get the location of the back of the leading car
         :return: carla.Location(3D vector)
         """
-        location = self.leading_car.bounding_box.location
+        location = self.leading_car._vehicle.bounding_box.location
         location.y = location.y - self.leading_car.bounding_box.extent.y
         return location
 
