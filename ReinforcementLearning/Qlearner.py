@@ -1,4 +1,5 @@
 import operator
+import os
 import random
 from bisect import bisect
 from collections import deque, namedtuple
@@ -6,6 +7,8 @@ from collections import deque, namedtuple
 import torch
 import math
 import numpy as np
+import wandb
+
 from Environment import SimpleACC
 import matplotlib
 import matplotlib.pyplot as plt
@@ -256,6 +259,9 @@ class Qlearner:
         self.__episode_rewards_fig = plt.figure()
         self.__episode_rewards_ax = self.__episode_rewards_fig.add_subplot(1,1,1)
 
+        self.initwandb()
+
+
     def save(self,filename: str)->None:
         torch.save(self.currentDQN.state_dict(), filename)
         pass
@@ -309,6 +315,7 @@ class Qlearner:
         state = self.env.reset()
         n_experiences = 0
         for frame_idx in range(1, self.num_frames + 1):
+            self.metrics = {}
             self.currentDQN.eval()
             epsilon = self.__epsilon_by_frame(frame_idx)
             action = self.currentDQN.act(state, epsilon)
@@ -324,6 +331,8 @@ class Qlearner:
             n_experiences += 1
             if len(self.__replay_buffer) > self.batch_size and n_experiences >= self.mini_batch:
                 loss = self.__update()
+
+
                 n_experiences = 0
                 # loss = loss.data.cpu().numpy().tolist()
                 # losses.append(loss)
@@ -364,6 +373,9 @@ class Qlearner:
             # save network every 20 000 frames
             if frame_idx % 100000 == 0:
                 self.save(f"DQN_{frame_idx}.pt")
+
+            if (self.wandb_enabled):
+                wandb.log(*self.metrics)
         pass
 
     def eval(self):
@@ -406,6 +418,15 @@ class Qlearner:
         plt.show(block = False)
         self.env.train()  # set back to training mode
 
+
+    def initwandb(self):
+        if not ENABLE_WANDB:
+            return
+        os.environ["WANDB_API_KEY"] ='827fc9095ed2096f0d61efa2cca1450526099892'
+
+        wandb.login()
+        wandb.init(project="AIonWheels", run="qLearning",config=self.config)
+        self.wandb_enabled = True
 
 if __name__ == "__main__":
     # config = optional, default values have been set in the qlearning framework
