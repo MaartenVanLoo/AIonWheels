@@ -821,7 +821,7 @@ class CarlaConnection:
                 # Control of leading_car car
                 control = self.leading_car.run_step()
                 control.manual_gear_shift = False
-                self.leading_car.vehicle.apply_control(control)
+                self.leading_car._vehicle.apply_control(control)
 
                 # after 100 iters of 0.05 seconds(5 seconds) initialize follower car
                 if self.agent is None:
