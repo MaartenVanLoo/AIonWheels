@@ -728,7 +728,7 @@ def game_loop(args):
         # --------------
         # Spawn ego vehicle
         # --------------
-
+        """
         ego_bp = None
         ego_bp = client.get_world().get_blueprint_library().find('vehicle.tesla.model3')
         ego_bp.set_attribute('role_name', 'ego')
@@ -747,11 +747,11 @@ def game_loop(args):
             print('\nEgo is spawned')
         else:
             logging.warning('Could not found any spawn points')
-
+        """
         # --------------
         # Add a RGB camera sensor to ego vehicle.
         # --------------
-        ego_vehicle = None
+
         cam_bp = None
         cam_bp = client.get_world().get_blueprint_library().find('sensor.camera.rgb')
         cam_bp.set_attribute("image_size_x",str(1920))
@@ -760,7 +760,7 @@ def game_loop(args):
         cam_location = carla.Location(2,0,1)
         cam_rotation = carla.Rotation(0,0,0)
         cam_transform = carla.Transform(cam_location,cam_rotation)
-        ego_cam = client.get_world().spawn_actor(cam_bp,cam_transform,attach_to=ego_vehicle, attachment_type=carla.AttachmentType.Rigid)
+        ego_cam = client.get_world().spawn_actor(cam_bp,cam_transform,attach_to=agent, attachment_type=carla.AttachmentType.Rigid)
         ego_cam.listen(lambda image: image.save_to_disk('images/output/%.6d.jpg' % image.frame))
         
         # --------------
@@ -775,7 +775,7 @@ def game_loop(args):
         sem_location = carla.Location(2,0,1)
         sem_rotation = carla.Rotation(0,0,0)
         sem_transform = carla.Transform(sem_location,sem_rotation)
-        sem_cam = client.get_world().spawn_actor(sem_bp,sem_transform,attach_to=ego_vehicle, attachment_type=carla.AttachmentType.Rigid)
+        sem_cam = client.get_world().spawn_actor(sem_bp,sem_transform,attach_to=agent, attachment_type=carla.AttachmentType.Rigid)
         # This time, a color converter is applied to the image, to get the semantic segmentation view
         sem_cam.listen(lambda image1: image1.save_to_disk('images/new_sem_output/%.6d.jpg' % image1.frame,carla.ColorConverter.CityScapesPalette))
 
