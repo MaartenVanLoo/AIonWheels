@@ -30,6 +30,8 @@ import carla
 import argparse
 import random
 import time
+from queue import Queue
+from queue import Empty
 import numpy as np
 
 try:
@@ -39,6 +41,8 @@ try:
 except ImportError:
     raise RuntimeError('cannot import pygame, make sure pygame package is installed')
 
+global_lidar = 0;
+lidar_queue = Queue()
 
 class CustomTimer:
     def __init__(self):
@@ -109,6 +113,13 @@ class SensorManager:
 
         self.display_man.add_sensor(self)
 
+    def sensor_callback(data, queue):
+        """
+        This simple callback just stores the data on a thread safe Python Queue
+        to be retrieved from the "main thread".
+        """
+        queue.put(data)
+
     def init_sensor(self, sensor_type, transform, attached, sensor_options):
         if sensor_type == 'RGBCamera':
             camera_bp = self.world.get_blueprint_library().find('sensor.camera.rgb')
@@ -137,11 +148,14 @@ class SensorManager:
             for key in sensor_options:
                 lidar_bp.set_attribute(key, sensor_options[key])
 
-            lidar = self.world.spawn_actor(lidar_bp, transform, attach_to=attached)
+            global_lidar = self.world.spawn_actor(lidar_bp, transform, attach_to=attached)
 
-            lidar.listen(self.save_lidar_image)
 
-            return lidar
+            global_lidar.listen(lambda data: self.sensor_callback(data, lidar_queue))
+            #lidar.listen(self.save_lidar_image)
+
+
+            return global_lidar
 
         elif sensor_type == 'SemanticLiDAR':
             lidar_bp = self.world.get_blueprint_library().find('sensor.lidar.ray_cast_semantic')
@@ -319,10 +333,19 @@ def run_simulation(args, client):
         # Simulation loop
         call_exit = False
         time_init_sim = timer.time()
+        sensor_list = display_manager.get_sensor_list()
         while True:
             # Carla Tick
             if args.sync:
                 world.tick()
+
+                try:
+                    # Get the data once it's received.
+                    lidar_data = lidar_queue.get(True, 1.0)
+                    print(lidar_data)
+                except Empty:
+                    print("[Warning] Some sensor data has been missed")
+                    continue
             else:
                 world.wait_for_tick()
 
