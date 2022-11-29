@@ -872,7 +872,7 @@ class CarlaConnection:
         :return: carla.Location(3D vector)
         """
         location = self.leading_car._vehicle.bounding_box.location
-        location.y = location.y + self.leading_car.bounding_box.extent.y
+        location.y = location.y + self.leading_car._vehicle.bounding_box.extent.y
         return location
 
     def get_leading_car_location(self):
