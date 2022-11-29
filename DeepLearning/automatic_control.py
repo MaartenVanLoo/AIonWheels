@@ -684,9 +684,9 @@ def game_loop(args):
     ticking the agent and, if needed, the world.
     """
 
-    global world
     pygame.init()
     pygame.font.init()
+    world = None
 
     try:
         if args.seed:
