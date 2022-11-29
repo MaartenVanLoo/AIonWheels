@@ -15,7 +15,7 @@ import carla
 import argparse
 import logging
 import random
-import spawn_npc
+#import spawn_npc
 
 
 def main():
@@ -62,7 +62,7 @@ def main():
         # Spawn npcs (added by us)
         # --------------
         
-        spawn_npc.create_npcs(150, 70)
+        #spawn_npc.create_npcs(150, 70)
         
         # --------------
         # Spawn ego vehicle
