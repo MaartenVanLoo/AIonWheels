@@ -2,6 +2,7 @@ import glob
 import os
 import sys
 import time
+import shutil
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
