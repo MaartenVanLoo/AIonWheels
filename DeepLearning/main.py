@@ -58,7 +58,12 @@ def main():
         
         client.start_recorder('~/tutorial/recorder/recording01.log')
         
-
+        # --------------
+        # Spawn npcs (added by us)
+        # --------------
+        
+        spawn_npc.create_npcs(150, 70)
+        
         # --------------
         # Spawn ego vehicle
         # --------------
