@@ -223,10 +223,10 @@ def main():
 
         while True:
             clock.tick()
-            # if args.sync:
-            world.tick()
-            # else:
-            #     world.wait_for_tick()
+        # if args.sync:
+            # world.tick()
+        # else:
+            world.wait_for_tick()
 
             world.tick(clock)
             world.render(display)
