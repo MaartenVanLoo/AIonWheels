@@ -251,6 +251,7 @@ class RandomCar(DrivingCar):
 class SimpleACC(gym.Env):
     def __init__(self, config: dict):
         self.setpoint = 20
+        self.reward_offset = config.get('reward_offset',1.5)
         if _DISCRETE:
 
             #self.action_space = gym.spaces.Box(low=np.array([0]),high=np.array([config.get("num_actions", 7)]),
@@ -353,7 +354,7 @@ class SimpleACC(gym.Env):
         self.agent = DrivingCar(
             num_actions=self.config.get("num_actions", 7),
             position=self.agent_config.get("position", 0),
-            speed=self.agent_config.get("speed", 0),
+            speed=self.agent_config.get("speed", 8+random()*12),
             acceleration=self.agent_config.get("acceleration", 2))
 
         position = self.agent_config.get("position", 200)
@@ -404,7 +405,7 @@ class SimpleACC(gym.Env):
         # TODO: think about the reward function
         distance = abs(self.car.getPos() - self.agent.getPos())
 
-        distance_penalty = 2 if (distance < 4) else 0
+        distance_penalty = 2 if (distance < self.__getSafeDistance()) else 0
 
 
         target_speed = self.__getTargetSpeed(distance)
@@ -418,7 +419,7 @@ class SimpleACC(gym.Env):
             u = action-self.prev_action  ## TODO: what is U????
         # https://nl.mathworks.com/help/reinforcement-learning/ug/train-ddpg-agent
         # -for-adaptive-cruise-control.html
-        reward = -(0.1 * e * e + u * u) + m_t - distance_penalty
+        reward = -(0.1 * e * e + u * u) + m_t - distance_penalty  + self.reward_offset
         # speed_reward = -sigmoid(abs(dv/5))*2+2
 
         # combined_reward = distance_reward*sigmoid(-distance+10)+\

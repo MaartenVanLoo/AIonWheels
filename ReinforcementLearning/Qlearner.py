@@ -320,6 +320,7 @@ class Qlearner:
             self.metrics = {}
             self.currentDQN.eval()
             epsilon = self.__epsilon_by_frame(frame_idx)
+            self.metrics['epsilon']=epsilon
             action = self.currentDQN.act(state, epsilon)
             self.metrics['action']=action
 
@@ -343,7 +344,7 @@ class Qlearner:
 
             if done:
                 if random.random()>0.5: # avoid plotting everything
-                    #self.env.plot()
+                    self.env.plot()
                     pass
                 state = self.env.reset()
                 all_rewards.append(episode_reward)
@@ -354,6 +355,9 @@ class Qlearner:
                 print(f'Max reward:{max(all_rewards)}')
                 print(f'Frame count:{frame_idx}')
                 print()
+                self.metrics['episode_reward'] = episode_reward
+                self.metrics['mov_avg_episode_reward']=movingAverage[-1]
+                self.metrics['episode_count'] = len(all_rewards)
                 episode_reward = 0
             if frame_idx % 10000 == 0:
                 # plot if required
@@ -367,10 +371,10 @@ class Qlearner:
                 #self.__episode_rewards_ax.set_title("Episode rewards")
                 #self.__episode_rewards_fig.canvas.draw()
                 #self.__episode_rewards_fig.canvas.flush_events()
-                #plt.plot(all_rewards, color='blue')
-                #plt.plot(movingAverage, color='red')
-                #plt.title("Episode rewards")
-                #plt.show(block = False)
+                plt.plot(all_rewards, color='blue')
+                plt.plot(movingAverage, color='red')
+                plt.title("Episode rewards")
+                plt.show(block = False)
                 pass
             # update target every 1000 frames
             if frame_idx % 1000 == 0:
@@ -422,7 +426,7 @@ class Qlearner:
         ax1.plot(episode_rewards, color='blue')
         ax1.plot(moving_averages, color='red')
         ax1.set_title("Episode rewards")
-        plt.show(block = True)
+        plt.show(block = False)
         self.env.train()  # set back to training mode
 
 
@@ -442,8 +446,10 @@ if __name__ == "__main__":
         'batch_size': 256,
         'mini_batch': 16,  # only update once after n experiences
         'num_frames': 1000000,
-        'gamma': 0.99,
+        'gamma': 0.90,
         'replay_size': 50000,
+        'lr':0.00025,
+        'reward_offset':1.5,
 
         'history_frames': 3,
         'num_inputs': 6,  # =size of states!
