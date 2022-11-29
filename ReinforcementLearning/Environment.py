@@ -534,6 +534,21 @@ class SimpleACC(gym.Env):
     def render(self, mode="human"):
         pass
 
+    def getTypeOfLeadingCar(self):
+        type = self.car.type()
+        if type =='DrivingCar':
+            return 0
+        if type =='Sinuscar':
+            return 1
+        if type =='ConstantCar':
+            return 2
+        if type =='NoDrivingCar':
+            return 3
+        if type =='SpeedUpBrakeCar':
+            return 4
+        if type =='RandomCar':
+            return 5
+
 
 if __name__ == "__main__":
     #plot all different cars:
