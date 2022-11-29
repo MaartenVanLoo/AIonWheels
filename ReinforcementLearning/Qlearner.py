@@ -14,6 +14,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 _mov_average_size = 10  # moving average of last 10 epsiodes
+ENABLE_WANDB=True
 #matplotlib.use("Tkagg")
 
 class DQN(torch.nn.Module):
@@ -239,6 +240,7 @@ class Qlearner:
     def __init__(self, environment, DQN, config) -> None:
         self.device = torch.device(config.get('device', 'cuda') if torch.cuda.is_available() else 'cpu')
         self.env = environment
+        self.config=config
 
         self.targetDQN = DQN(config).to(self.device)
         self.currentDQN = DQN(config).to(self.device)
@@ -319,8 +321,10 @@ class Qlearner:
             self.currentDQN.eval()
             epsilon = self.__epsilon_by_frame(frame_idx)
             action = self.currentDQN.act(state, epsilon)
+            self.metrics['action']=action
 
             next_state, reward, done, info = self.env.step(action)
+            self.metrics['reward']=reward
 
             if not 'TimeLimit.truncated' in info.keys() or not info['TimeLimit.truncated']:
                 self.__replay_buffer.push(state, action, reward, next_state, done)
@@ -331,7 +335,7 @@ class Qlearner:
             n_experiences += 1
             if len(self.__replay_buffer) > self.batch_size and n_experiences >= self.mini_batch:
                 loss = self.__update()
-
+                self.metrics['loss']=loss
 
                 n_experiences = 0
                 # loss = loss.data.cpu().numpy().tolist()
@@ -339,7 +343,8 @@ class Qlearner:
 
             if done:
                 if random.random()>0.5: # avoid plotting everything
-                    self.env.plot()
+                    #self.env.plot()
+                    pass
                 state = self.env.reset()
                 all_rewards.append(episode_reward)
                 movingAverage.append(sum(all_rewards[-_mov_average_size:]) / min(_mov_average_size, len(all_rewards)))
@@ -362,10 +367,10 @@ class Qlearner:
                 #self.__episode_rewards_ax.set_title("Episode rewards")
                 #self.__episode_rewards_fig.canvas.draw()
                 #self.__episode_rewards_fig.canvas.flush_events()
-                plt.plot(all_rewards, color='blue')
-                plt.plot(movingAverage, color='red')
-                plt.title("Episode rewards")
-                plt.show(block = False)
+                #plt.plot(all_rewards, color='blue')
+                #plt.plot(movingAverage, color='red')
+                #plt.title("Episode rewards")
+                #plt.show(block = False)
                 pass
             # update target every 1000 frames
             if frame_idx % 1000 == 0:
@@ -375,7 +380,8 @@ class Qlearner:
                 self.save(f"DQN_{frame_idx}.pt")
 
             if (self.wandb_enabled):
-                wandb.log(*self.metrics)
+                wandb.log(self.metrics)
+                self.metrics={}
         pass
 
     def eval(self):
@@ -425,7 +431,7 @@ class Qlearner:
         os.environ["WANDB_API_KEY"] ='827fc9095ed2096f0d61efa2cca1450526099892'
 
         wandb.login()
-        wandb.init(project="AIonWheels", run="qLearning",config=self.config)
+        wandb.init(project="AIonWheels", tags="qLearning",config=self.config)
         self.wandb_enabled = True
 
 if __name__ == "__main__":
@@ -444,9 +450,10 @@ if __name__ == "__main__":
         'hidden': [128, 128,64],
     }
     env = SimpleACC(config)
-    config['num_inputs'] = len(env.reset()) # always correct :D
+    #config['num_inputs'] = len(env.reset()) # always correct :D
 
     qlearning = Qlearner(env, DQN, config)
-    qlearning.train()
-    qlearning.save("models/TrainedModel.pth")
+    #qlearning.train()
+    #qlearning.save("models/TrainedModel.pth")
+    qlearning.load("models/TrainedModel.pth")
     qlearning.eval()

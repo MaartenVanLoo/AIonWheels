@@ -205,11 +205,11 @@ class SpeedUpBrakeCar(DrivingCar):
             self.updateSpeed(dt)
             self.brakeCounter = 0
         else:
-            if self.speed < 20:
+            if self.speed < self.target_speed:
                 self.updateSpeed(dt)
             else:
                 if self.brakeCounter < 100:
-                    self.speed = 20
+                    self.speed = self.target_speed
                     self.brakeCounter += 1
                 else:
                     self.setAcceleration(-self.maxBreaking*0.8)
@@ -235,7 +235,7 @@ class RandomCar(DrivingCar):
             if self.speed <= 0:
                 self.setAcceleration(np.random.randint(1, self.maxThrottle) * (np.random.random()))
             else:
-                if self.speed >= 80:
+                if self.speed >= self.target_speed:
                     self.setAcceleration(np.random.randint(1, self.maxThrottle) * (-1 + np.random.random()))
                 else:
                     self.setAcceleration(-1 + 2 * np.random.random())
@@ -273,8 +273,8 @@ class SimpleACC(gym.Env):
         self.config = config
         self.agent_config = config.get("agent", dict())
         self.car_config = config.get("car", dict())
-        self.agent = DrivingCar(1, 0, 0, 2)  # num_actions, startspeed, startposition, starting acceleration
-        self.car = self.chooseRandomCar(1, 20, 200, 2)
+        self.agent = DrivingCar(7, 0, 0, 2)  # num_actions, startspeed, startposition, starting acceleration
+        self.car = self.chooseRandomCar(7, 20, 200, 2)
 
         self.stepCount = 0
         self.history = {'agent': [], 'car': [], 'agent_speed': [], 'car_speed': [], 'target_speed':[], 'safe_dist':[]}
