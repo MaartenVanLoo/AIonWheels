@@ -3,6 +3,7 @@ import os
 import sys
 import time
 import shutil
+import pygame
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -213,8 +214,31 @@ def main():
         # --------------
         # Game loop. Prevents the script from finishing.
         # --------------
+        # while True:
+        #     world_snapshot = world.wait_for_tick()
+        display = pygame.display.set_mode(
+            (args.width, args.height),
+            pygame.HWSURFACE | pygame.DOUBLEBUF)
+        clock = pygame.time.Clock()
+
         while True:
-            world_snapshot = world.wait_for_tick()
+            clock.tick()
+            if args.sync:
+                world.world.tick()
+            else:
+                world.world.wait_for_tick()
+
+            world.tick(clock)
+            world.render(display)
+
+            if ego_vehicle.done():
+                ego_vehicle.set_destination(random.choice(spawn_points).location)
+                world.hud.notification("The target has been reached, searching for another target", seconds=4.0)
+                print("The target has been reached, searching for another target")
+
+            control = ego_vehicle.run_step()
+            control.manual_gear_shift = False
+            world.player.apply_control(control)
 
     finally:
         # --------------
