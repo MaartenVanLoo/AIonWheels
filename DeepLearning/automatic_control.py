@@ -17,6 +17,8 @@ import glob
 import logging
 import math
 import os
+import shutil
+
 import numpy.random as random
 import re
 import sys
@@ -901,4 +903,6 @@ def main():
 
 
 if __name__ == '__main__':
+    if os.path.exists('images'):
+        shutil.rmtree('images') #delete the old images folder if it exists
     main()
