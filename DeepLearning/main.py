@@ -3,7 +3,6 @@ import os
 import sys
 import time
 import shutil
-import pygame
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -21,7 +20,9 @@ import generate_traffic
 
 
 def main():
-    shutil.rmtree('images') #delete the old images
+    if os.path.exists('images'):
+        shutil.rmtree('images') #delete the old images folder if it exists
+
     argparser = argparse.ArgumentParser(
         description=__doc__)
     argparser.add_argument(
@@ -214,31 +215,9 @@ def main():
         # --------------
         # Game loop. Prevents the script from finishing.
         # --------------
-        # while True:
-        #     world_snapshot = world.wait_for_tick()
-        display = pygame.display.set_mode(
-            (1280, 720),
-            pygame.HWSURFACE | pygame.DOUBLEBUF)
-        clock = pygame.time.Clock()
-
         while True:
-            clock.tick()
-            if args.sync:
-                world.world.tick()
-            else:
-                world.world.wait_for_tick()
+            world_snapshot = world.wait_for_tick()
 
-            world.tick(clock)
-            world.render(display)
-
-            if ego_vehicle.done():
-                ego_vehicle.set_destination(random.choice(spawn_points).location)
-                world.hud.notification("The target has been reached, searching for another target", seconds=4.0)
-                print("The target has been reached, searching for another target")
-
-            control = ego_vehicle.run_step()
-            control.manual_gear_shift = False
-            world.player.apply_control(control)
 
     finally:
         # --------------
