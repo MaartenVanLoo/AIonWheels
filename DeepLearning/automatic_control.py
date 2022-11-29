@@ -810,7 +810,7 @@ def game_loop(args):
             world.player.apply_control(control)
 
     finally:
-
+        """
         if world is not None:
             settings = world.world.get_settings()
             settings.synchronous_mode = False
@@ -821,7 +821,7 @@ def game_loop(args):
             world.destroy()
 
         pygame.quit()
-
+        """
 
 # ==============================================================================
 # -- main() --------------------------------------------------------------
