@@ -17,6 +17,7 @@ To do that, check lines 290-308.
 import glob
 import os
 import sys
+import csv
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
