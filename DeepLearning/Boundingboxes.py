@@ -11,6 +11,9 @@ client = carla.Client('localhost', 2000)
 world  = client.get_world()
 bp_lib = world.get_blueprint_library()
 
+# Get the map spawn points
+spawn_points = world.get_map().get_spawn_points()
+
 # spawn vehicle
 vehicle_bp =bp_lib.find('vehicle.lincoln.mkz_2020')
 vehicle = world.try_spawn_actor(vehicle_bp, random.choice(spawn_points))
@@ -26,9 +29,6 @@ settings = world.get_settings()
 settings.synchronous_mode = True # Enables synchronous mode
 settings.fixed_delta_seconds = 0.05
 world.apply_settings(settings)
-
-# Get the map spawn points
-spawn_points = world.get_map().get_spawn_points()
 
 # Create a queue to store and retrieve the sensor data
 image_queue = queue.Queue()
@@ -81,10 +81,11 @@ K = build_projection_matrix(image_w, image_h, fov)
 bounding_box_set = world.get_level_bbs(carla.CityObjectLabel.TrafficLight)
 
 # Filter the list to extract bounding boxes within a 50m radius
+
 nearby_bboxes = []
 for bbox in bounding_box_set:
-    if bbox.location.distance(actor.get_transform().location) < 50:
-        nearby_bboxes
+    if bbox.location.distance(bbox.get_transform().location) < 50:
+        nearby_bboxes.append(bbox)
 
 edges = [[0,1], [1,3], [3,2], [2,0], [0,4], [4,5], [5,1], [5,7], [7,6], [6,4], [6,2], [7,3]]
 
