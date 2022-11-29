@@ -113,6 +113,7 @@ cv2.waitKey(1)
 
 ### Game loop ###
 while True:
+
     # Retrieve and reshape the image
     world.tick()
     image = image_queue.get()
@@ -121,7 +122,6 @@ while True:
 
     # Get the camera matrix
     world_2_camera = np.array(camera.get_transform().get_inverse_matrix())
-
 
     for npc in world.get_actors().filter('*vehicle*'):
 
@@ -144,10 +144,31 @@ while True:
                 if forward_vec.dot(ray) > 1:
                     p1 = get_image_point(bb.location, K, world_2_camera)
                     verts = [v for v in bb.get_world_vertices(npc.get_transform())]
-                    for edge in edges:
-                        p1 = get_image_point(verts[edge[0]], K, world_2_camera)
-                        p2 = get_image_point(verts[edge[1]],  K, world_2_camera)
-                        cv2.line(img, (int(p1[0]),int(p1[1])), (int(p2[0]),int(p2[1])), (255,0,0, 255), 1)
+                    x_max = -10000
+                    x_min = 10000
+                    y_max = -10000
+                    y_min = 10000
+
+                    for vert in verts:
+                        p = get_image_point(vert, K, world_2_camera)
+                        # Find the rightmost vertex
+                        if p[0] > x_max:
+                            x_max = p[0]
+                        # Find the leftmost vertex
+                        if p[0] < x_min:
+                            x_min = p[0]
+                        # Find the highest vertex
+                        if p[1] > y_max:
+                            y_max = p[1]
+                        # Find the lowest  vertex
+                        if p[1] < y_min:
+                            y_min = p[1]
+
+                    cv2.line(img, (int(x_min),int(y_min)), (int(x_max),int(y_min)), (0,0,255, 255), 1)
+                    cv2.line(img, (int(x_min),int(y_max)), (int(x_max),int(y_max)), (0,0,255, 255), 1)
+                    cv2.line(img, (int(x_min),int(y_min)), (int(x_min),int(y_max)), (0,0,255, 255), 1)
+                    cv2.line(img, (int(x_max),int(y_min)), (int(x_max),int(y_max)), (0,0,255, 255), 1)
+
 
     cv2.imshow('ImageWindowName',img)
     if cv2.waitKey(1) == ord('q'):
