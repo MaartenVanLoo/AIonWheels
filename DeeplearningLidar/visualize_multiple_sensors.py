@@ -151,7 +151,7 @@ class SensorManager:
 
             global_lidar = self.world.spawn_actor(lidar_bp, transform, attach_to=attached)
 
-            global_lidar.listen(lambda data: self.sensor_callback(data, lidar_queue))
+            global_lidar.listen(lambda data: self.sensor_callback(data))
             #lidar.listen(self.save_lidar_image)
 
 
