@@ -684,10 +684,8 @@ def game_loop(args):
 
     pygame.init()
     pygame.font.init()
-    client = carla.Client(args.host, args.port)
 
     try:
-        world = client.get_world()
         if args.seed:
             random.seed(args.seed)
 
@@ -696,6 +694,8 @@ def game_loop(args):
 
         traffic_manager = client.get_trafficmanager()
         sim_world = client.get_world()
+
+        world = client.get_world()
 
         if args.sync:
             settings = sim_world.get_settings()
@@ -710,7 +710,7 @@ def game_loop(args):
             pygame.HWSURFACE | pygame.DOUBLEBUF)
 
         hud = HUD(args.width, args.height)
-        world = World(client.get_world(), hud, args)
+        #world = World(client.get_world(), hud, args)
         controller = KeyboardControl(world)
         if args.agent == "Basic":
             agent = BasicAgent(world.player)
@@ -725,6 +725,28 @@ def game_loop(args):
         clock = pygame.time.Clock()
         
         ##############################################################################################################
+        # --------------
+        # Spawn ego vehicle
+        # --------------
+        ego_bp = None
+        ego_bp = world.get_blueprint_library().find('vehicle.tesla.model3')
+        ego_bp.set_attribute('role_name', 'ego')
+        print('\nEgo role_name is set')
+        ego_color = random.choice(ego_bp.get_attribute('color').recommended_values)
+        ego_bp.set_attribute('color', ego_color)
+        print('\nEgo color is set')
+
+        spawn_points = world.get_map().get_spawn_points()
+        number_of_spawn_points = len(spawn_points)
+
+        if 0 < number_of_spawn_points:
+            random.shuffle(spawn_points)
+            ego_transform = spawn_points[0]
+            ego_vehicle = world.spawn_actor(ego_bp, ego_transform)
+            print('\nEgo is spawned')
+        else:
+            logging.warning('Could not found any spawn points')
+
         # --------------
         # Add a RGB camera sensor to ego vehicle.
         # --------------
