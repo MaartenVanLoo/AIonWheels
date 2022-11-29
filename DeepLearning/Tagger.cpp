@@ -24,6 +24,7 @@ static auto CastEnum(T label)
 }
 
 crp::CityObjectLabel ATagger::GetLabelByFolderName(const FString &String) {
+  cout << String << endl;
   if      (String == "Building")     return crp::CityObjectLabel::Buildings;
   else if (String == "Fence")        return crp::CityObjectLabel::Fences;
   else if (String == "Pedestrian")   return crp::CityObjectLabel::Pedestrians;
