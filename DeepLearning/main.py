@@ -20,7 +20,9 @@ import generate_traffic
 
 
 def main():
-    shutil.rmtree('images') #delete the old images
+    if os.path.exists('images'):
+        shutil.rmtree('images') #delete the old images folder if it exists
+
     argparser = argparse.ArgumentParser(
         description=__doc__)
     argparser.add_argument(
