@@ -684,9 +684,10 @@ def game_loop(args):
 
     pygame.init()
     pygame.font.init()
-    world = None
+    client = carla.Client(args.host, args.port)
 
     try:
+        world = client.get_world()
         if args.seed:
             random.seed(args.seed)
 
