@@ -697,7 +697,6 @@ class CarlaConnection:
         super().__init__()
 
         # carla argument constants
-        self.debug = True
         self.host = "127.0.0.1"
         self.port = 2000
         self.height = 1280
@@ -723,7 +722,7 @@ class CarlaConnection:
     def main(self):
         """Main method"""
 
-        log_level = logging.DEBUG if self.debug else logging.INFO
+        log_level = logging.DEBUG
         logging.basicConfig(format='%(levelname)s: %(message)s', level=log_level)
         logging.info('listening to server %s:%s', self.host, self.port)
 
@@ -752,7 +751,6 @@ class CarlaConnection:
 
         self.traffic_manager = client.get_trafficmanager()
         sim_world = client.get_world()
-        print(2)
         if self.sync:
             settings = sim_world.get_settings()
             settings.synchronous_mode = True
@@ -776,11 +774,9 @@ class CarlaConnection:
         new_location = transform.location + (transform_fv * -50)
         transform.location = new_location
         '''
-        print(3)
         # spawn leading_car car
         blueprint = random.choice(self.world.world.get_blueprint_library().filter('vehicle.*.*'))
         initial_transform = self.world.player.get_transform()
-        print(4)
         vehicle_bp = self.world.world.spawn_actor(blueprint, initial_transform)
         print(5)
         agent = BasicAgent(vehicle_bp)
