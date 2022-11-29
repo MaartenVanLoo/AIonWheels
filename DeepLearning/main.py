@@ -214,7 +214,7 @@ def main():
         # display = pygame.display.set_mode(
         #     (1280, 720),
         #     pygame.HWSURFACE | pygame.DOUBLEBUF)
-        clock = pygame.time.Clock()
+        # clock = pygame.time.Clock()
 
 
         # --------------
@@ -233,14 +233,14 @@ def main():
             # world.tick(clock)
             # world.render(display)
 
-            if ego_vehicle.done():
-                ego_vehicle.set_destination(random.choice(spawn_points).location)
-                world.hud.notification("The target has been reached, searching for another target", seconds=4.0)
-                print("The target has been reached, searching for another target")
+            # if ego_vehicle.done():
+            #     ego_vehicle.set_destination(random.choice(spawn_points).location)
+            #     world.hud.notification("The target has been reached, searching for another target", seconds=4.0)
+            #     print("The target has been reached, searching for another target")
 
-            control = ego_vehicle.run_step()
-            control.manual_gear_shift = False
-            world.player.apply_control(control)
+            # control = ego_vehicle.run_step()
+            # control.manual_gear_shift = False
+            # world.player.apply_control(control)
 
     finally:
         # --------------
