@@ -732,7 +732,6 @@ class CarlaConnection:
         try:
             self.init()
             self.game_loop()
-
         except KeyboardInterrupt:
             print('\nCancelled by user. Bye!')
         except Exception:
@@ -791,6 +790,7 @@ class CarlaConnection:
         agent.set_destination(self.initial_destination)
 
         self.clock = pygame.time.Clock()
+        print("end init")
 
     def game_loop(self):
         """
@@ -800,6 +800,7 @@ class CarlaConnection:
         spawn_points = self.world.map.get_spawn_points()
         try:
             while True:
+                print("loop ", self.clock_ticks)
                 self.clock.tick()
                 if self.sync:
                     self.world.world.tick()
