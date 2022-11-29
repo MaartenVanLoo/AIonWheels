@@ -211,22 +211,24 @@ def main():
         ego_vehicle.set_autopilot(True)
 
 
-        # --------------
-        # Game loop. Prevents the script from finishing.
-        # --------------
-        # while True:
-        #     world_snapshot = world.wait_for_tick()
         # display = pygame.display.set_mode(
         #     (1280, 720),
         #     pygame.HWSURFACE | pygame.DOUBLEBUF)
         clock = pygame.time.Clock()
 
+
+        # --------------
+        # Game loop. Prevents the script from finishing.
+        # --------------
         while True:
-            clock.tick()
+            world_snapshot = world.wait_for_tick()
+
+        # while True:
+        #     clock.tick()
         # if args.sync:
             # world.tick()
         # else:
-            world.wait_for_tick()
+            # world.wait_for_tick()
 
             world.tick(clock)
             # world.render(display)
