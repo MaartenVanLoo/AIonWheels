@@ -722,7 +722,41 @@ def game_loop(args):
         agent.set_destination(destination)
 
         clock = pygame.time.Clock()
+        
+        ##############################################################################################################
+        # --------------
+        # Add a RGB camera sensor to ego vehicle.
+        # --------------
+        ego_vehicle = None
+        cam_bp = None
+        cam_bp = world.get_blueprint_library().find('sensor.camera.rgb')
+        cam_bp.set_attribute("image_size_x",str(1920))
+        cam_bp.set_attribute("image_size_y",str(1080))
+        cam_bp.set_attribute("fov",str(30))
+        cam_location = carla.Location(2,0,1)
+        cam_rotation = carla.Rotation(0,0,0)
+        cam_transform = carla.Transform(cam_location,cam_rotation)
+        ego_cam = world.spawn_actor(cam_bp,cam_transform,attach_to=ego_vehicle, attachment_type=carla.AttachmentType.Rigid)
+        ego_cam.listen(lambda image: image.save_to_disk('images/output/%.6d.jpg' % image.frame))
+        
+        # --------------
+        # Add a new semantic segmentation camera to my ego
+        # --------------
 
+        sem_bp = None
+        sem_bp = world.get_blueprint_library().find('sensor.camera.semantic_segmentation')
+        sem_bp.set_attribute("image_size_x",str(1920))
+        sem_bp.set_attribute("image_size_y",str(1080))
+        sem_bp.set_attribute("fov",str(30))
+        sem_location = carla.Location(2,0,1)
+        sem_rotation = carla.Rotation(0,0,0)
+        sem_transform = carla.Transform(sem_location,sem_rotation)
+        sem_cam = world.spawn_actor(sem_bp,sem_transform,attach_to=ego_vehicle, attachment_type=carla.AttachmentType.Rigid)
+        # This time, a color converter is applied to the image, to get the semantic segmentation view
+        sem_cam.listen(lambda image1: image1.save_to_disk('images/new_sem_output/%.6d.jpg' % image1.frame,carla.ColorConverter.CityScapesPalette))
+
+        ###########################################################################################################
+        
         while True:
             clock.tick()
             if args.sync:

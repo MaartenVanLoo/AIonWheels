@@ -2,6 +2,8 @@ import glob
 import os
 import sys
 import time
+import shutil
+import pygame
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -15,9 +17,11 @@ import carla
 import argparse
 import logging
 import random
+import generate_traffic
 
 
 def main():
+    shutil.rmtree('images') #delete the old images
     argparser = argparse.ArgumentParser(
         description=__doc__)
     argparser.add_argument(
@@ -57,7 +61,12 @@ def main():
         
         client.start_recorder('~/tutorial/recorder/recording01.log')
         
-
+        # --------------
+        # Spawn npcs (added by us)
+        # --------------
+        
+        #spawn_npc.create_npcs(150, 70)
+        
         # --------------
         # Spawn ego vehicle
         # --------------
@@ -89,12 +98,12 @@ def main():
         cam_bp = world.get_blueprint_library().find('sensor.camera.rgb')
         cam_bp.set_attribute("image_size_x",str(1920))
         cam_bp.set_attribute("image_size_y",str(1080))
-        cam_bp.set_attribute("fov",str(105))
+        cam_bp.set_attribute("fov",str(30))
         cam_location = carla.Location(2,0,1)
         cam_rotation = carla.Rotation(0,0,0)
         cam_transform = carla.Transform(cam_location,cam_rotation)
         ego_cam = world.spawn_actor(cam_bp,cam_transform,attach_to=ego_vehicle, attachment_type=carla.AttachmentType.Rigid)
-        ego_cam.listen(lambda image: image.save_to_disk('tutorial/output/%.6d.jpg' % image.frame))
+        ego_cam.listen(lambda image: image.save_to_disk('images/output/%.6d.jpg' % image.frame))
         
         # --------------
         # Add a new semantic segmentation camera to my ego
@@ -104,13 +113,13 @@ def main():
         sem_bp = world.get_blueprint_library().find('sensor.camera.semantic_segmentation')
         sem_bp.set_attribute("image_size_x",str(1920))
         sem_bp.set_attribute("image_size_y",str(1080))
-        sem_bp.set_attribute("fov",str(105))
+        sem_bp.set_attribute("fov",str(30))
         sem_location = carla.Location(2,0,1)
         sem_rotation = carla.Rotation(0,0,0)
         sem_transform = carla.Transform(sem_location,sem_rotation)
         sem_cam = world.spawn_actor(sem_bp,sem_transform,attach_to=ego_vehicle, attachment_type=carla.AttachmentType.Rigid)
         # This time, a color converter is applied to the image, to get the semantic segmentation view
-        sem_cam.listen(lambda image1: image1.save_to_disk('tutorial/new_sem_output/%.6d.jpg' % image1.frame,carla.ColorConverter.CityScapesPalette))
+        sem_cam.listen(lambda image1: image1.save_to_disk('images/new_sem_output/%.6d.jpg' % image1.frame,carla.ColorConverter.CityScapesPalette))
 
 
         # --------------
@@ -205,8 +214,31 @@ def main():
         # --------------
         # Game loop. Prevents the script from finishing.
         # --------------
+        # while True:
+        #     world_snapshot = world.wait_for_tick()
+        display = pygame.display.set_mode(
+            (1280, 720),
+            pygame.HWSURFACE | pygame.DOUBLEBUF)
+        clock = pygame.time.Clock()
+
         while True:
-            world_snapshot = world.wait_for_tick()
+            clock.tick()
+            if args.sync:
+                world.world.tick()
+            else:
+                world.world.wait_for_tick()
+
+            world.tick(clock)
+            world.render(display)
+
+            if ego_vehicle.done():
+                ego_vehicle.set_destination(random.choice(spawn_points).location)
+                world.hud.notification("The target has been reached, searching for another target", seconds=4.0)
+                print("The target has been reached, searching for another target")
+
+            control = ego_vehicle.run_step()
+            control.manual_gear_shift = False
+            world.player.apply_control(control)
 
     finally:
         # --------------
@@ -241,4 +273,4 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         pass
     finally:
-        print('\nDone with tutorial_ego.')
+        print('\nDone with images_ego.')
