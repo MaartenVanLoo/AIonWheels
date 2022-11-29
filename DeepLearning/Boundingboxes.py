@@ -82,10 +82,11 @@ actor.get_world_vertices(actor.get_transform())
 bounding_box_set = world.get_level_bbs(carla.CityObjectLabel.TrafficLight)
 
 # Filter the list to extract bounding boxes within a 50m radius
+
 nearby_bboxes = []
 for bbox in bounding_box_set:
-    if bbox.location.distance(actor.get_transform().location) < 50:
-        nearby_bboxes
+    if bbox.location.distance(bbox.get_transform().location) < 50:
+        nearby_bboxes.append(bbox)
 
 edges = [[0,1], [1,3], [3,2], [2,0], [0,4], [4,5], [5,1], [5,7], [7,6], [6,4], [6,2], [7,3]]
 
