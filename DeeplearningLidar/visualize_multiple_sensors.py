@@ -42,7 +42,7 @@ try:
 except ImportError:
     raise RuntimeError('cannot import pygame, make sure pygame package is installed')
 
-global_lidar = 0;
+global_lidar = 0
 lidar_queue = Queue()
 
 class CustomTimer:
@@ -150,7 +150,6 @@ class SensorManager:
                 lidar_bp.set_attribute(key, sensor_options[key])
 
             global_lidar = self.world.spawn_actor(lidar_bp, transform, attach_to=attached)
-
 
             global_lidar.listen(lambda data: self.sensor_callback(data, lidar_queue))
             #lidar.listen(self.save_lidar_image)
