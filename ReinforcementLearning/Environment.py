@@ -278,7 +278,8 @@ class SimpleACC(gym.Env):
         self.car = self.chooseRandomCar(7, 20, 200, 2)
 
         self.stepCount = 0
-        self.history = {'agent': [], 'car': [], 'agent_speed': [], 'car_speed': [], 'target_speed':[], 'safe_dist':[]}
+        self.history = {'agent': [], 'car': [], 'agent_speed': [], 'car_speed': [], 'target_speed':[], 'safe_dist':[],
+                        'reward':[]}
 
 
         # https://nl.mathworks.com/help/reinforcement-learning/ug/train-ddpg-agent-for-adaptive-cruise-control.html
@@ -345,8 +346,9 @@ class SimpleACC(gym.Env):
         self.history['agent_speed'].append(self.agent.getSpeed())
         self.history['car_speed'].append(self.car.getSpeed())
         self.history['target_speed'].append(self.__getTargetSpeed(distance=self.car.getPos() - self.agent.getPos()))
+        self.history['reward'].append(reward)
 
-        self.episodeReward = reward + self.episodeReward * self.gamma
+        self.episodeReward += reward
         self.prev_action = action
         return state, reward, done, info
 
@@ -370,7 +372,8 @@ class SimpleACC(gym.Env):
             acceleration=acceleration)
 
         self.stepCount = 0
-        self.history = {'agent': [], 'car': [], 'agent_speed': [], 'car_speed': [], 'target_speed':[], 'safe_dist':[]}
+        self.history = {'agent': [], 'car': [], 'agent_speed': [], 'car_speed': [], 'target_speed':[], 'safe_dist':[],
+                        'reward':[]}
         self.prev_action = 0
         self.episodeReward = 0
 
@@ -379,6 +382,9 @@ class SimpleACC(gym.Env):
             self.frames.append(self.__getState())
 
         return np.array(list(self.frames)).flatten()
+
+    def __exit__(self, *args):
+        return super().__exit__(*args)
 
     def __getState(self):
         """
@@ -441,6 +447,8 @@ class SimpleACC(gym.Env):
         v1 = self.agent.target_speed
         v2 = min(self.car.getSpeed(), self.agent.target_speed)
         speed = self.agent.getSpeed() if not abs(self.agent.getSpeed()) < 1e-6 else 1e-5
+        speed = max(abs(speed),4)
+
         alpha = _sigmoid((distance - save_distance)/abs(speed)) * 2 - 1
         target_speed = alpha * v1 + (1 - alpha) * v2
 
@@ -457,14 +465,14 @@ class SimpleACC(gym.Env):
         distance = abs(self.car.getPos() - self.agent.getPos())
         if self.evaluation:
             done = distance < 3 or \
-                   self.episodeReward > 500 or \
-                   (distance > 1000 and self.agent.getSpeed() >= self.car.getSpeed()) or \
+                   self.episodeReward > 9999 or \
                    self.stepCount > 50000
+                   #(distance > 1000 and self.agent.getSpeed() >= self.car.getSpeed()) or \
         else:
             done = distance < 3 or \
-                   self.episodeReward > 500 or \
-                   (distance > 1000 and self.agent.getSpeed() >= self.car.getSpeed()) or \
+                   self.episodeReward > 9999 or\
                    self.stepCount > 5000
+                   #(distance > 1000 and self.agent.getSpeed() >= self.car.getSpeed()) or \
         return done
 
     def __info(self):
@@ -505,7 +513,7 @@ class SimpleACC(gym.Env):
         #self.env_plot_axis[2].set_title('distance')
         #self.env_plot.canvas.draw()
         #self.env_plot.canvas.flush_events()
-        fig, (ax1,ax2,ax3) = plt.subplots(1,3)
+        fig, (ax1,ax2,ax3,ax4) = plt.subplots(1,4)
         ax1.plot(x, self.history['agent'], color='blue')
         ax1.plot(x, self.history['car'], color='orange')
         ax1.set_title('position')
@@ -516,6 +524,9 @@ class SimpleACC(gym.Env):
         ax3.plot(x, distance, color='blue')
         ax3.plot(x, self.history['safe_dist'], color='green')
         ax3.set_title('distance')
+
+        ax4.set_title('reward')
+        ax4.plot(x, self.history['reward'])
 
         plt.show(block = False)
 

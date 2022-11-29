@@ -279,7 +279,7 @@ class Qlearner:
     def __epsilon_by_frame(self, frame):
         epsilon_start = 1.0
         epsilon_final = 0.02
-        epsilon_decay = 100000
+        epsilon_decay = 200000
         return epsilon_final + (epsilon_start - epsilon_final) * math.exp(-1. * frame / epsilon_decay)
 
     def __update(self):
@@ -331,7 +331,7 @@ class Qlearner:
                 self.__replay_buffer.push(state, action, reward, next_state, done)
 
             state = next_state
-            episode_reward = reward + episode_reward * self.gamma
+            episode_reward += reward
 
             n_experiences += 1
             if len(self.__replay_buffer) > self.batch_size and n_experiences >= self.mini_batch:
@@ -377,7 +377,7 @@ class Qlearner:
                 plt.show(block = False)
                 pass
             # update target every 1000 frames
-            if frame_idx % 1000 == 0:
+            if frame_idx % 20000 == 0:
                 self.__update_target()
             # save network every 20 000 frames
             if frame_idx % 100000 == 0:
@@ -404,7 +404,7 @@ class Qlearner:
                 next_state, reward, done, info = self.env.step(action)
 
                 state = next_state
-                episode_reward = reward + episode_reward * self.gamma
+                episode_reward += reward
                 episode_rewards.append(episode_reward)
                 moving_averages.append(sum(episode_rewards[-_mov_average_size:]) / min(_mov_average_size,
                                                                                        len(episode_rewards)))
@@ -443,18 +443,18 @@ if __name__ == "__main__":
     # config = optional, default values have been set in the qlearning framework
     config = {
         'device': 'cuda',
-        'batch_size': 256,
+        'batch_size': 1024,
         'mini_batch': 16,  # only update once after n experiences
         'num_frames': 1000000,
         'gamma': 0.90,
-        'replay_size': 50000,
-        'lr':0.00025,
+        'replay_size': 200000,
+        'lr':0.0003,
         'reward_offset':1.5,
 
         'history_frames': 3,
         'num_inputs': 6,  # =size of states!
         'num_actions': 7,
-        'hidden': [128, 128,64],
+        'hidden': [128,512, 512, 128,64],
     }
     env = SimpleACC(config)
     config['num_inputs'] = len(env.reset()) # always correct :D
