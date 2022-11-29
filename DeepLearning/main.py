@@ -230,7 +230,7 @@ def main():
         # else:
             # world.wait_for_tick()
 
-            world.tick(clock)
+            # world.tick(clock)
             # world.render(display)
 
             if ego_vehicle.done():
