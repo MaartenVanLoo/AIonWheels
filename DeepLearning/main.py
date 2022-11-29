@@ -19,6 +19,7 @@ import generate_traffic
 
 
 def main():
+    shutil.rmtree('images') #delete the old images
     argparser = argparse.ArgumentParser(
         description=__doc__)
     argparser.add_argument(
