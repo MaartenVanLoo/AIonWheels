@@ -186,6 +186,7 @@ class CarlaConnection:
                     if self.clock_ticks == 100:
                         self.agent = BasicAgent(self.world.player)
                         self.agent.set_destination(self.initial_destination)
+                        print(self.get_distance())
                     continue
 
                 # Rerouting to new location for follower car
@@ -213,9 +214,31 @@ class CarlaConnection:
 
             pygame.quit()
 
-    def getDistance(self):
+    def get_distance(self):
         """
-        Get the distance to the nearest car in the environment
-        :return:
+        Get the distance between leading car and agent
+        :return: float
         """
-        pass
+        return self.get_agent_location().distance(self.get_leading_car_location())
+
+    def get_agent_location(self):
+        """
+        Get the location of the front of the agent car
+        :return: carla.Location(3D vector)
+        """
+        location = self.leading_car.bounding_box.location
+        location.y = location.y + self.leading_car.bounding_box.extent.y
+        return location
+
+    def get_leading_car_location(self):
+        """
+        Get the location of the back of the leading car
+        :return: carla.Location(3D vector)
+        """
+        location = self.leading_car.bounding_box.location
+        location.y = location.y - self.leading_car.bounding_box.extent.y
+        return location
+
+
+carla = CarlaConnection()
+carla.main()
