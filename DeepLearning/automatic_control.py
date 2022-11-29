@@ -727,7 +727,7 @@ def game_loop(args):
         # --------------
         # Add a RGB camera sensor to ego vehicle.
         # --------------
-
+        ego_vehicle = None
         cam_bp = None
         cam_bp = world.get_blueprint_library().find('sensor.camera.rgb')
         cam_bp.set_attribute("image_size_x",str(1920))
