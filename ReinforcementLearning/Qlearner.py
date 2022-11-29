@@ -418,10 +418,11 @@ class Qlearner:
         #self.__episode_rewards_ax.set_title("Episode rewards")
         #self.__episode_rewards_fig.canvas.draw()
         #self.__episode_rewards_fig.canvas.flush_events()
-        plt.plot(episode_rewards, color='blue')
-        plt.plot(moving_averages, color='red')
-        plt.title("Episode rewards")
-        plt.show(block = False)
+        fig, ax1= plt.subplots(1, 1)
+        ax1.plot(episode_rewards, color='blue')
+        ax1.plot(moving_averages, color='red')
+        ax1.set_title("Episode rewards")
+        plt.show(block = True)
         self.env.train()  # set back to training mode
 
 
@@ -450,7 +451,7 @@ if __name__ == "__main__":
         'hidden': [128, 128,64],
     }
     env = SimpleACC(config)
-    #config['num_inputs'] = len(env.reset()) # always correct :D
+    config['num_inputs'] = len(env.reset()) # always correct :D
 
     qlearning = Qlearner(env, DQN, config)
     #qlearning.train()
