@@ -778,14 +778,14 @@ class CarlaConnection:
         vehicle_bp = self.world.world.spawn_actor(blueprint, initial_transform)
         '''
         # spawn leading_car car
-        agent = BasicAgent(self.world.player)
+        self.leading_car = BasicAgent(self.world.player)
         transform = self.world.player.get_transform()
         print(transform.location)
         # Set first destination
         spawn_points = self.world.map.get_spawn_points()
         self.initial_destination = random.choice(spawn_points).location
         self.locations_buffer.append(self.initial_destination)
-        agent.set_destination(self.initial_destination)
+        self.leading_car.set_destination(self.initial_destination)
 
         self.clock = pygame.time.Clock()
         print("end init")
