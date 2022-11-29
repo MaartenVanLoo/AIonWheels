@@ -216,20 +216,20 @@ def main():
         # --------------
         # while True:
         #     world_snapshot = world.wait_for_tick()
-        display = pygame.display.set_mode(
-            (args.width, args.height),
-            pygame.HWSURFACE | pygame.DOUBLEBUF)
+        # display = pygame.display.set_mode(
+        #     (1280, 720),
+        #     pygame.HWSURFACE | pygame.DOUBLEBUF)
         clock = pygame.time.Clock()
 
         while True:
             clock.tick()
-            if args.sync:
-                world.world.tick()
-            else:
-                world.world.wait_for_tick()
+        # if args.sync:
+            # world.tick()
+        # else:
+            world.wait_for_tick()
 
             world.tick(clock)
-            world.render(display)
+            # world.render(display)
 
             if ego_vehicle.done():
                 ego_vehicle.set_destination(random.choice(spawn_points).location)
