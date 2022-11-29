@@ -736,7 +736,7 @@ class CarlaConnection:
         except Exception:
             if self.world is not None:
                 if self.leading_car is not None:
-                    self.leading_car.destroy()
+                    self.leading_car._vehicle.destroy()
                 self.world.destroy()
 
     def init(self):
