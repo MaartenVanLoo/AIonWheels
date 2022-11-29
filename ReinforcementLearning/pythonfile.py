@@ -704,7 +704,7 @@ class CarlaConnection:
         self.width = 720
         self.filter = "vehicle.*"
         self.seed = None
-        self.sync = False
+        self.sync = True
 
         # carla world objects
         self.clock = None
