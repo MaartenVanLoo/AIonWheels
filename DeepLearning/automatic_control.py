@@ -684,6 +684,7 @@ def game_loop(args):
     ticking the agent and, if needed, the world.
     """
 
+    global world
     pygame.init()
     pygame.font.init()
 
@@ -810,7 +811,7 @@ def game_loop(args):
             world.player.apply_control(control)
 
     finally:
-        """
+
         if world is not None:
             settings = world.world.get_settings()
             settings.synchronous_mode = False
@@ -821,7 +822,7 @@ def game_loop(args):
             world.destroy()
 
         pygame.quit()
-        """
+
 
 # ==============================================================================
 # -- main() --------------------------------------------------------------
