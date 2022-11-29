@@ -693,7 +693,7 @@ class CameraManager(object):
 
 
 class CarlaConnection:
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
 
         # carla argument constants
