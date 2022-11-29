@@ -141,4 +141,7 @@ with torch.no_grad():
         total += labels.size(0)
         correct += (predicted == labels).sum().item()
 
+wandb.log(outputs)
+
+
 print(f'Accuracy of the network on the 10000 test images: {100 * correct // total} %')
