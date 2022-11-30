@@ -834,7 +834,7 @@ class CarlaConnection:
                 # after 100 iters of 0.05 seconds(5 seconds) initialize follower car
                 if self.agent is None:
                     self.clock_ticks += 1
-                    if self.clock_ticks == 100:
+                    if self.clock_ticks == 300:
                         self.world.restart(self.initial_transform)
                         print("SPAWNED")
                         print(self.get_distance())
