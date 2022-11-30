@@ -837,6 +837,7 @@ class CarlaConnection:
                     if self.clock_ticks == 300:
                         self.world.restart(self.initial_transform)
                         self.agent = BasicAgent(self.world.player)
+                        self.agent.set_destination(self.initial_destination)
                         print("SPAWNED")
                         print(self.get_distance())
                     continue
