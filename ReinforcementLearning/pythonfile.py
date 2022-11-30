@@ -748,8 +748,9 @@ class CarlaConnection:
 
         if self.seed:
             random.seed(self.seed)
-
+        print(1)
         client = carla.Client(self.host, self.port)
+        print(2)
         client.set_timeout(4.0)
 
         self.traffic_manager = client.get_trafficmanager()
