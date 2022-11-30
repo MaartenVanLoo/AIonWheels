@@ -603,7 +603,7 @@ if __name__ == "__main__":
 
             'history_frames': 3,
             'num_inputs': 6,  # =size of states!
-            'num_actions': 11,
+            'num_actions': 101,
             'hidden': [128, 512, 512, 128, 64],
         }
         env = SimpleACC(config)

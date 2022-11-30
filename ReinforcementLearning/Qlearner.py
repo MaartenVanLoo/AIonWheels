@@ -13,7 +13,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 _mov_average_size = 10  # moving average of last 10 epsiodes
-ENABLE_WANDB=False
+ENABLE_WANDB=True
 #matplotlib.use("Tkagg")
 
 class DQN(torch.nn.Module):
@@ -277,11 +277,15 @@ class Qlearner:
 
     def __update_target(self):
         self.targetDQN.load_state_dict(self.currentDQN.state_dict())
+        #soft update: TODO: CODE NOT CHECKED! verify if this code works
+        #tau = 1e-3
+        #for target_param, local_param in zip(self.targetDQN.parameters(), self.currentDQN.parameters()):
+        #    target_param.data.copy_(tau*local_param.data + (1-tau) * target_param.data)
 
     def __epsilon_by_frame(self, frame):
-        epsilon_start = 1.0
-        epsilon_final = 0.02
-        epsilon_decay = 300000
+        epsilon_start = self.config.get('epsilon_start',1.0)
+        epsilon_final = self.config.get('epsilon_final',0.02)
+        epsilon_decay = self.config.get('epsilon_decay',300000)
         return epsilon_final + (epsilon_start - epsilon_final) * math.exp(-1. * frame / epsilon_decay)
 
     def __update(self):

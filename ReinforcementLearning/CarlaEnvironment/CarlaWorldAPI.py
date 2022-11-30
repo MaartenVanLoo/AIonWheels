@@ -16,7 +16,8 @@ from ReinforcementLearning.CarlaEnvironment import TrafficGenerator
 
 
 class CarlaWorldAPI:
-    def __init__(self, args, host ='127.0.0.1', port=2000,width = 1280, height=720, show = True ) -> None:
+    def __init__(self, args, host ='127.0.0.1', port=2000,width = 1280, height=720, fullscreen = False, show = True )\
+            -> None:
         super().__init__()
         pygame.init()
         pygame.font.init()
@@ -24,8 +25,9 @@ class CarlaWorldAPI:
         self.host = host
         self.port = port
 
+        self.args = args
         self.client = carla.Client(host,port)
-        self.client.set_timeout(4.0)
+        self.client.set_timeout(10.0)
 
         self.traffic_manager = self.client.get_trafficmanager()
         self.sim_world = self.client.get_world()
@@ -39,6 +41,9 @@ class CarlaWorldAPI:
 
         self.clock = pygame.time.Clock()
         #open display if needed:
+        self.full_screen = fullscreen
+        self.width = width
+        self.height = height
         if show:
             self.__show(width, height)
         else:
@@ -53,42 +58,56 @@ class CarlaWorldAPI:
         self.agent = None
 
         self.vehicles_list = []
-
+        self.number_of_vehicles = -1
     def cleanup(self):
+        print("Cleaning up world")
         if self.world is not None:
+            print("Resetting world settings")
             settings = self.world.world.get_settings()
             settings.synchronous_mode = False
             settings.fixed_delta_seconds = None
             self.world.world.apply_settings(settings)
             self.traffic_manager.set_synchronous_mode(False)
 
-            if not self.vehicles_list:
-                print('\ndestroying %d vehicles' % len(self.vehicles_list))
+            if self.vehicles_list:
+                print('Destroying %d vehicles' % len(self.vehicles_list))
                 self.client.apply_batch([carla.command.DestroyActor(x) for x in self.vehicles_list])
+            else:
+                print("No vehicles found")
 
+            print("destroying world object")
             self.world.destroy()
+        print("quit pygame")
         pygame.quit()
+        print("Cleanup done")
 
     def __show(self, width = 1280, height=720):
+        options = pygame.HWSURFACE | pygame.DOUBLEBUF
+        if self.full_screen:
+            options |= pygame.FULLSCREEN
+
         self.display = pygame.display.set_mode(
             (width, height),
-            pygame.HWSURFACE | pygame.DOUBLEBUF)
+            options)
 
     def __hide(self):
         self.display = None
 
     def addAgent(self, agent: object):
         self.agent = agent
+        origin = random.choice(self.spawn_points).location
         # Set the agent destination
 
         destination = random.choice(self.spawn_points).location
-        agent.set_destination(destination)
+        agent.set_destination(end_location=destination)
 
         pass
 
     def spawnVehicles(self,number_of_vehicles=30):
        self.vehicles_list = TrafficGenerator.generateTraffic(self.world.world, self.client,self.traffic_manager,
                                                              number_of_vehicles=number_of_vehicles)
+       self.number_of_vehicles = number_of_vehicles
+
 
 
     def getClosestVechicle(self):
@@ -116,9 +135,11 @@ class CarlaWorldAPI:
             diff = p.location - agent_transform.location
             diff.z=0
             diff=diff.make_unit_vector()
-            angles.append(np.arccos(np.clip(agent_dir.dot_2d(diff),-1,1)))
-            if abs(angles[-1]) <= 0.1: #  ±5.7°
-                if dist < best_dist:
+            dot =np.clip(agent_dir.dot_2d(diff),-1,1)
+            angles.append(np.arccos(dot))
+            if abs(angles[-1]) <= 0.12: #  ±6°
+                if dist< best_dist: #correct dist with angle, larger angle => bigger virtual distance to avoid
+                    # distances from nearby lanes, directly in front, dot = 1!
                     best_dist = dist
                     index = i
         #correct for bounding box size
@@ -139,6 +160,46 @@ class CarlaWorldAPI:
         return self.world.world.get_actor(vehicleId).get_velocity()
 
     def reset(self):
+        #cleanup agent & AI vehicles
+        if self.agent:
+            self.agent.destroy()
+
+
+        if self.vehicles_list:
+            print('Destroying %d vehicles' % len(self.vehicles_list))
+            self.client.apply_batch([carla.command.DestroyActor(x) for x in self.vehicles_list])
+        else:
+            print("No vehicles found")
+
+        # no synchronous mode, reloading world not possible when synchronous
+        sim = self.client.get_world();
+        self.settings = sim.get_settings()
+        self.settings.synchronous_mode = False
+        self.traffic_manager.set_synchronous_mode(False)
+        sim.apply_settings(self.settings)
+
+        maps = self.client.get_available_maps()
+        self.client.reload_world(reset_settings=False)
+
+        # reset synchronous mode and reload GUI elements
+        self.sim_world = self.client.get_world()
+        self.settings = self.sim_world.get_settings()
+        self.settings.synchronous_mode = True
+        self.traffic_manager = self.client.get_trafficmanager()
+        self.settings.fixed_delta_seconds = 0.05
+        self.sim_world.apply_settings(self.settings)
+
+        self.hud = HUD(self.width, self.height)
+        self.world = World(self.client.get_world(), self.hud, self.args)
+        self.controller = KeyboardControl(self.world)
+
+        self.agent = None
+        self.spawn_points = self.world.map.get_spawn_points()
+
+        #respawn vehicles
+        if self.number_of_vehicles >0:
+            self.spawnVehicles(self.number_of_vehicles)
+        print(self.world.world.get_settings())
 
         pass
     def step(self, action: int):

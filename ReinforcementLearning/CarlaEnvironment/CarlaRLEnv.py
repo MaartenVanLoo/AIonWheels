@@ -1,5 +1,6 @@
 import argparse
 import math
+import os
 import traceback
 from collections import deque
 
@@ -19,8 +20,9 @@ def _sigmoid(x):
 
 
 class CarlaRLEnv(CarlaWorldAPI):
-    def __init__(self, config, args, host='127.0.0.1', port=2000, width=1280, height=720, show=True) -> None:
-        super().__init__(args, host, port, width, height, show)
+    def __init__(self, config, args, host='127.0.0.1', port=2000, width=1280, height=720, fullscreen = False,
+                 show=True) -> None:
+        super().__init__(args, host, port, width, height,fullscreen, show)
         self.target_speed = 5
         self.prev_action = 0
         self.frames = deque(maxlen=config.get('history_frames', 3))
@@ -37,12 +39,18 @@ class CarlaRLEnv(CarlaWorldAPI):
 
         self.train()
 
+        #compute total history size:
+        self.history_size =self.frames.maxlen * 4 + 2 # state, reward, done
+        self.episodeHistory = []
+
 
     def render(self):
         pass
+    def plot(self):
+        pass
 
     def reset(self):
-        self.agent.destroy()
+        super().reset()
         self.addAgent(CarlaAgents.CarlaAgentRL(self.world.player, num_actions=self.num_actions))
         self.step(int((self.num_actions + 1) / 2))
 
@@ -55,7 +63,18 @@ class CarlaRLEnv(CarlaWorldAPI):
         self.episodeReward=0
         self.stepCount = 0
 
-        return np.array(list(self.frames)).flatten()
+        state = np.array(list(self.frames)).flatten()
+        #save prev episode if not empty
+        if len(self.episodeHistory) > 5:
+            with open("../CarlaEpisodeData/counter","r") as counter:
+                count = int(counter.read())
+            count += 1
+            with open("../CarlaEpisodeData/counter","w") as counter:
+                counter.write(str(count))
+            filename = "../CarlaEpisodeData/"+str(count).zfill(6) + "_episode_data.data"
+            np.save(filename,np.asarray(self.episodeHistory))
+        self.episodeHistory = []
+        return state
 
     def step(self, action: int):
         # step state
@@ -77,7 +96,10 @@ class CarlaRLEnv(CarlaWorldAPI):
 
         self.episodeReward += reward
         self.prev_action = action
-        print(state)
+        if self.stepCount%100==0:
+            print(f"Frame:{self.stepCount}")
+            print(state)
+        self.episodeHistory.append(np.concatenate((state , np.array([reward, done]))))
         return state, reward, done, info
 
     def eval(self):
@@ -127,10 +149,11 @@ class CarlaRLEnv(CarlaWorldAPI):
                    self.episodeReward > 9999 or \
                    self.stepCount > 5000
             # (distance > 1000 and self.agent.getSpeed() >= self.car.getSpeed()) or \
-        return False
+        return self.stepCount > 10000
 
     def __info(self):
-        pass
+        return {} #empty dict
+
 
     def __getSafeDistance(self):
         return self.t_gap * abs(self.agent.getVel().length()) + self.distance_default
@@ -219,30 +242,38 @@ if __name__ == "__main__":
         'device': 'cuda',
         'batch_size': 2048,
         'mini_batch': 24,  # only update once after n experiences
-        'num_frames': 2000000,
+        'num_frames': 20000,
         'gamma': 0.90,
         'replay_size': 250000,
         'lr': 0.0003,
         'reward_offset': 1.5,
+        #epsilon greedy
+        'epsilon_start':0.5,
+        'epsilon_final': 0.04,
+        'epsilon_decay':2000,
 
         'history_frames': 3,
-        'num_inputs': 6,  # =size of states!
+        'num_inputs': 12,  # =size of states!
         'num_actions': 11,
         'hidden': [128, 512, 512, 128, 64],
     }
 
     worldapi=None
     try:
-        worldapi = CarlaRLEnv(config=config, args=args)
+        worldapi = CarlaRLEnv(config=config, args=args, fullscreen=False)
         worldapi.spawnVehicles(number_of_vehicles = 25)
-        worldapi.addAgent(CarlaAgents.CarlaAgentRL(worldapi.world.player, num_actions=11))
+        worldapi.addAgent(CarlaAgents.CarlaAgentRL(worldapi.world.player, num_actions=config.get('num_actions',11)))
         print(worldapi.agent.getPos())
 
-        config['num_inputs'] = len(worldapi.reset())  # always correct :D
+        #config['num_inputs'] = len(worldapi.reset())  # always correct, but expensive in a carla environent
         qlearning = Qlearner(worldapi, DQN, config)
-        qlearning.load("../models/TrainedModel_meadow-63.pth")
+        qlearning.load("../models/TrainedModel_meadow-63.pth") # works well
         #qlearning.load("../models/TrainedModel_sky-64.pth")
-        qlearning.eval()
+        #qlearning.load("../models/prime-sun-67.pth")
+        qlearning.train()
+        qlearning.save("../models/TrainedModel_meadow-63_carla.pth")
+        #qlearning.save("../models/prime-sun-67_carla.pth")
+        worldapi.reset() #force to save episode history
         #while True:
         #    print(worldapi.step(action=8))
     except:
