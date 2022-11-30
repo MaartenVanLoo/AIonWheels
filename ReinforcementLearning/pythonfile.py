@@ -750,7 +750,7 @@ class CarlaConnection:
             random.seed(self.seed)
         client = carla.Client(self.host, self.port)
         client.set_timeout(4.0)
-
+        print(client)
         self.traffic_manager = client.get_trafficmanager()
         sim_world = client.get_world()
         print(1)
