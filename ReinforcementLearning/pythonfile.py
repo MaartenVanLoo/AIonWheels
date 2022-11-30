@@ -751,10 +751,10 @@ class CarlaConnection:
             random.seed(self.seed)
         client = carla.Client(self.host, self.port)
         client.set_timeout(4.0)
-        print(client)
+
         self.traffic_manager = client.get_trafficmanager()
         sim_world = client.get_world()
-        print(1)
+
         if self.sync:
             settings = sim_world.get_settings()
             settings.synchronous_mode = True
@@ -762,7 +762,7 @@ class CarlaConnection:
             sim_world.apply_settings(settings)
 
             self.traffic_manager.set_synchronous_mode(True)
-        print(2)
+
         self.display = pygame.display.set_mode(
             (self.width, self.height),
             pygame.HWSURFACE | pygame.DOUBLEBUF)
@@ -782,10 +782,9 @@ class CarlaConnection:
             random.choice(self.world.world.get_blueprint_library().filter('vehicle.*.*')),
             self.world.player.get_transform()
         )
-        print(2)
 
         # spawn leading_car car
-        self.leading_car = BasicAgent(player)
+        self.leading_car = BasicAgent(self.world.player)
         transform = self.world.player.get_transform()
 
         # Set first destination
@@ -833,7 +832,7 @@ class CarlaConnection:
                 if self.agent is None:
                     self.clock_ticks += 1
                     if self.clock_ticks == 100:
-                        self.spawn_agent()
+                        self.world.restart()
                         print("SPAWNED")
                         print(self.get_distance())
                     continue
