@@ -736,7 +736,8 @@ class CarlaConnection:
             self.game_loop()
         except KeyboardInterrupt:
             print('\nCancelled by user. Bye!')
-        except Exception:
+        except Exception as e:
+            print(e)
             if self.world is not None:
                 if self.leading_car is not None:
                     self.leading_car._vehicle.destroy()
