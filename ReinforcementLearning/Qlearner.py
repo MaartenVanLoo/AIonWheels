@@ -279,7 +279,7 @@ class Qlearner:
     def __epsilon_by_frame(self, frame):
         epsilon_start = 1.0
         epsilon_final = 0.02
-        epsilon_decay = 500000
+        epsilon_decay = 300000
         return epsilon_final + (epsilon_start - epsilon_final) * math.exp(-1. * frame / epsilon_decay)
 
     def __update(self):
