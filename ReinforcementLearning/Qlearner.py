@@ -9,7 +9,6 @@ import math
 import numpy as np
 import wandb
 
-from Environment import SimpleACC
 import matplotlib
 import matplotlib.pyplot as plt
 
@@ -407,7 +406,7 @@ class Qlearner:
         while True:
             with torch.no_grad():
                 action = self.currentDQN.act(state)
-                env.step(action)
+                self.env.step(action)
                 next_state, reward, done, info = self.env.step(action)
 
                 state = next_state
@@ -446,28 +445,4 @@ class Qlearner:
         wandb.init(project="AIonWheels", tags="qLearning",config=self.config)
         self.wandb_enabled = True
 
-if __name__ == "__main__":
-    # config = optional, default values have been set in the qlearning framework
-    config = {
-        'device': 'cuda',
-        'batch_size': 2048,
-        'mini_batch': 24,  # only update once after n experiences
-        'num_frames': 2000000,
-        'gamma': 0.90,
-        'replay_size': 250000,
-        'lr':0.0003,
-        'reward_offset':1.5,
 
-        'history_frames': 3,
-        'num_inputs': 6,  # =size of states!
-        'num_actions': 11,
-        'hidden': [128,512, 512, 128, 64],
-    }
-    env = SimpleACC(config)
-    config['num_inputs'] = len(env.reset()) # always correct :D
-
-    qlearning = Qlearner(env, DQN, config)
-    qlearning.train()
-    qlearning.save("models/TrainedModel.pth")
-    #qlearning.load("models/TrainedModel.pth")
-    qlearning.eval()
