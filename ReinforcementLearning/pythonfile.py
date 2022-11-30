@@ -788,7 +788,7 @@ class CarlaConnection:
 
         # spawn leading_car car
         self.leading_car = BasicAgent(self.world.player)
-        transform = self.world.player.get_transform()
+        self.initial_transform = self.world.player.get_transform()
 
         # Set first destination
         spawn_points = self.world.map.get_spawn_points()
