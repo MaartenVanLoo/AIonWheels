@@ -351,7 +351,7 @@ class Qlearner:
                 if random.random()>0.5: # avoid plotting everything
                     self.env.plot()
                     pass
-                self.metrics['episode_length'] = env.stepCount
+                self.metrics['episode_length'] = self.env.stepCount
                 state = self.env.reset()
                 all_rewards.append(episode_reward)
                 movingAverage.append(sum(all_rewards[-_mov_average_size:]) / min(_mov_average_size, len(all_rewards)))
