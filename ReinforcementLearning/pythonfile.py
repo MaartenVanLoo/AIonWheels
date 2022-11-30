@@ -778,13 +778,14 @@ class CarlaConnection:
         new_location = transform.location + (transform_fv * -50)
         transform.location = new_location
         '''
-        print(1)
-        self.blueprint = random.choice(self.world.world.get_blueprint_library().filter('vehicle.*.*'))
-        self.initial_transform = self.world.player.get_transform()
+        player = self.world.world.try_spawn_actor(
+            random.choice(self.world.world.get_blueprint_library().filter('vehicle.*.*')),
+            self.world.player.get_transform()
+        )
         print(2)
 
         # spawn leading_car car
-        self.leading_car = BasicAgent(self.world.player)
+        self.leading_car = BasicAgent(player)
         transform = self.world.player.get_transform()
 
         # Set first destination
@@ -865,14 +866,8 @@ class CarlaConnection:
             pygame.quit()
 
     def spawn_agent(self):
-        cam_index = self.world.camera_manager.index if self.world.camera_manager is not None else 0
-        cam_pos_id = self.world.camera_manager.transform_index if self.world.camera_manager is not None else 0
-        player = self.world.world.try_spawn_actor(self.blueprint, self.initial_transform)
         self.agent = BasicAgent(self.world.player)
         self.agent.set_destination(self.initial_destination)
-        self.world.camera_manager = CameraManager(player, self.world.hud)
-        self.world.camera_manager.transform_index = cam_pos_id
-        self.world.camera_manager.set_sensor(cam_index, notify=False)
 
     def get_distance(self):
         """
