@@ -234,13 +234,14 @@ if __name__ == "__main__":
     worldapi=None
     try:
         worldapi = CarlaRLEnv(config=config, args=args)
-        worldapi.spawnVehicles(number_of_vehicles = 4)
+        worldapi.spawnVehicles(number_of_vehicles = 25)
         worldapi.addAgent(CarlaAgents.CarlaAgentRL(worldapi.world.player, num_actions=11))
         print(worldapi.agent.getPos())
 
         config['num_inputs'] = len(worldapi.reset())  # always correct :D
         qlearning = Qlearner(worldapi, DQN, config)
-        qlearning.load("../models/TrainedModel_spaceship-60.pth")
+        qlearning.load("../models/TrainedModel_meadow-63.pth")
+        #qlearning.load("../models/TrainedModel_sky-64.pth")
         qlearning.eval()
         #while True:
         #    print(worldapi.step(action=8))

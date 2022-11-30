@@ -13,7 +13,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 _mov_average_size = 10  # moving average of last 10 epsiodes
-ENABLE_WANDB=True
+ENABLE_WANDB=False
 #matplotlib.use("Tkagg")
 
 class DQN(torch.nn.Module):
@@ -261,7 +261,9 @@ class Qlearner:
         #self.__episode_rewards_ax = self.__episode_rewards_fig.add_subplot(1,1,1)
 
         self.wandb_enabled = False
+        self.model_name = "TrainedModel.pth"
         self.initwandb()
+
 
 
     def save(self,filename: str)->None:
@@ -442,7 +444,7 @@ class Qlearner:
         os.environ["WANDB_API_KEY"] ='827fc9095ed2096f0d61efa2cca1450526099892'
 
         wandb.login()
-        wandb.init(project="AIonWheels", tags="qLearning",config=self.config)
+        run = wandb.init(project="AIonWheels", tags="qLearning",config=self.config)
         self.wandb_enabled = True
-
+        self.model_name = run.name + ".pth"
 
