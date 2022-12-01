@@ -827,10 +827,8 @@ class CarlaConnection:
 
                 dot = np.clip(agent_dir.dot_2d(aux), -1, 1)
                 compute_angle = np.arccos(dot)
-                print(f"vector: {wheel_vector} ==> ")
+                print(f"vector: {wheel_vector} ==> vector computed{compute_angle}")
                 print(f"forward: ({aux.x},{aux.y}) ==> wheel vector: ({agent_dir.x},{agent_dir.y})")
-
-
 
                 # Rerouting to new location for leading_car car
                 if self.leading_car.done():
