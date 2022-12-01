@@ -94,7 +94,7 @@ bounding_box_set = world.get_level_bbs(carla.CityObjectLabel.TrafficLight)
 edges = [[0,1], [1,3], [3,2], [2,0], [0,4], [4,5], [5,1], [5,7], [7,6], [6,4], [6,2], [7,3]]
 
 for i in range(20):
-    vehicle_bp = world.get_blueprint_library().filter('mini') #random.choice(bp_lib.filter('vehicle'))
+    vehicle_bp = world.get_blueprint_library().filter('vehicle.audi.tt') #random.choice(bp_lib.filter('vehicle'))
     npc = world.try_spawn_actor(vehicle_bp, random.choice(spawn_points))
     if npc:
         npc.set_autopilot(True)
@@ -173,7 +173,7 @@ while True:
 
                     # Add the object to the frame (ensure it is inside the image)
                     if x_min > 0 and x_max < image_w and y_min > 0 and y_max < image_h:
-                        writer.addObject('mini', x_min, y_min, x_max, y_max)
+                        writer.addObject('audi_tt', x_min, y_min, x_max, y_max)
 
     # Save the bounding boxes in the scene
     writer.save(frame_path + '.xml')
