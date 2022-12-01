@@ -2,6 +2,7 @@
 This file contains the main world class used as top level API to connect with carla
 """
 import argparse
+import math
 import traceback
 
 import numpy.random as random
@@ -11,6 +12,7 @@ import CarlaAgents
 
 import carla
 import pygame
+import weakref
 
 from ReinforcementLearning.CarlaEnvironment import TrafficGenerator
 
@@ -59,6 +61,9 @@ class CarlaWorldAPI:
 
         self.vehicles_list = []
         self.number_of_vehicles = -1
+
+        #sensors:
+        self.collision_sensor = None
 
     def cleanup(self):
         print("Cleaning up world")
@@ -127,10 +132,22 @@ class CarlaWorldAPI:
         for actor in self.world.world.get_actors(self.vehicles_list):
             positions.append(actor.get_transform())
             bbox.append(actor.bounding_box)
-        agent_transform = self.agent.getTransform()
+        ######agent_transform = self.agent.getTransform()
+        ######agent_dir = agent_transform.get_forward_vector()
+        ######agent_dir.z = 0
+        ######agent_dir = agent_dir.make_unit_vector()
+        wheel_vector = -self.agent._vehicle.get_wheel_steer_angle(carla.VehicleWheelLocation.FL_Wheel)
+        wheel_vector = np.radians(wheel_vector)
+        agent_transform = self.agent._vehicle.get_transform()
         agent_dir = agent_transform.get_forward_vector()
         agent_dir.z = 0
         agent_dir = agent_dir.make_unit_vector()
+        aux = carla.Vector3D()
+        aux.x = agent_dir.x
+        aux.y = agent_dir.y
+        aux.z = agent_dir.z
+        agent_dir.x = (aux.x * np.cos(wheel_vector)) - (aux.y * np.sin(wheel_vector))
+        agent_dir.y = (aux.x * np.sin(wheel_vector)) + (aux.y * np.cos(wheel_vector))
 
         angles = []
         index = -1
@@ -233,6 +250,53 @@ class CarlaWorldAPI:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.cleanup()
 
+    def addCollisionSensor(self):
+        if self.collision_sensor:
+            return
+        self.collision_sensor = self._CustomCollisionSensor(self.world.player, self.on_collision)
+
+
+    def getCollisionIntensity(self):
+        if not self.collision_sensor:
+            return None
+        return self.collision_sensor.getIntensity()
+
+    @staticmethod
+    def on_collision(weak_self, event):
+        """On collision method"""
+        self = weak_self()
+        if not self:
+            return
+        impulse = event.normal_impulse
+        intensity = math.sqrt(impulse.x ** 2 + impulse.y ** 2 + impulse.z ** 2)
+        self.intensity = intensity
+
+    class _CustomCollisionSensor(object):
+        def __init__(self, parent_actor, on_collision):
+            self.sensor = None
+            self._parent = parent_actor
+            self.intensity = 0
+            world = self._parent.get_world()
+            blueprint = world.get_blueprint_library().find('sensor.other.collision')
+            self.sensor = world.spawn_actor(blueprint, carla.Transform(), attach_to=self._parent)
+
+            # We need to pass the lambda a weak reference to
+            # self to avoid circular reference.
+            weak_self = weakref.ref(self)
+            self.sensor.listen(lambda event: on_collision(weak_self, event))
+
+        def getIntensity(self):
+            return self.intensity
+
+    class _CustomCameraSensor(object):
+        pass
+
+    class _CustomLidarSensor(object):
+        pass
+
+
+
+
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(
@@ -295,10 +359,13 @@ if __name__ == "__main__":
         worldapi = CarlaWorldAPI(args=args)
         worldapi.spawnVehicles(args={'vehicle_filter': 'vehicle.tesla.cybertruck'})
         worldapi.addAgent(CarlaAgents.CarlaAgentRL(worldapi.world.player, num_actions=11))
+        worldapi.addCollisionSensor()
+
         print(worldapi.agent.getPos())
         while True:
             worldapi.step(action=10)
-
+            worldapi.getClosestVechicle()
+            print(worldapi.getCollisionIntensity())
     except:
         traceback.print_exc()
     finally:

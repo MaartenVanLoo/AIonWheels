@@ -261,7 +261,7 @@ if __name__ == "__main__":
     worldapi=None
     Qlearner.ENABLE_WANDB = False
     try:
-        worldapi = CarlaRLEnv(config=config, args=args, width=1920, height=1080,fullscreen=True)
+        worldapi = CarlaRLEnv(config=config, args=args)#, width=1920, height=1080,fullscreen=True)
         worldapi.spawnVehicles(number_of_vehicles = 30)
         worldapi.addAgent(CarlaAgents.CarlaAgentRL(worldapi.world.player, num_actions=config.get('num_actions',11)))
         print(worldapi.agent.getPos())
