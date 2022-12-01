@@ -148,7 +148,7 @@ try:
                 dist = npc.get_transform().location.distance(vehicle.get_transform().location)
 
                 # Filter for the vehicles within 50m
-                if dist < 10:
+                if dist < 25:
                     forward_vec = vehicle.get_transform().get_forward_vector()
                     ray = npc.get_transform().location - vehicle.get_transform().location
 
