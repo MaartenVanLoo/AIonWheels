@@ -93,7 +93,7 @@ bounding_box_set = world.get_level_bbs(carla.CityObjectLabel.TrafficLight)
 # Remember the edge pairs
 edges = [[0,1], [1,3], [3,2], [2,0], [0,4], [4,5], [5,1], [5,7], [7,6], [6,4], [6,2], [7,3]]
 
-for i in range(20):
+for i in range(100):
     vehicle_bp = world.get_blueprint_library().find('vehicle.audi.tt')
     npc = world.try_spawn_actor(vehicle_bp, random.choice(spawn_points))
     if npc:
