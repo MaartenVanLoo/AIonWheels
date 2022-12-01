@@ -821,9 +821,10 @@ class CarlaConnection:
                 agent_dir = agent_transform.get_forward_vector()
                 agent_dir.z = 0
                 agent_dir = agent_dir.make_unit_vector()
-                aux = agent_dir
-                agent_dir.x = (aux.x * np.cos(wheel_vector)) - (aux.y * np.sin(wheel_vector))
-                agent_dir.y = (aux.x * np.sin(wheel_vector)) + (aux.y * np.cos(wheel_vector))
+                aux_x = agent_dir.x
+                aux_y = agent_dir.y
+                agent_dir.x = (aux_x * np.cos(wheel_vector)) - (aux_y * np.sin(wheel_vector))
+                agent_dir.y = (aux_x * np.sin(wheel_vector)) + (aux_y * np.cos(wheel_vector))
 
                 dot = np.clip(agent_dir.dot_2d(aux), -1, 1)
                 compute_angle = np.arccos(dot)

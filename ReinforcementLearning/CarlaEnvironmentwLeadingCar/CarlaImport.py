@@ -55,8 +55,6 @@ except IndexError:
 import carla
 from carla import ColorConverter as cc
 
-from agents.navigation.basic_agent import BasicAgent  # pylint: disable=import-error
-
 
 # ==============================================================================
 # -- Global functions ----------------------------------------------------------
@@ -124,7 +122,7 @@ class World(object):
         self.recording_enabled = False
         self.recording_start = 0
 
-    def restart(self):
+    def restart(self, _spawn_point=None):
         """Restart the world"""
         # Keep same camera config if the camera manager exists.
         cam_index = self.camera_manager.index if self.camera_manager is not None else 0
@@ -139,11 +137,14 @@ class World(object):
 
         # Spawn the player.
         if self.player is not None:
-            spawn_point = self.player.get_transform()
+            if _spawn_point is None:
+                spawn_point = self.player.get_transform()
+            else:
+                spawn_point = _spawn_point
             spawn_point.location.z += 2.0
             spawn_point.rotation.roll = 0.0
             spawn_point.rotation.pitch = 0.0
-            self.destroy()
+            #self.destroy()
             self.player = self.world.try_spawn_actor(blueprint, spawn_point)
             self.modify_vehicle_physics(self.player)
         while self.player is None:
