@@ -242,7 +242,7 @@ if __name__ == "__main__":
         'device': 'cuda',
         'batch_size': 2048,
         'mini_batch': 24,  # only update once after n experiences
-        'num_frames': 20000,
+        'num_frames': 51000,
         'gamma': 0.90,
         'replay_size': 250000,
         'lr': 0.0003,
@@ -250,8 +250,8 @@ if __name__ == "__main__":
         #epsilon greedy
         'epsilon_start':0.5,
         'epsilon_final': 0.04,
-        'epsilon_decay':2000,
-
+        'epsilon_decay':3000,
+        'target_update_freq':2000,
         'history_frames': 3,
         'num_inputs': 12,  # =size of states!
         'num_actions': 11,
@@ -259,9 +259,10 @@ if __name__ == "__main__":
     }
 
     worldapi=None
+    Qlearner.ENABLE_WANDB = False
     try:
-        worldapi = CarlaRLEnv(config=config, args=args, fullscreen=False)
-        worldapi.spawnVehicles(number_of_vehicles = 25)
+        worldapi = CarlaRLEnv(config=config, args=args, width=1920, height=1080,fullscreen=True)
+        worldapi.spawnVehicles(number_of_vehicles = 30)
         worldapi.addAgent(CarlaAgents.CarlaAgentRL(worldapi.world.player, num_actions=config.get('num_actions',11)))
         print(worldapi.agent.getPos())
 
@@ -270,8 +271,9 @@ if __name__ == "__main__":
         qlearning.load("../models/TrainedModel_meadow-63.pth") # works well
         #qlearning.load("../models/TrainedModel_sky-64.pth")
         #qlearning.load("../models/prime-sun-67.pth")
-        qlearning.train()
-        qlearning.save("../models/TrainedModel_meadow-63_carla.pth")
+        #qlearning.train()
+        qlearning.eval()
+        #qlearning.save("../models/TrainedModel_meadow-63_carla.pth")
         #qlearning.save("../models/prime-sun-67_carla.pth")
         worldapi.reset() #force to save episode history
         #while True:

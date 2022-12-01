@@ -104,9 +104,12 @@ class CarlaWorldAPI:
         pass
 
     def spawnVehicles(self,number_of_vehicles=30):
-       self.vehicles_list = TrafficGenerator.generateTraffic(self.world.world, self.client,self.traffic_manager,
+        if self.vehicles_list:
+            print('Destroying %d vehicles' % len(self.vehicles_list))
+            self.client.apply_batch([carla.command.DestroyActor(x) for x in self.vehicles_list])
+        self.vehicles_list = TrafficGenerator.generateTraffic(self.world.world, self.client,self.traffic_manager,
                                                              number_of_vehicles=number_of_vehicles)
-       self.number_of_vehicles = number_of_vehicles
+        self.number_of_vehicles = number_of_vehicles
 
 
 
@@ -179,7 +182,8 @@ class CarlaWorldAPI:
         sim.apply_settings(self.settings)
 
         maps = self.client.get_available_maps()
-        self.client.reload_world(reset_settings=False)
+        self.client.load_world(random.choice(maps),reset_settings = False)
+        #self.client.reload_world(reset_settings=False)
 
         # reset synchronous mode and reload GUI elements
         self.sim_world = self.client.get_world()

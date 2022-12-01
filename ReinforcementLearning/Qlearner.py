@@ -13,7 +13,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 _mov_average_size = 10  # moving average of last 10 epsiodes
-ENABLE_WANDB=True
+ENABLE_WANDB=False
 #matplotlib.use("Tkagg")
 
 class DQN(torch.nn.Module):
@@ -389,7 +389,7 @@ class Qlearner:
                 plt.show(block = False)
                 pass
             # update target every 1000 frames
-            if frame_idx % 20000 == 0:
+            if frame_idx % self.config.get('target_update_freq',20000) == 0:
                 self.__update_target()
             # save network every 20 000 frames
             if frame_idx % 100000 == 0:
