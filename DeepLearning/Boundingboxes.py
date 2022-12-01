@@ -5,6 +5,7 @@ import time
 import queue
 import numpy as np
 import cv2
+from pascal_voc_writer import Writer
 
 ### Set up simulator ###
 client = carla.Client('localhost', 2000)
@@ -89,7 +90,6 @@ bounding_box_set = world.get_level_bbs(carla.CityObjectLabel.TrafficLight)
 # Set up the set of bounding boxes from the level
 # We filter for traffic lights and traffic signs
 
-
 # Remember the edge pairs
 edges = [[0,1], [1,3], [3,2], [2,0], [0,4], [4,5], [5,1], [5,7], [7,6], [6,4], [6,2], [7,3]]
 
@@ -123,6 +123,10 @@ while True:
     # Get the camera matrix
     world_2_camera = np.array(camera.get_transform().get_inverse_matrix())
 
+    # Save the image -- for export
+    frame_path = 'output/%06d' % image.frame
+    image.save_to_disk(frame_path + '.png')
+
     for npc in world.get_actors().filter('*vehicle*'):
 
         # Filter out the ego vehicle
@@ -133,11 +137,6 @@ while True:
 
             # Filter for the vehicles within 50m
             if dist < 50:
-
-            # Calculate the dot product between the forward vector
-            # of the vehicle and the vector between the vehicle
-            # and the other vehicle. We threshold this dot product
-            # to limit to drawing bounding boxes IN FRONT OF THE CAMERA
                 forward_vec = vehicle.get_transform().get_forward_vector()
                 ray = npc.get_transform().location - vehicle.get_transform().location
 
@@ -169,6 +168,12 @@ while True:
                     cv2.line(img, (int(x_min),int(y_min)), (int(x_min),int(y_max)), (0,0,255, 255), 1)
                     cv2.line(img, (int(x_max),int(y_min)), (int(x_max),int(y_max)), (0,0,255, 255), 1)
 
+                    # Add the object to the frame (ensure it is inside the image)
+                    if x_min > 0 and x_max < image_w and y_min > 0 and y_max < image_h:
+                        writer.addObject('vehicle', x_min, y_min, x_max, y_max)
+
+    # Save the bounding boxes in the scene
+    writer.save(frame_path + '.xml')
 
     cv2.imshow('ImageWindowName',img)
     if cv2.waitKey(1) == ord('q'):
