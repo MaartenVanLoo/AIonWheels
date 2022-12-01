@@ -9,14 +9,14 @@ from pascal_voc_writer import Writer
 
 ### Set up simulator ###
 client = carla.Client('localhost', 2000)
-world  = client.get_world()
+world = client.get_world()
 bp_lib = world.get_blueprint_library()
 
 # Get the map spawn points
 spawn_points = world.get_map().get_spawn_points()
 
 # spawn vehicle
-vehicle_bp1 =bp_lib.find('vehicle.lincoln.mkz_2020')
+vehicle_bp1 = bp_lib.find('vehicle.lincoln.mkz_2020')
 vehicle = world.try_spawn_actor(vehicle_bp1, random.choice(spawn_points))
 
 # spawn camera
