@@ -14,7 +14,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 _mov_average_size = 10  # moving average of last 10 epsiodes
-ENABLE_WANDB=True
+ENABLE_WANDB=False
 #matplotlib.use("Tkagg")
 
 class DQN(torch.nn.Module):
@@ -270,8 +270,8 @@ class Qlearner:
         pass
 
     def load(self, filename: str)->None:
-        self.currentDQN.load_state_dict(torch.load(filename))
-        self.targetDQN.load_state_dict(torch.load(filename))
+        self.currentDQN.load_state_dict(torch.load(filename,map_location=torch.device('cpu')))
+        self.targetDQN.load_state_dict(torch.load(filename,map_location=torch.device('cpu')))
         pass
 
     def __update_target(self):
@@ -350,7 +350,7 @@ class Qlearner:
 
             if done:
                 if random.random()>0.5: # avoid plotting everything
-                    self.env.plot()
+                    #self.env.plot()
                     pass
                 self.metrics['episode_length'] = env.stepCount
                 state = self.env.reset()
@@ -381,9 +381,9 @@ class Qlearner:
                 plt.plot(all_rewards, color='blue')
                 plt.plot(movingAverage, color='red')
                 plt.title("Episode rewards")
-                plt.show(block = False)
+                #plt.show(block = False)
                 pass
-            # update target every 1000 frames
+            # update target every 20000 frames
             if frame_idx % 20000 == 0:
                 self.__update_target()
             # save network every 20 000 frames
@@ -433,7 +433,7 @@ class Qlearner:
         ax1.plot(episode_rewards, color='blue')
         ax1.plot(moving_averages, color='red')
         ax1.set_title("Episode rewards")
-        plt.show(block = False)
+        plt.show(block = True)
         self.env.train()  # set back to training mode
 
 
@@ -467,7 +467,7 @@ if __name__ == "__main__":
     config['num_inputs'] = len(env.reset()) # always correct :D
 
     qlearning = Qlearner(env, DQN, config)
-    qlearning.train()
-    qlearning.save("models/TrainedModel.pth")
-    #qlearning.load("models/TrainedModel.pth")
+    #qlearning.train()
+    #qlearning.save("models/TrainedModel.pth")
+    qlearning.load("DQN_600000.pt")
     qlearning.eval()

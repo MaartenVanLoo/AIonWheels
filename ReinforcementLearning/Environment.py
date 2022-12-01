@@ -248,6 +248,20 @@ class RandomCar(DrivingCar):
     def type(self):
         return "RandomCar"
 
+class BackDrivingCar(DrivingCar):
+
+    def __init__(self, num_actions, speed, position, acceleration):
+        super().__init__(num_actions, -speed, position, 0)
+        self.frame = 0
+
+    def step(self, action=None, dt=1.0):
+        self.updatePos(dt)
+        self.frame += 1
+
+    def type(self):
+        return "BackDrivingCar"
+
+
 class SimpleACC(gym.Env):
     def __init__(self, config: dict):
         self.setpoint = 20
@@ -305,7 +319,7 @@ class SimpleACC(gym.Env):
         return string
 
     def chooseRandomCar(self, num_actions, speed, position, acceleration):
-        number_of_cars = 5
+        number_of_cars = 6
         choice = np.random.randint(0, number_of_cars+1)
 
         if choice == 0:
@@ -320,6 +334,8 @@ class SimpleACC(gym.Env):
             return SpeedUpBrakeCar(num_actions, speed, position, acceleration)
         elif choice == 5:
             return RandomCar(num_actions, speed, position, acceleration)
+        elif choice == 6:
+            return BackDrivingCar(num_actions, speed, position, acceleration)
 
     def step(self, action):
         # step state
@@ -467,12 +483,10 @@ class SimpleACC(gym.Env):
             done = distance <= 0 or \
                    self.episodeReward > 50999 or \
                    self.stepCount > 50000
-                   #(distance > 1000 and self.agent.getSpeed() >= self.car.getSpeed()) or \
         else:
             done = distance <= 0 or \
-                   self.episodeReward > 9999 or\
+                   self.episodeReward > 9999 or \
                    self.stepCount > 5000
-                   #(distance > 1000 and self.agent.getSpeed() >= self.car.getSpeed()) or \
         return done
 
     def __info(self):
