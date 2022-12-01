@@ -127,6 +127,9 @@ while True:
     frame_path = 'output/%06d' % image.frame
     image.save_to_disk(frame_path + '.png')
 
+    # Initialize the exporter
+    writer = Writer(frame_path + '.png', image_w, image_h)
+
     for npc in world.get_actors().filter('*vehicle*'):
 
         # Filter out the ego vehicle
