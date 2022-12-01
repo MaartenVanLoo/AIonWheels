@@ -764,7 +764,7 @@ def game_loop(args):
         cam_rotation = carla.Rotation(0,0,0)
         cam_transform = carla.Transform(cam_location,cam_rotation)
         ego_cam = client.get_world().spawn_actor(cam_bp,cam_transform,attach_to=agent, attachment_type=carla.AttachmentType.Rigid)
-        ego_cam.listen(lambda image: image.save_to_disk('images/output/%.6d.jpg' % image.frame))
+        ego_cam.listen(lambda image: image.save_to_disk('images/rgb_output/%.6d.jpg' % image.frame))
         
         # --------------
         # Add a new semantic segmentation camera to my ego
@@ -780,7 +780,7 @@ def game_loop(args):
         sem_transform = carla.Transform(sem_location,sem_rotation)
         sem_cam = client.get_world().spawn_actor(sem_bp,sem_transform,attach_to=agent, attachment_type=carla.AttachmentType.Rigid)
         # This time, a color converter is applied to the image, to get the semantic segmentation view
-        sem_cam.listen(lambda image1: image1.save_to_disk('images/new_sem_output/%.6d.jpg' % image1.frame,carla.ColorConverter.CityScapesPalette))
+        sem_cam.listen(lambda image1: image1.save_to_disk('images/sem_output/%.6d.jpg' % image1.frame,carla.ColorConverter.CityScapesPalette))
 
         ###########################################################################################################
         
