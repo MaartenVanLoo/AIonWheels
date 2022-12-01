@@ -130,7 +130,7 @@ while True:
     # Initialize the exporter
     writer = Writer(frame_path + '.png', image_w, image_h)
 
-    for npc in world.get_actors().find('vehicle.audi.tt'): #* * matches everything
+    for npc in world.get_actors().filter('vehicle.audi.tt'): #* * matches everything
 
         # Filter out the ego vehicle
         if npc.id != vehicle.id:
