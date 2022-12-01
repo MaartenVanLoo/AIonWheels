@@ -817,7 +817,6 @@ class CarlaConnection:
 
                 # debug
                 wheel_vector = self.leading_car._vehicle.get_wheel_steer_angle(carla.VehicleWheelLocation.FL_Wheel)
-                print(wheel_vector)
                 agent_transform = self.leading_car._vehicle.get_transform()
                 agent_dir = agent_transform.get_forward_vector()
                 agent_dir.z = 0
@@ -825,7 +824,11 @@ class CarlaConnection:
                 aux = agent_dir
                 agent_dir.x = (aux.x * np.cos(wheel_vector)) - (aux.y * np.sin(wheel_vector))
                 agent_dir.y = (aux.x * np.sin(wheel_vector)) + (aux.y * np.cos(wheel_vector))
-                print(agent_dir.x, agent_dir.y)
+
+                dot = np.clip(agent_dir.dot_2d(aux), -1, 1)
+                compute_angle = np.arccos(dot)
+                print(f"vector: {wheel_vector} ==> ")
+                print(f"forward: ({aux.x},{aux.y}) ==> wheel vector: ({agent_dir.x},{agent_dir.y})")
 
 
 
