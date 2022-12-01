@@ -16,8 +16,8 @@ bp_lib = world.get_blueprint_library()
 spawn_points = world.get_map().get_spawn_points()
 
 # spawn vehicle
-vehicle_bp =bp_lib.find('vehicle.lincoln.mkz_2020')
-vehicle = world.try_spawn_actor(vehicle_bp, random.choice(spawn_points))
+vehicle_bp1 =bp_lib.find('vehicle.lincoln.mkz_2020')
+vehicle = world.try_spawn_actor(vehicle_bp1, random.choice(spawn_points))
 
 # spawn camera
 camera_bp = bp_lib.find('sensor.camera.rgb')
@@ -130,7 +130,7 @@ while True:
     # Initialize the exporter
     writer = Writer(frame_path + '.png', image_w, image_h)
 
-    for npc in world.get_actors().filter('*vehicle*'): #* * matches everything
+    for npc in world.get_actors().find('vehicle.audi.tt'): #* * matches everything
 
         # Filter out the ego vehicle
         if npc.id != vehicle.id:
