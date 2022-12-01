@@ -55,8 +55,6 @@ except IndexError:
 import carla
 from carla import ColorConverter as cc
 
-from agents.navigation.basic_agent import BasicAgent  # pylint: disable=import-error
-
 
 # ==============================================================================
 # -- Global functions ----------------------------------------------------------
