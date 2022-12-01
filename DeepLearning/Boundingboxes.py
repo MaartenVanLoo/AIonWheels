@@ -198,6 +198,9 @@ try:
 except:
     pass
 finally:
+    #destory all actors
+    for actor in world.get_actors().filter('*'):
+        actor.destroy()
     if traffic_list:
         client.apply_batch([carla.command.DestroyActor(x) for x in traffic_list])
 
