@@ -94,7 +94,7 @@ bounding_box_set = world.get_level_bbs(carla.CityObjectLabel.TrafficLight)
 edges = [[0,1], [1,3], [3,2], [2,0], [0,4], [4,5], [5,1], [5,7], [7,6], [6,4], [6,2], [7,3]]
 
 for i in range(100):
-    vehicle_bp = world.get_blueprint_library().find('vehicle.audi.tt')
+    vehicle_bp = world.get_blueprint_library().find('vehicle.tesla.cybertruck')
     npc = world.try_spawn_actor(vehicle_bp, random.choice(spawn_points))
     if npc:
         npc.set_autopilot(True)
@@ -130,7 +130,7 @@ while True:
     # Initialize the exporter
     writer = Writer(frame_path + '.png', image_w, image_h)
 
-    for npc in world.get_actors().filter('vehicle.audi.tt'): #* * matches everything
+    for npc in world.get_actors().filter('vehicle.tesla.cybertruck'): #* * matches everything
 
         # Filter out the ego vehicle
         if npc.id != vehicle.id:
