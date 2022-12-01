@@ -781,10 +781,6 @@ class CarlaConnection:
         new_location = transform.location + (transform_fv * -50)
         transform.location = new_location
         '''
-        player = self.world.world.try_spawn_actor(
-            random.choice(self.world.world.get_blueprint_library().filter('vehicle.*.*')),
-            self.world.player.get_transform()
-        )
 
         # spawn leading_car car
         self.leading_car = BasicAgent(self.world.player)
@@ -819,6 +815,20 @@ class CarlaConnection:
                 self.world.render(self.display)
                 pygame.display.flip()
 
+                # debug
+                wheel_vector = self.leading_car._vehicle.get_wheel_steer_angle(carla.VehicleWheelLocation.FL_Wheel)
+                print(wheel_vector)
+                agent_transform = self.leading_car._vehicle.get_transform()
+                agent_dir = agent_transform.get_forward_vector()
+                agent_dir.z = 0
+                agent_dir = agent_dir.make_unit_vector()
+                aux = agent_dir
+                agent_dir.x = (aux.x * np.cos(wheel_vector)) - (aux.y * np.sin(wheel_vector))
+                agent_dir.y = (aux.x * np.sin(wheel_vector)) + (aux.y * np.cos(wheel_vector))
+                print(agent_dir.x, agent_dir.y)
+
+
+
                 # Rerouting to new location for leading_car car
                 if self.leading_car.done():
                     new_dest = random.choice(spawn_points).location
@@ -834,7 +844,7 @@ class CarlaConnection:
                 # after 100 iters of 0.05 seconds(5 seconds) initialize follower car
                 if self.agent is None:
                     self.clock_ticks += 1
-                    if self.clock_ticks == 300:
+                    if self.clock_ticks == 200:
                         self.world.restart(self.initial_transform)
                         self.agent = BasicAgent(self.world.player)
                         self.agent.set_destination(self.initial_destination)
