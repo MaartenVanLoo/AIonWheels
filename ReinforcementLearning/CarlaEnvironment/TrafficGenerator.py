@@ -53,7 +53,9 @@ def get_actor_blueprints(world, filter, generation):
         print("   Warning! Actor Generation is not valid. No actor will be spawned.")
         return []
 
-def generateTraffic(world, client,traffic_manager, number_of_vehicles = 30, car_lights_on = False):
+def generateTraffic(world, client, traffic_manager, number_of_vehicles = 30, car_lights_on = False, args=None):
+    if args is None:
+        args = dict()
 
     logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 
@@ -77,18 +79,21 @@ def generateTraffic(world, client,traffic_manager, number_of_vehicles = 30, car_
         synchronous_master = False
     world.apply_settings(settings)
 
-    blueprints = get_actor_blueprints(world, 'vehicle.*', 'All')
+    vehicle_filter = 'vehicle.*'
+    if 'vehicle_filter' in args.keys():
+        vehicle_filter = args['vehicle_filter']
+    blueprints = get_actor_blueprints(world, vehicle_filter, 'All')
     blueprintsWalkers = get_actor_blueprints(world, 'walker.pedestrian.*', "2")
 
-
-    blueprints = [x for x in blueprints if int(x.get_attribute('number_of_wheels')) == 4]
-    blueprints = [x for x in blueprints if not x.id.endswith('microlino')]
-    blueprints = [x for x in blueprints if not x.id.endswith('carlacola')]
-    blueprints = [x for x in blueprints if not x.id.endswith('cybertruck')]
-    blueprints = [x for x in blueprints if not x.id.endswith('t2')]
-    blueprints = [x for x in blueprints if not x.id.endswith('sprinter')]
-    blueprints = [x for x in blueprints if not x.id.endswith('firetruck')]
-    blueprints = [x for x in blueprints if not x.id.endswith('ambulance')]
+    if not 'vehicle_filter' in args.keys():
+        blueprints = [x for x in blueprints if int(x.get_attribute('number_of_wheels')) == 4]
+        blueprints = [x for x in blueprints if not x.id.endswith('microlino')]
+        blueprints = [x for x in blueprints if not x.id.endswith('carlacola')]
+        blueprints = [x for x in blueprints if not x.id.endswith('cybertruck')]
+        blueprints = [x for x in blueprints if not x.id.endswith('t2')]
+        blueprints = [x for x in blueprints if not x.id.endswith('sprinter')]
+        blueprints = [x for x in blueprints if not x.id.endswith('firetruck')]
+        blueprints = [x for x in blueprints if not x.id.endswith('ambulance')]
 
     blueprints = sorted(blueprints, key=lambda bp: bp.id)
 
@@ -236,4 +241,5 @@ def generateTraffic(world, client,traffic_manager, number_of_vehicles = 30, car_
 
     time.sleep(0.5)
     """
+
 
