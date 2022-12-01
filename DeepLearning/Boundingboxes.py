@@ -173,7 +173,7 @@ while True:
 
                     # Add the object to the frame (ensure it is inside the image)
                     if x_min > 0 and x_max < image_w and y_min > 0 and y_max < image_h:
-                        writer.addObject('audi_tt', x_min, y_min, x_max, y_max)
+                        writer.addObject('elonMUSKKKKK', x_min, y_min, x_max, y_max)
 
     # Save the bounding boxes in the scene
     writer.save(frame_path + '.xml')
