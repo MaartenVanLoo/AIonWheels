@@ -8,9 +8,9 @@ from random import random
 
 import carla
 
-from ReinforcementLearning.CarlaEnvironmentwLeadingCar.navigation.local_planner import RoadOption
-from ReinforcementLearning.CarlaEnvironmentwLeadingCar.navigation.controller import PIDLateralController
-from ReinforcementLearning.CarlaEnvironmentwLeadingCar.tools.misc import draw_waypoints, get_speed
+from local_planner import RoadOption
+from controller import PIDLateralController
+from misc import draw_waypoints, get_speed
 
 
 class AIonWheelsLocalPlanner(object):

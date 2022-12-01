@@ -7,7 +7,7 @@ from collections import deque
 from CarlaQlearning import CarlaConnection
 import numpy as np
 
-from ReinforcementLearning.Qlearner import Qlearner, DQN
+from Qlearner import Qlearner, DQN
 
 _DISCRETE = True
 

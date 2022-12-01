@@ -6,7 +6,6 @@ import torch
 from torch import nn
 import math
 import numpy as np
-import Environment
 
 import matplotlib
 import matplotlib.pyplot as plt

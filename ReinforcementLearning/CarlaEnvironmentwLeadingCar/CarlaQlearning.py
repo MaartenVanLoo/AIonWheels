@@ -41,10 +41,9 @@ except IndexError:
     pass
 
 import carla
-from carla import ColorConverter as cc
 
 from CarlaAgents import CarlaAgentRL  # pylint: disable=import-error
-from navigation.basic_agent import BasicAgent
+from basic_agent import BasicAgent
 
 import CarlaImport
 

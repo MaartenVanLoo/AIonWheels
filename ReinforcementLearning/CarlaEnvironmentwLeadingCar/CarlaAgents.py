@@ -5,8 +5,8 @@ Class implementing an interface for our Carla Agent
 """
 import carla
 
-from navigation.global_route_planner import GlobalRoutePlanner
-from tools.misc import get_speed
+from global_route_planner import GlobalRoutePlanner
+from misc import get_speed
 from CustomPlanners import AIonWheelsLocalPlanner
 import numpy as np
 class CarlaAgent(object):
