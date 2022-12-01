@@ -3,20 +3,44 @@ import torchvision
 import torchvision.transforms as transforms
 import wandb
 
-wandb.init(project="test-project", entity="projectcarla")
+wandb.login() #  To be able to log metrics to projects
 
-wandb.config = {
-  "learning_rate": 0.001,
-  "epochs": 0,
-  "batch_size": 128
+sweep_config = {
+    'method': 'random'  # Select each new combination at random
+    }
+
+metric = {
+'name': 'loss',
+'goal': 'minimize'   
 }
 
+sweep_config['metric'] = metric
+
+parameters_dict = { 
+    'epochs': {
+        'values': 5
+        },
+    'learning_rate': {
+        'distribution': 'uniform',
+        'min': 0.00001,
+        'max': 0.1
+        },
+    'batch_size': {
+        'values': 8
+        },
+    'optimizer': {
+        'values': ['adam', 'sgd']
+        },
+    }
+
+sweep_config['parameters'] = parameters_dict
+
+sweep_id = wandb.sweep(sweep_config, project="classification-test", entity="projectcarla")
 
 transform = transforms.Compose(
     [transforms.ToTensor(),
      transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
-batch_size = 8
 
 trainset = torchvision.datasets.CIFAR10(root='./DeepLearning/classification/data', train=True,
                                         download=True, transform=transform)
@@ -77,39 +101,42 @@ net = Net()
 
 import torch.optim as optim
 
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(net.parameters(), lr=0.01)
+with wandb.init(config=config): #initialize a new wandb run
+    config = wandb.config
+
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.SGD(net.parameters(), lr=config.learning_rate)
 
 
-for epoch in range(20):  # loop over the dataset multiple times
+    for epoch in range(config.epochs):  # loop over the dataset multiple times
 
-    running_loss = 0.0
-    for i, data in enumerate(trainloader, 0):
-        # get the inputs; data is a list of [inputs, labels]
-        inputs, labels = data
+        running_loss = 0.0
+        for i, data in enumerate(trainloader, 0):
+            # get the inputs; data is a list of [inputs, labels]
+            inputs, labels = data
 
-        # zero the parameter gradients
-        optimizer.zero_grad()
+            # zero the parameter gradients
+            optimizer.zero_grad()
 
-        # forward + backward + optimize
-        outputs = net(inputs)
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
+            # forward + backward + optimize
+            outputs = net(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
 
-        wandb.log({"loss": loss})
+            wandb.log({"loss": loss, "epoch": epoch})
 
-        # # Optional
-        # wandb.watch(net)
+            # # Optional
+            # wandb.watch(net)
 
 
-        # print statistics
-        running_loss += loss.item()
-        if i % 2000 == 1999:    # print every 2000 mini-batches
-            print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}')
-            running_loss = 0.0
+            # print statistics
+            running_loss += loss.item()
+            if i % 2000 == 1999:    # print every 2000 mini-batches
+                print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}')
+                running_loss = 0.0
 
-print('Finished Training')
+    print('Finished Training')
 
 
 PATH = './DeepLearning/classification/cifar_net.pth'
