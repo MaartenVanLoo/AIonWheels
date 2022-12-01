@@ -288,6 +288,12 @@ class CarlaWorldAPI:
         def getIntensity(self):
             return self.intensity
 
+    class _CustomCameraSensor(object):
+        pass
+
+    class _CustomLidarSensor(object):
+        pass
+
 
 
 
