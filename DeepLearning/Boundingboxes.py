@@ -180,11 +180,12 @@ try:
                         cv2.line(img, (int(x_min),int(y_min)), (int(x_min),int(y_max)), (0,0,255, 255), 1)
                         cv2.line(img, (int(x_max),int(y_min)), (int(x_max),int(y_max)), (0,0,255, 255), 1)
 
-
+                        #Put label next to image
+                        cv2.putText(img, text = npc.type_id, org = (int(x_min),int(y_min)), fontFace = cv2.FONT_HERSHEY_SIMPLEX, fontScale = 0.5, color = (0,0,255, 255), thickness = 1)
 
                         # Add the object to the frame (ensure it is inside the image)
                         if x_min > 0 and x_max < image_w and y_min > 0 and y_max < image_h:
-                                writer.addObject(npc.type_id.split('.')[1], x_min, y_min, x_max, y_max)
+                                writer.addObject(npc.type_id.split('.')[2], x_min, y_min, x_max, y_max)
                             #writer.addObject('elonMUSKKKKK', x_min, y_min, x_max, y_max)
 
         # Save the bounding boxes in the scene
