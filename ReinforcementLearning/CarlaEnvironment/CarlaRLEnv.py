@@ -96,8 +96,9 @@ class CarlaRLEnv(CarlaWorldAPI):
 
         self.episodeReward += reward
         self.prev_action = action
-        if self.stepCount%100==0:
+        if self.stepCount%1==0:
             print(f"Frame:{self.stepCount}")
+            print(self.getCollisionIntensity())
             print(state)
         self.episodeHistory.append(np.concatenate((state , np.array([reward, done]))))
         return state, reward, done, info

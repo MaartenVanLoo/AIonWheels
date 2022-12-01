@@ -64,6 +64,7 @@ class CarlaWorldAPI:
 
         #sensors:
         self.collision_sensor = None
+        self.lidar_sensor = None
 
     def cleanup(self):
         print("Cleaning up world")
@@ -255,11 +256,23 @@ class CarlaWorldAPI:
             return
         self.collision_sensor = self._CustomCollisionSensor(self.world.player, self.on_collision)
 
+    def getCollisionSensor(self):
+        return self.collision_sensor
 
     def getCollisionIntensity(self):
         if not self.collision_sensor:
             return None
         return self.collision_sensor.getIntensity()
+
+    def addLidarSensor(self):
+        if self.lidar_sensor:
+            return
+        self.lidar_sensor = self._CustomLidarSensor(self.world.player)
+
+    def getLidarSensor(self):
+        return self.lidar_sensor
+
+
 
     @staticmethod
     def on_collision(weak_self, event):
@@ -292,7 +305,46 @@ class CarlaWorldAPI:
         pass
 
     class _CustomLidarSensor(object):
-        pass
+        def __init__(self,parent_actor):
+            self.sensor = None
+            self._parent = parent_actor
+            self.intensity = 0
+            world = self._parent.get_world()
+            lidar_bp  = world.get_blueprint_library().find('sensor.lidar.ray_cast')
+            lidar_bp.set_attribute('rotation_frequency',"20") #equal to 1/time per step
+            lidar_bp.set_attribute('range', "100")
+            lidar_bp.set_attribute('points_per_second', "250000")
+            #lidar_bp.set_attribute('sensor_tick', "0.05")
+            lidar_bp.set_attribute('channels', "64")
+            lidar_bp.set_attribute('upper_fov', "2")
+            lidar_bp.set_attribute('lower_fov', "-24.8")
+            lidar_bp.set_attribute('dropoff_general_rate',
+                                   lidar_bp.get_attribute('dropoff_general_rate').recommended_values[0])
+            lidar_bp.set_attribute('dropoff_intensity_limit',
+                                   lidar_bp.get_attribute('dropoff_intensity_limit').recommended_values[0])
+            lidar_bp.set_attribute('dropoff_zero_intensity',
+                                   lidar_bp.get_attribute('dropoff_zero_intensity').recommended_values[0])
+            lidar_location = carla.Location(x=0,z=2.8)
+            lidar_transform = carla.Transform(lidar_location)
+            self.sensor = world.spawn_actor(lidar_bp, lidar_transform, attach_to=self._parent)
+            # We need to pass the lambda a weak reference to
+            # self to avoid circular reference.
+            weak_self = weakref.ref(self)
+            self.sensor.listen(lambda event: self._on_frame(weak_self, event))
+            pass
+
+        def _on_frame(self,weak_self, event):
+            event.save_to_disk("test.ply")
+            print(f'Lidar angle:{event.horizontal_angle}')
+            print(f'Lidar frame:{event.frame}')
+            print(f'Lidar time:{event.timestamp}')
+            print(f'Lidar:{event.get_point_count(0)}')
+            pass
+
+        def getRawData(self):
+            if not self.sensor.raw_data:
+                return None
+            return self.sensor.raw_data
 
 
 
@@ -360,6 +412,8 @@ if __name__ == "__main__":
         worldapi.spawnVehicles(args={'vehicle_filter': 'vehicle.tesla.cybertruck'})
         worldapi.addAgent(CarlaAgents.CarlaAgentRL(worldapi.world.player, num_actions=11))
         worldapi.addCollisionSensor()
+        worldapi.addLidarSensor()
+
 
         print(worldapi.agent.getPos())
         while True:
