@@ -99,7 +99,7 @@ traffic_list=trafficgenerator.generateTraffic(world, client, trafficmanager, 100
 #args vehicle.* for all vehicles args ={'vehicle_filter': 'vehicle.lincoln.mkz_2020'}
 
 #na impala zelf toegevoegd
-carmodels = ['dodge', 'audi', 'model3', 'mini', 'mustang', 'lincoln', 'prius', 'nissan', 'crown', 'impala', 'tesla']
+#carmodels = ['dodge', 'audi', 'model3', 'mini', 'mustang', 'lincoln', 'prius', 'nissan', 'crown', 'impala', 'tesla']
 
 try:
     #for i in range(100):
@@ -184,7 +184,6 @@ try:
 
                         # Add the object to the frame (ensure it is inside the image)
                         if x_min > 0 and x_max < image_w and y_min > 0 and y_max < image_h:
-                            if npc.type_id.split('.')[1] in carmodels:
                                 writer.addObject(npc.type_id.split('.')[1], x_min, y_min, x_max, y_max)
                             #writer.addObject('elonMUSKKKKK', x_min, y_min, x_max, y_max)
 
