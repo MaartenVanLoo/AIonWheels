@@ -95,7 +95,11 @@ bounding_box_set = world.get_level_bbs(carla.CityObjectLabel.TrafficLight)
 edges = [[0,1], [1,3], [3,2], [2,0], [0,4], [4,5], [5,1], [5,7], [7,6], [6,4], [6,2], [7,3]]
 
 trafficmanager = client.get_trafficmanager()
-traffic_list=trafficgenerator.generateTraffic(world, client, trafficmanager, 100, {'vehicle_filter': 'vehicle.lincoln.mkz_2020'})
+traffic_list=trafficgenerator.generateTraffic(world, client, trafficmanager, 100, args = {})
+#args vehicle.* for all vehicles args ={'vehicle_filter': 'vehicle.lincoln.mkz_2020'}
+
+#na impala zelf toegevoegd
+carmodels = ['dodge', 'audi', 'model3', 'mini', 'mustang', 'lincoln', 'prius', 'nissan', 'crown', 'impala', 'tesla']
 
 try:
     #for i in range(100):
@@ -135,7 +139,7 @@ try:
         # Initialize the exporter
         writer = Writer(frame_path + '.png', image_w, image_h)
 
-        for npc in world.get_actors().filter('vehicle.tesla.cybertruck'): #* * matches everything
+        for npc in world.get_actors().filter('*vehicle*'): #* * matches everything
 
             # Filter out the ego vehicle
             if npc.id != vehicle.id:
@@ -176,9 +180,13 @@ try:
                         cv2.line(img, (int(x_min),int(y_min)), (int(x_min),int(y_max)), (0,0,255, 255), 1)
                         cv2.line(img, (int(x_max),int(y_min)), (int(x_max),int(y_max)), (0,0,255, 255), 1)
 
+
+
                         # Add the object to the frame (ensure it is inside the image)
                         if x_min > 0 and x_max < image_w and y_min > 0 and y_max < image_h:
-                            writer.addObject('elonMUSKKKKK', x_min, y_min, x_max, y_max)
+                            if npc.type_id.split('.')[1] in carmodels:
+                                writer.addObject(npc.type_id.split('.')[1], x_min, y_min, x_max, y_max)
+                            #writer.addObject('elonMUSKKKKK', x_min, y_min, x_max, y_max)
 
         # Save the bounding boxes in the scene
         writer.save(frame_path + '.xml')
