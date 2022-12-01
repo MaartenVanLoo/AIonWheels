@@ -6,7 +6,7 @@ import traceback
 
 import numpy.random as random
 import numpy as np
-from CarlaWorld import HUD, World,KeyboardControl
+from CarlaWorld import HUD, World, KeyboardControl
 import CarlaAgents
 
 import carla
@@ -16,7 +16,7 @@ from ReinforcementLearning.CarlaEnvironment import TrafficGenerator
 
 
 class CarlaWorldAPI:
-    def __init__(self, args, host ='127.0.0.1', port=2000,width = 1280, height=720, fullscreen = False, show = True )\
+    def __init__(self, args, host='127.0.0.1', port=2000, width=1280, height=720, fullscreen=False, show=True) \
             -> None:
         super().__init__()
         pygame.init()
@@ -26,13 +26,13 @@ class CarlaWorldAPI:
         self.port = port
 
         self.args = args
-        self.client = carla.Client(host,port)
+        self.client = carla.Client(host, port)
         self.client.set_timeout(10.0)
 
         self.traffic_manager = self.client.get_trafficmanager()
         self.sim_world = self.client.get_world()
 
-        #use synchronus mode:
+        # use synchronus mode:
         self.settings = self.sim_world.get_settings()
         self.settings.synchronous_mode = True
         self.settings.fixed_delta_seconds = 0.05
@@ -40,7 +40,7 @@ class CarlaWorldAPI:
         self.traffic_manager.set_synchronous_mode(True)
 
         self.clock = pygame.time.Clock()
-        #open display if needed:
+        # open display if needed:
         self.full_screen = fullscreen
         self.width = width
         self.height = height
@@ -59,6 +59,7 @@ class CarlaWorldAPI:
 
         self.vehicles_list = []
         self.number_of_vehicles = -1
+
     def cleanup(self):
         print("Cleaning up world")
         if self.world is not None:
@@ -81,7 +82,7 @@ class CarlaWorldAPI:
         pygame.quit()
         print("Cleanup done")
 
-    def __show(self, width = 1280, height=720):
+    def __show(self, width=1280, height=720):
         options = pygame.HWSURFACE | pygame.DOUBLEBUF
         if self.full_screen:
             options |= pygame.FULLSCREEN
@@ -103,15 +104,16 @@ class CarlaWorldAPI:
 
         pass
 
-    def spawnVehicles(self,number_of_vehicles=30):
+    def spawnVehicles(self, number_of_vehicles=30, args=None):
+        if args is None:
+            args = dict()
         if self.vehicles_list:
             print('Destroying %d vehicles' % len(self.vehicles_list))
             self.client.apply_batch([carla.command.DestroyActor(x) for x in self.vehicles_list])
-        self.vehicles_list = TrafficGenerator.generateTraffic(self.world.world, self.client,self.traffic_manager,
-                                                             number_of_vehicles=number_of_vehicles)
+        self.vehicles_list = TrafficGenerator.generateTraffic(self.world.world, self.client, self.traffic_manager,
+                                                              number_of_vehicles=number_of_vehicles,
+                                                              args=args)
         self.number_of_vehicles = number_of_vehicles
-
-
 
     def getClosestVechicle(self):
         """
@@ -128,24 +130,24 @@ class CarlaWorldAPI:
         agent_transform = self.agent.getTransform()
         agent_dir = agent_transform.get_forward_vector()
         agent_dir.z = 0
-        agent_dir=agent_dir.make_unit_vector()
+        agent_dir = agent_dir.make_unit_vector()
 
-        angles= []
+        angles = []
         index = -1
         best_dist = np.Inf
-        for i,p in enumerate(positions):
+        for i, p in enumerate(positions):
             dist = p.location.distance(agent_transform.location)
             diff = p.location - agent_transform.location
-            diff.z=0
-            diff=diff.make_unit_vector()
-            dot =np.clip(agent_dir.dot_2d(diff),-1,1)
+            diff.z = 0
+            diff = diff.make_unit_vector()
+            dot = np.clip(agent_dir.dot_2d(diff), -1, 1)
             angles.append(np.arccos(dot))
-            if abs(angles[-1]) <= 0.12: #  ±6°
-                if dist< best_dist: #correct dist with angle, larger angle => bigger virtual distance to avoid
+            if abs(angles[-1]) <= 0.12:  # ±6°
+                if dist < best_dist:  # correct dist with angle, larger angle => bigger virtual distance to avoid
                     # distances from nearby lanes, directly in front, dot = 1!
                     best_dist = dist
                     index = i
-        #correct for bounding box size
+        # correct for bounding box size
         if not index == -1:
             best_dist = best_dist - bbox[index].extent.x - self.agent.getBBox().extent.x
         vehicle_id = None if index == -1 else self.vehicles_list[index]
@@ -163,10 +165,9 @@ class CarlaWorldAPI:
         return self.world.world.get_actor(vehicleId).get_velocity()
 
     def reset(self):
-        #cleanup agent & AI vehicles
+        # cleanup agent & AI vehicles
         if self.agent:
             self.agent.destroy()
-
 
         if self.vehicles_list:
             print('Destroying %d vehicles' % len(self.vehicles_list))
@@ -182,8 +183,8 @@ class CarlaWorldAPI:
         sim.apply_settings(self.settings)
 
         maps = self.client.get_available_maps()
-        self.client.load_world(random.choice(maps),reset_settings = False)
-        #self.client.reload_world(reset_settings=False)
+        self.client.load_world(random.choice(maps), reset_settings=False)
+        # self.client.reload_world(reset_settings=False)
 
         # reset synchronous mode and reload GUI elements
         self.sim_world = self.client.get_world()
@@ -200,14 +201,15 @@ class CarlaWorldAPI:
         self.agent = None
         self.spawn_points = self.world.map.get_spawn_points()
 
-        #respawn vehicles
-        if self.number_of_vehicles >0:
+        # respawn vehicles
+        if self.number_of_vehicles > 0:
             self.spawnVehicles(self.number_of_vehicles)
         print(self.world.world.get_settings())
 
         pass
+
     def step(self, action: int):
-        #make the world move
+        # make the world move
         self.clock.tick()
         self.world.world.tick()
         self.world.tick(self.clock)
@@ -227,8 +229,6 @@ class CarlaWorldAPI:
         control.manual_gear_shift = False
         self.world.player.apply_control(control)
         return control
-
-
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.cleanup()
@@ -290,15 +290,15 @@ if __name__ == "__main__":
         type=int)
 
     args = argparser.parse_args()
-    worldapi=None
+    worldapi = None
     try:
         worldapi = CarlaWorldAPI(args=args)
-        worldapi.spawnVehicles()
+        worldapi.spawnVehicles(args={'vehicle_filter': 'vehicle.tesla.cybertruck'})
         worldapi.addAgent(CarlaAgents.CarlaAgentRL(worldapi.world.player, num_actions=11))
         print(worldapi.agent.getPos())
         while True:
-            worldapi.step(action=8)
-            print(worldapi.getDistance())
+            worldapi.step(action=10)
+
     except:
         traceback.print_exc()
     finally:
