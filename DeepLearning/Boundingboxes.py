@@ -6,6 +6,7 @@ import queue
 import numpy as np
 import cv2
 from pascal_voc_writer import Writer
+import trafficgenerator
 
 ### Set up simulator ###
 client = carla.Client('localhost', 2000)
@@ -93,92 +94,102 @@ bounding_box_set = world.get_level_bbs(carla.CityObjectLabel.TrafficLight)
 # Remember the edge pairs
 edges = [[0,1], [1,3], [3,2], [2,0], [0,4], [4,5], [5,1], [5,7], [7,6], [6,4], [6,2], [7,3]]
 
-for i in range(100):
-    vehicle_bp = world.get_blueprint_library().find('vehicle.tesla.cybertruck')
-    npc = world.try_spawn_actor(vehicle_bp, random.choice(spawn_points))
-    if npc:
-        npc.set_autopilot(True)
+trafficmanager = client.get_trafficmanager()
+traffic_list=trafficgenerator.generateTraffic(world, client, trafficmanager, 100, {'vehicle_filter': 'vehicle.lincoln.mkz_2020'})
 
-# Retrieve the first image
-world.tick()
-image = image_queue.get()
+try:
+    #for i in range(100):
+    #    vehicle_bp = world.get_blueprint_library().find('vehicle.tesla.cybertruck')
+    #    npc = world.try_spawn_actor(vehicle_bp, random.choice(spawn_points))
+    #    if npc:
+    #        npc.set_autopilot(True)
 
-# Reshape the raw data into an RGB array
-img = np.reshape(np.copy(image.raw_data), (image.height, image.width, 4))
-
-# Display the image in an OpenCV display window
-cv2.namedWindow('ImageWindowName', cv2.WINDOW_AUTOSIZE)
-cv2.imshow('ImageWindowName',img)
-cv2.waitKey(1)
-
-### Game loop ###
-while True:
-
-    # Retrieve and reshape the image
+    # Retrieve the first image
     world.tick()
     image = image_queue.get()
 
+    # Reshape the raw data into an RGB array
     img = np.reshape(np.copy(image.raw_data), (image.height, image.width, 4))
 
-    # Get the camera matrix
-    world_2_camera = np.array(camera.get_transform().get_inverse_matrix())
-
-    # Save the image -- for export
-    frame_path = 'output/%06d' % image.frame
-    image.save_to_disk(frame_path + '.png')
-
-    # Initialize the exporter
-    writer = Writer(frame_path + '.png', image_w, image_h)
-
-    for npc in world.get_actors().filter('vehicle.tesla.cybertruck'): #* * matches everything
-
-        # Filter out the ego vehicle
-        if npc.id != vehicle.id:
-
-            bb = npc.bounding_box
-            dist = npc.get_transform().location.distance(vehicle.get_transform().location)
-
-            # Filter for the vehicles within 50m
-            if dist < 50:
-                forward_vec = vehicle.get_transform().get_forward_vector()
-                ray = npc.get_transform().location - vehicle.get_transform().location
-
-                if forward_vec.dot(ray) > 1:
-                    p1 = get_image_point(bb.location, K, world_2_camera)
-                    verts = [v for v in bb.get_world_vertices(npc.get_transform())]
-                    x_max = -10000
-                    x_min = 10000
-                    y_max = -10000
-                    y_min = 10000
-
-                    for vert in verts:
-                        p = get_image_point(vert, K, world_2_camera)
-                        # Find the rightmost vertex
-                        if p[0] > x_max:
-                            x_max = p[0]
-                        # Find the leftmost vertex
-                        if p[0] < x_min:
-                            x_min = p[0]
-                        # Find the highest vertex
-                        if p[1] > y_max:
-                            y_max = p[1]
-                        # Find the lowest  vertex
-                        if p[1] < y_min:
-                            y_min = p[1]
-
-                    cv2.line(img, (int(x_min),int(y_min)), (int(x_max),int(y_min)), (0,0,255, 255), 1)
-                    cv2.line(img, (int(x_min),int(y_max)), (int(x_max),int(y_max)), (0,0,255, 255), 1)
-                    cv2.line(img, (int(x_min),int(y_min)), (int(x_min),int(y_max)), (0,0,255, 255), 1)
-                    cv2.line(img, (int(x_max),int(y_min)), (int(x_max),int(y_max)), (0,0,255, 255), 1)
-
-                    # Add the object to the frame (ensure it is inside the image)
-                    if x_min > 0 and x_max < image_w and y_min > 0 and y_max < image_h:
-                        writer.addObject('elonMUSKKKKK', x_min, y_min, x_max, y_max)
-
-    # Save the bounding boxes in the scene
-    writer.save(frame_path + '.xml')
-
+    # Display the image in an OpenCV display window
+    cv2.namedWindow('ImageWindowName', cv2.WINDOW_AUTOSIZE)
     cv2.imshow('ImageWindowName',img)
-    if cv2.waitKey(1) == ord('q'):
-        break
-cv2.destroyAllWindows()
+    cv2.waitKey(1)
+
+    ### Game loop ###
+    while True:
+
+        # Retrieve and reshape the image
+        world.tick()
+        image = image_queue.get()
+
+        img = np.reshape(np.copy(image.raw_data), (image.height, image.width, 4))
+
+        # Get the camera matrix
+        world_2_camera = np.array(camera.get_transform().get_inverse_matrix())
+
+        # Save the image -- for export
+        frame_path = 'output/%06d' % image.frame
+        image.save_to_disk(frame_path + '.png')
+
+        # Initialize the exporter
+        writer = Writer(frame_path + '.png', image_w, image_h)
+
+        for npc in world.get_actors().filter('vehicle.tesla.cybertruck'): #* * matches everything
+
+            # Filter out the ego vehicle
+            if npc.id != vehicle.id:
+
+                bb = npc.bounding_box
+                dist = npc.get_transform().location.distance(vehicle.get_transform().location)
+
+                # Filter for the vehicles within 50m
+                if dist < 50:
+                    forward_vec = vehicle.get_transform().get_forward_vector()
+                    ray = npc.get_transform().location - vehicle.get_transform().location
+
+                    if forward_vec.dot(ray) > 1:
+                        p1 = get_image_point(bb.location, K, world_2_camera)
+                        verts = [v for v in bb.get_world_vertices(npc.get_transform())]
+                        x_max = -10000
+                        x_min = 10000
+                        y_max = -10000
+                        y_min = 10000
+
+                        for vert in verts:
+                            p = get_image_point(vert, K, world_2_camera)
+                            # Find the rightmost vertex
+                            if p[0] > x_max:
+                                x_max = p[0]
+                            # Find the leftmost vertex
+                            if p[0] < x_min:
+                                x_min = p[0]
+                            # Find the highest vertex
+                            if p[1] > y_max:
+                                y_max = p[1]
+                            # Find the lowest  vertex
+                            if p[1] < y_min:
+                                y_min = p[1]
+
+                        cv2.line(img, (int(x_min),int(y_min)), (int(x_max),int(y_min)), (0,0,255, 255), 1)
+                        cv2.line(img, (int(x_min),int(y_max)), (int(x_max),int(y_max)), (0,0,255, 255), 1)
+                        cv2.line(img, (int(x_min),int(y_min)), (int(x_min),int(y_max)), (0,0,255, 255), 1)
+                        cv2.line(img, (int(x_max),int(y_min)), (int(x_max),int(y_max)), (0,0,255, 255), 1)
+
+                        # Add the object to the frame (ensure it is inside the image)
+                        if x_min > 0 and x_max < image_w and y_min > 0 and y_max < image_h:
+                            writer.addObject('elonMUSKKKKK', x_min, y_min, x_max, y_max)
+
+        # Save the bounding boxes in the scene
+        writer.save(frame_path + '.xml')
+
+        cv2.imshow('ImageWindowName',img)
+        if cv2.waitKey(1) == ord('q'):
+            break
+    cv2.destroyAllWindows()
+except:
+    pass
+finally:
+    if traffic_list:
+        client.apply_batch([carla.command.DestroyActor(x) for x in traffic_list])
+
