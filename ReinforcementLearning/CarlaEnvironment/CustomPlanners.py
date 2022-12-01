@@ -8,7 +8,7 @@ from random import random
 
 import carla
 
-from ReinforcementLearning.carla.agents.navigation.local_planner import RoadOption
+from agents.navigation.local_planner import RoadOption
 from agents.navigation.controller import PIDLateralController
 from agents.tools.misc import draw_waypoints, get_speed
 
