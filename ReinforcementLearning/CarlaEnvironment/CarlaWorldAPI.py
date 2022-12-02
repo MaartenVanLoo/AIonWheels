@@ -312,8 +312,8 @@ class CarlaWorldAPI:
             world = self._parent.get_world()
             lidar_bp  = world.get_blueprint_library().find('sensor.lidar.ray_cast')
             lidar_bp.set_attribute('rotation_frequency',"20") #equal to 1/time per step
-            lidar_bp.set_attribute('range', "100")
-            lidar_bp.set_attribute('points_per_second', "250000")
+            lidar_bp.set_attribute('range', "80")
+            lidar_bp.set_attribute('points_per_second', "2500000")
             #lidar_bp.set_attribute('sensor_tick', "0.05")
             lidar_bp.set_attribute('channels', "64")
             lidar_bp.set_attribute('upper_fov', "2")
