@@ -422,6 +422,7 @@ if __name__ == "__main__":
             worldapi.step(action=10)
             worldapi.getClosestVechicle()
             print(worldapi.getCollisionIntensity())
+
     except:
         traceback.print_exc()
     finally:
