@@ -294,7 +294,8 @@ if __name__ == '__main__':
     # ], p=1.)
     lidar_aug = None
 
-    dataset = KittiDataset(configs, mode='val', lidar_aug=lidar_aug, hflip_prob=0., num_samples=configs.num_samples)
+    #dataset = KittiDataset(configs, mode='val', lidar_aug=lidar_aug, hflip_prob=0., num_samples=configs.num_samples)
+    dataset = KittiDataset(configs, mode='test', lidar_aug=lidar_aug, hflip_prob=0., num_samples=configs.num_samples)
 
     print('\n\nPress n to see the next sample >>> Press Esc to quit...')
     for idx in range(len(dataset)):

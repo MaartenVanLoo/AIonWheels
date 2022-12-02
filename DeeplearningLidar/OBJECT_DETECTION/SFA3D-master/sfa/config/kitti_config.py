@@ -21,12 +21,12 @@ colors = [[0, 255, 255], [0, 0, 255], [255, 0, 0], [255, 120, 0],
 
 #####################################################################################
 boundary = {
-    "minX": -100,
-    "maxX": 100,
-    "minY": -100,
-    "maxY": 100,
-    "minZ": -2.73,
-    "maxZ": 1.27
+    "minX": 0,
+    "maxX": 60,
+    "minY": -30,
+    "maxY": 30,
+    "minZ": -4.73,
+    "maxZ": 3.27
 }
 
 bound_size_x = boundary['maxX'] - boundary['minX']
@@ -34,7 +34,7 @@ bound_size_y = boundary['maxY'] - boundary['minY']
 bound_size_z = boundary['maxZ'] - boundary['minZ']
 
 boundary_back = {
-    "minX": -50,
+    "minX": 0,
     "maxX": 0,
     "minY": -25,
     "maxY": 25,
