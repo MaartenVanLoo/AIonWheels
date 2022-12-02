@@ -335,6 +335,8 @@ class CarlaWorldAPI:
 
         def _on_frame(self,weak_self, event):
             event.save_to_disk("test.ply")
+            np.save("test.bin",np.array(event.raw_data,dtype=np.float32))
+
             print(f'Lidar angle:{event.horizontal_angle}')
             print(f'Lidar frame:{event.frame}')
             print(f'Lidar time:{event.timestamp}')
