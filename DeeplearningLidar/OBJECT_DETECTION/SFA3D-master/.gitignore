@@ -1,7 +1,6 @@
 results/
 .DS_*
 dataset/
-checkpoints/
 logs/
 *.idea/
 
