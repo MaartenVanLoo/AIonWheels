@@ -9,6 +9,7 @@ import gym
 from gym import spaces
 from collections import deque
 import wandb
+from Qlearner import Qlearner, DQN
 
 __initialDistance = 20
 _DISCRETE = True
@@ -32,7 +33,7 @@ class DrivingCar:
         self.speed = speed
         self.acceleration = acceleration
 
-        self.target_speed = 15  # 10m/s = 36 km/h
+        self.target_speed = 5+random()*15  # 10m/s = 36 km/h ; [5-20]m/s
         self.maxBreaking = 3  # m/s²
         self.maxThrottle = 2.5  # m/s²
         self.dragArea = 0.8
@@ -66,12 +67,14 @@ class DrivingCar:
             self.speed = speed
 
     def updatePos(self, dt=1.0):
+        if (self.speed < 0):
+            self.speed = 0
         self.position += self.speed * dt
 
     def updateSpeed(self, dt=1.0):
         self.speed += self.acceleration * dt
-        #if self.speed < 0:
-        #    self.speed = 0
+        if self.speed < 0:
+            self.speed = 0
 
     def setAcceleration(self, acceleration):
         if acceleration > self.maxThrottle:
@@ -248,6 +251,21 @@ class RandomCar(DrivingCar):
     def type(self):
         return "RandomCar"
 
+class NoCar(DrivingCar):
+    def __init__(self, num_actions, speed, position, acceleration):
+        super().__init__(num_actions, speed, position, acceleration)
+        self.frame = 0
+        self.counter = 0
+        self.constant = np.random.randint(0, 100)
+
+    def step(self, action=None, dt=1.0):
+        self.speed = 90
+        self.position = 10000+self.frame*20
+        self.frame += 1
+
+    def type(self):
+        return "NoCar"
+
 class SimpleACC(gym.Env):
     def __init__(self, config: dict):
         self.setpoint = 20
@@ -305,7 +323,7 @@ class SimpleACC(gym.Env):
         return string
 
     def chooseRandomCar(self, num_actions, speed, position, acceleration):
-        number_of_cars = 5
+        number_of_cars = 6
         choice = np.random.randint(0, number_of_cars+1)
 
         if choice == 0:
@@ -320,6 +338,8 @@ class SimpleACC(gym.Env):
             return SpeedUpBrakeCar(num_actions, speed, position, acceleration)
         elif choice == 5:
             return RandomCar(num_actions, speed, position, acceleration)
+        elif choice == 6:
+            return NoCar(num_actions, speed, position, acceleration)
 
     def step(self, action):
         # step state
@@ -462,14 +482,14 @@ class SimpleACC(gym.Env):
         """
         Return true when a terminal state is reached
         """
-        distance = abs(self.car.getPos() - self.agent.getPos())
+        distance = self.car.getPos() - self.agent.getPos()
         if self.evaluation:
-            done = distance < 3 or \
-                   self.episodeReward > 9999 or \
+            done = distance <= 0 or \
+                   self.episodeReward > 50999 or \
                    self.stepCount > 50000
                    #(distance > 1000 and self.agent.getSpeed() >= self.car.getSpeed()) or \
         else:
-            done = distance < 3 or \
+            done = distance <= 0 or \
                    self.episodeReward > 9999 or\
                    self.stepCount > 5000
                    #(distance > 1000 and self.agent.getSpeed() >= self.car.getSpeed()) or \
@@ -479,6 +499,9 @@ class SimpleACC(gym.Env):
         info = {}
         if self.stepCount > 5000:
             info['TimeLimit.truncated'] = True
+        distance = self.car.getPos() - self.agent.getPos()
+        if distance <= 0.1:
+            info['collision'] = True
         return info
 
     def printCars(self):
@@ -543,6 +566,7 @@ class SimpleACC(gym.Env):
         self.evaluation = True
     def train(self):
         self.evaluation = False
+
     def render(self, mode="human"):
         pass
 
@@ -560,20 +584,49 @@ class SimpleACC(gym.Env):
             return 4
         if type =='RandomCar':
             return 5
+        if type =='NoCar':
+            return 6
 
 
 if __name__ == "__main__":
-    #plot all different cars:
-    drivingCar = DrivingCar(1,0,0,0)
-    sinusCar = SinusCar(1,0,0,0)
-    constantCar = ConstantCar(1,0,0,0)
-    noDrivingCar = NoDrivingCar(1,0,0,0)
-    speedUpBrakeCar = SpeedUpBrakeCar(1,0,0,0)
-    randomCar = RandomCar(1,0,0,0)
+    if __name__ == "__main__":
+        # config = optional, default values have been set in the qlearning framework
+        config = {
+            'device': 'cuda',
+            'batch_size': 2048,
+            'mini_batch': 24,  # only update once after n experiences
+            'num_frames': 1000000,
+            'gamma': 0.90,
+            'replay_size': 250000,
+            'lr': 0.0003,
+            'reward_offset': 1.5,
 
-    drivingCar.plot(4000,0.05)
-    sinusCar.plot(4000,0.05)
-    constantCar.plot(4000,0.05)
-    noDrivingCar.plot(4000,0.05)
-    speedUpBrakeCar.plot(4000,0.05)
-    randomCar.plot(4000,0.05)
+            'history_frames': 3,
+            'num_inputs': 6,  # =size of states!
+            'num_actions': 101,
+            'hidden': [128, 512, 512, 128, 64],
+        }
+        env = SimpleACC(config)
+        config['num_inputs'] = len(env.reset())  # always correct :D
+
+        qlearning = Qlearner(env, DQN, config)
+
+        qlearning.train()
+        qlearning.save("models/"+qlearning.model_name)
+        # qlearning.load("models/TrainedModel_11.pth")
+        qlearning.eval()
+
+    ##plot all different cars:
+    #drivingCar = DrivingCar(1,0,0,0)
+    #sinusCar = SinusCar(1,0,0,0)
+    #constantCar = ConstantCar(1,0,0,0)
+    #noDrivingCar = NoDrivingCar(1,0,0,0)
+    #speedUpBrakeCar = SpeedUpBrakeCar(1,0,0,0)
+    #randomCar = RandomCar(1,0,0,0)
+
+    #drivingCar.plot(4000,0.05)
+    #sinusCar.plot(4000,0.05)
+    #constantCar.plot(4000,0.05)
+    #noDrivingCar.plot(4000,0.05)
+    #speedUpBrakeCar.plot(4000,0.05)
+    #randomCar.plot(4000,0.05)
