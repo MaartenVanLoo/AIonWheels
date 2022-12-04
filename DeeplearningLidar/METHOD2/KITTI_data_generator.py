@@ -31,8 +31,8 @@ def main(args):
     fps_simu = 50.0
     time_stop = 2.0
     nbr_frame = 2000 #MAX = 10000
-    nbr_walkers = 50
-    nbr_vehicles = 50
+    nbr_walkers = 30
+    nbr_vehicles = 30
 
     actor_list = []
     vehicles_list = []
@@ -54,10 +54,13 @@ def main(args):
         init_settings = carla.WorldSettings()
 
 
-        client.set_timeout(10.0)
+        client.set_timeout(100.0)
         print("Map Town0"+str(i_map))
         print(client.get_available_maps())
-        world = client.load_world("/Game/Carla/Maps/Town0"+str(i_map), reset_settings=False)
+        if (i_map == 10):
+            world = client.load_world("/Game/Carla/Maps/Town"+str(i_map)+"HD", reset_settings=False)
+        else:
+            world = client.load_world("/Game/Carla/Maps/Town0"+str(i_map), reset_settings=False)
         folder_output = "KITTI_Dataset_CARLA_v%s/%s/generated" %(client.get_client_version(), world.get_map().name)
         os.makedirs(folder_output) if not os.path.exists(folder_output) else [os.remove(f) for f in glob.glob(folder_output+"/*") if os.path.isfile(f)]
         client.start_recorder(os.path.dirname(os.path.realpath(__file__))+"/"+folder_output+"/recording.log")

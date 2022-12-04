@@ -51,7 +51,7 @@ def parse_train_configs():
                         help='print frequency (default: 50)')
     parser.add_argument('--tensorboard_freq', type=int, default=50, metavar='N',
                         help='frequency of saving tensorboard (default: 50)')
-    parser.add_argument('--checkpoint_freq', type=int, default=2, metavar='N',
+    parser.add_argument('--checkpoint_freq', type=int, default=5, metavar='N',
                         help='frequency of saving checkpoints (default: 5)')
     ####################################################################
     ##############     Training strategy            ####################
@@ -93,7 +93,7 @@ def parse_train_configs():
                         help='distributed backend')
     parser.add_argument('--gpu_idx', default=None, type=int,
                         help='GPU index to use.')
-    parser.add_argument('--no_cuda', action='store_true',
+    parser.add_argument('--no_cuda',action='store_true',
                         help='If true, cuda is not used.')
     parser.add_argument('--multiprocessing-distributed', action='store_true',
                         help='Use multi-processing distributed training to launch '
