@@ -167,6 +167,8 @@ if __name__ == '__main__':
             bev_map = cv2.resize(bev_map, (cnf.BEV_WIDTH, cnf.BEV_HEIGHT))
             bev_map = draw_predictions(bev_map, detections.copy(), configs.num_classes)
 
+            if (len(detections)>0):
+                print(detections[0]) #vehicle detectionnnn
             # Rotate the bev_map
             bev_map = cv2.rotate(bev_map, cv2.ROTATE_180)
 
@@ -174,17 +176,17 @@ if __name__ == '__main__':
             img_rgb = img_rgbs[0].numpy()
             img_rgb = cv2.resize(img_rgb, (img_rgb.shape[1], img_rgb.shape[0]))
             img_bgr = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
-            calib = Calibration(img_path.replace(".png", ".txt").replace("image_2", "calib"))
+            #calib = Calibration(img_path.replace(".png", ".txt").replace("image_2", "calib"))
             #print(detections)
             kitti_dets = convert_det_to_real_values(detections)
             calculate_distance(kitti_dets)
 
-            if len(kitti_dets) > 0:
-                kitti_dets[:, 1:] = lidar_to_camera_box(kitti_dets[:, 1:], calib.V2C, calib.R0, calib.P2)
-                img_bgr = show_rgb_image_with_boxes(img_bgr, kitti_dets, calib)
+            #if len(kitti_dets) > 0:
+            #    kitti_dets[:, 1:] = lidar_to_camera_box(kitti_dets[:, 1:], calib.V2C, calib.R0, calib.P2)
+            #    img_bgr = show_rgb_image_with_boxes(img_bgr, kitti_dets, calib)
 
             out_img = merge_rgb_to_bev(img_bgr, bev_map, output_width=configs.output_width)
-
+            #out_img = bev_map
             print('\tDone testing the {}th sample, time: {:.1f}ms, speed {:.2f}FPS'.format(batch_idx, (t2 - t1) * 1000,
                                                                                            1 / (t2 - t1)))
             if configs.save_test_output:

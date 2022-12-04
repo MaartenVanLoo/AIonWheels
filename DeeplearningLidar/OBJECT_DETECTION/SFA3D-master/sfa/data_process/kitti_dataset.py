@@ -88,10 +88,10 @@ class KittiDataset(Dataset):
         sample_id = int(self.sample_id_list[index])
         img_path = os.path.join(self.image_dir, '{:06d}.png'.format(sample_id))
         lidarData = self.get_lidar(sample_id)
-        calib = self.get_calib(sample_id)
+        #calib = self.get_calib(sample_id) #TODO: I(maarten) disabled calibration assuming we import all data from the lidar point of view already
         labels, has_labels = self.get_label(sample_id)
-        if has_labels:
-            labels[:, 1:] = transformation.camera_to_lidar_box(labels[:, 1:], calib.V2C, calib.R0, calib.P2)
+        #if has_labels: #TODO: I(maarten) disabled calibration assuming we import all data from the lidar point of view already
+        #    labels[:, 1:] = transformation.camera_to_lidar_box(labels[:, 1:], calib.V2C, calib.R0, calib.P2)
 
         if self.lidar_aug:
             lidarData, labels[:, 1:] = self.lidar_aug(lidarData, labels[:, 1:])
@@ -118,8 +118,9 @@ class KittiDataset(Dataset):
 
     def get_image(self, idx):
         img_path = os.path.join(self.image_dir, '{:06d}.png'.format(idx))
+        if not os.path.exists(img_path):
+            img_path = os.path.join(self.image_dir, '{:06d}.jpg'.format(idx))
         img = cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2RGB)
-
         return img_path, img
 
     def get_calib(self, idx):
@@ -258,10 +259,10 @@ class KittiDataset(Dataset):
         sample_id = int(self.sample_id_list[index])
         img_path, img_rgb = self.get_image(sample_id)
         lidarData = self.get_lidar(sample_id)
-        calib = self.get_calib(sample_id)
+        #calib = self.get_calib(sample_id)
         labels, has_labels = self.get_label(sample_id)
-        if has_labels:
-            labels[:, 1:] = transformation.camera_to_lidar_box(labels[:, 1:], calib.V2C, calib.R0, calib.P2)
+        #if has_labels:
+        #    labels[:, 1:] = transformation.camera_to_lidar_box(labels[:, 1:], calib.V2C, calib.R0, calib.P2)
 
         if self.lidar_aug:
             lidarData, labels[:, 1:] = self.lidar_aug(lidarData, labels[:, 1:])
@@ -285,7 +286,7 @@ if __name__ == '__main__':
     configs.hm_size = (152, 152)
     configs.max_objects = 50
     configs.num_classes = 3
-    configs.output_width = 608
+    configs.output_width = 500
 
     configs.dataset_dir = os.path.join('../../', 'dataset', 'kitti')
     # lidar_aug = OneOf([
@@ -300,7 +301,7 @@ if __name__ == '__main__':
     print('\n\nPress n to see the next sample >>> Press Esc to quit...')
     for idx in range(len(dataset)):
         bev_map, labels, img_rgb, img_path = dataset.draw_img_with_label(idx)
-        calib = Calibration(img_path.replace(".png", ".txt").replace("image_2", "calib"))
+        #calib = Calibration(img_path.replace(".png", ".txt").replace("image_2", "calib"))
         bev_map = (bev_map.transpose(1, 2, 0) * 255).astype(np.uint8)
         bev_map = cv2.resize(bev_map, (cnf.BEV_HEIGHT, cnf.BEV_WIDTH))
 
@@ -316,11 +317,12 @@ if __name__ == '__main__':
         # Rotate the bev_map
         bev_map = cv2.rotate(bev_map, cv2.ROTATE_180)
 
-        labels[:, 1:] = lidar_to_camera_box(labels[:, 1:], calib.V2C, calib.R0, calib.P2)
+        #labels[:, 1:] = lidar_to_camera_box(labels[:, 1:], calib.V2C, calib.R0, calib.P2)
         img_rgb = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
-        img_rgb = show_rgb_image_with_boxes(img_rgb, labels, calib)
+        #img_rgb = show_rgb_image_with_boxes(img_rgb, labels, calib)
 
         out_img = merge_rgb_to_bev(img_rgb, bev_map, output_width=configs.output_width)
+        cv2.putText(out_img, str(idx), (2,20), cv2.FONT_HERSHEY_DUPLEX,0.8,(0,0,0),1)
         cv2.imshow('bev_map', out_img)
 
         if cv2.waitKey(0) & 0xff == 27:

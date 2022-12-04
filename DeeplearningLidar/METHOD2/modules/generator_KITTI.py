@@ -29,6 +29,7 @@ import numpy as np
 import random
 import threading
 
+_DEBUG = False
 def sensor_callback(ts, sensor_data, sensor_queue):
     sensor_queue.put(sensor_data)
 
@@ -37,7 +38,10 @@ class Sensor:
     initial_loc = carla.Location()
     initial_rot = carla.Rotation()
 
-    def __init__(self, vehicle, world, actor_list, folder_output, transform):
+    def __init__(self, vehicle, world, actor_list, folder_output, transform,config):
+        self.capture_freq = config.get('capture_freq',10)
+        self.capture_period = 1/self.capture_freq
+
         self.queue = queue.Queue()
         self.bp = self.set_attributes(world.get_blueprint_library())
         self.sensor = world.spawn_actor(self.bp, transform, attach_to=vehicle)
@@ -49,8 +53,8 @@ class Sensor:
         self.ts_tmp = 0
 
 class Camera(Sensor):
-    def __init__(self, vehicle, world, actor_list, folder_output, transform):
-        Sensor.__init__(self, vehicle, world, actor_list, folder_output, transform)
+    def __init__(self, vehicle, world, actor_list, folder_output, transform, config):
+        Sensor.__init__(self, vehicle, world, actor_list, folder_output, transform,config)
         self.sensor_frame_id = 0
         self.frame_output = self.folder_output+"/images_%s" %str.lower(self.__class__.__name__)
         os.makedirs(self.frame_output) if not os.path.exists(self.frame_output) else [os.remove(f) for f in glob.glob(self.frame_output+"/*") if os.path.isfile(f)]
@@ -60,20 +64,24 @@ class Camera(Sensor):
 
         print('created %s' % self.sensor)
 
-    def save(self, color_converter=carla.ColorConverter.Raw):
+    def save(self, color_converter=carla.ColorConverter.Raw, no_id = False):
         while not self.queue.empty():
             data = self.queue.get()
 
             ts = data.timestamp-Sensor.initial_ts
-            if ts - self.ts_tmp > 0.11 or (ts - self.ts_tmp) < 0: #check for 10Hz camera acquisition
+            if ts - self.ts_tmp > self.capture_period * 1.5 or (ts - self.ts_tmp) < 0: #check for 10Hz camera acquisition
                 print("[Error in timestamp] Camera: previous_ts %f -> ts %f" %(self.ts_tmp, ts))
                 sys.exit()
             self.ts_tmp = ts
 
-            file_path = self.frame_output+"/%04d_%d.png" %(self.sensor_frame_id, self.sensor_id)
+            if (no_id):
+                file_path = self.frame_output+"/%06d.png" %(self.sensor_frame_id)
+            else:
+                file_path = self.frame_output+"/%06d_%d.png" %(self.sensor_frame_id, self.sensor_id)
             x = threading.Thread(target=data.save_to_disk, args=(file_path, color_converter))
             x.start()
-            print("Export : "+file_path)
+            if _DEBUG:
+                print("Export : "+file_path)
 
             if self.sensor_id == 0:
                 with open(self.folder_output+"/full_ts_camera.txt", 'a') as file:
@@ -83,17 +91,22 @@ class Camera(Sensor):
 class RGB(Camera):
     sensor_id_glob = 0
 
-    def __init__(self, vehicle, world, actor_list, folder_output, transform):
-        Camera.__init__(self, vehicle, world, actor_list, folder_output, transform)
+    def __init__(self, vehicle, world, actor_list, folder_output, transform,config):
+        Camera.__init__(self, vehicle, world, actor_list, folder_output, transform,config)
 
     def set_attributes(self, blueprint_library):
+        try:
+            period = self.capture_period
+        except:
+            period = 0.1
+
         camera_bp = blueprint_library.find('sensor.camera.rgb')
 
         camera_bp.set_attribute('image_size_x', '1392')
         camera_bp.set_attribute('image_size_y', '1024')
         camera_bp.set_attribute('fov', '72') #72 degrees # Always fov on width even if width is different than height
         camera_bp.set_attribute('enable_postprocess_effects', 'True')
-        camera_bp.set_attribute('sensor_tick', '0.10') # 10Hz camera
+        camera_bp.set_attribute('sensor_tick', str(period)) # 10Hz camera
         camera_bp.set_attribute('gamma', '2.2')
         camera_bp.set_attribute('motion_blur_intensity', '0')
         camera_bp.set_attribute('motion_blur_max_distortion', '0')
@@ -105,14 +118,14 @@ class RGB(Camera):
         camera_bp.set_attribute('lens_y_size', '0')
         return camera_bp
      
-    def save(self):
-        Camera.save(self)
+    def save(self,no_id=False):
+        Camera.save(self,no_id=no_id)
         
 
 class SS(Camera):
     sensor_id_glob = 10
-    def __init__(self, vehicle, world, actor_list, folder_output, transform):
-        Camera.__init__(self, vehicle, world, actor_list, folder_output, transform)
+    def __init__(self, vehicle, world, actor_list, folder_output, transform,config):
+        Camera.__init__(self, vehicle, world, actor_list, folder_output, transform,config)
 
     def set_attributes(self, blueprint_library):
         camera_ss_bp = blueprint_library.find('sensor.camera.semantic_segmentation')
@@ -120,17 +133,17 @@ class SS(Camera):
         camera_ss_bp.set_attribute('image_size_x', '1392')
         camera_ss_bp.set_attribute('image_size_y', '1024')
         camera_ss_bp.set_attribute('fov', '72') #72 degrees # Always fov on width even if width is different than height
-        camera_ss_bp.set_attribute('sensor_tick', '0.10') # 10Hz camera
+        camera_ss_bp.set_attribute('sensor_tick', str(self.capture_period)) # 10Hz camera
         return camera_ss_bp
 
-    def save(self, color_converter=carla.ColorConverter.CityScapesPalette):
-        Camera.save(self, color_converter)
+    def save(self, color_converter=carla.ColorConverter.CityScapesPalette,no_id=False):
+        Camera.save(self, color_converter,no_id)
 
 
 class Depth(Camera):
     sensor_id_glob = 20
-    def __init__(self, vehicle, world, actor_list, folder_output, transform):
-        Camera.__init__(self, vehicle, world, actor_list, folder_output, transform)
+    def __init__(self, vehicle, world, actor_list, folder_output, transform,config):
+        Camera.__init__(self, vehicle, world, actor_list, folder_output, transform,config)
 
     def set_attributes(self, blueprint_library):
         camera_ss_bp = blueprint_library.find('sensor.camera.depth')
@@ -138,13 +151,13 @@ class Depth(Camera):
         camera_ss_bp.set_attribute('image_size_x', '1392')
         camera_ss_bp.set_attribute('image_size_y', '1024')
         camera_ss_bp.set_attribute('fov', '72') #72 degrees # Always fov on width even if width is different than height
-        camera_ss_bp.set_attribute('sensor_tick', '0.10') # 10Hz camera
+        camera_ss_bp.set_attribute('sensor_tick', str(self.capture_period)) # 10Hz camera
         return camera_ss_bp
 
     #def save(self, color_converter=carla.ColorConverter.Depth):
-    def save(self):
+    def save(self,no_id=False):
     #    Camera.save(self, color_converter)
-        Camera.save(self)
+        Camera.save(self,no_id=no_id)
 
 
 class HDL64E(Sensor):
@@ -233,7 +246,8 @@ class HDL64E(Sensor):
                 ply_file_path = self.frame_output+"/frame_%04d.ply" %self.i_frame
 
                 if ply.write_ply(ply_file_path, [np.float32(pts_all), np.float32(ts_all), np.uint32(semantic_all)], ['x','y','z','cos_angle_lidar_surface','timestamp','instance','semantic']):
-                    print("Export : "+ply_file_path)
+                    if _DEBUG:
+                        print("Export : "+ply_file_path)
                 else:
                     print('ply.write_ply() failed')
 
@@ -269,6 +283,167 @@ class HDL64E(Sensor):
         lidar_bp.set_attribute('range', '80.0')    # 80.0 m
         lidar_bp.set_attribute('points_per_second', str(64/0.00004608))
         lidar_bp.set_attribute('rotation_frequency', '10')
+        lidar_bp.set_attribute('upper_fov', str(2))
+        lidar_bp.set_attribute('lower_fov', str(-24.8))
+        return lidar_bp
+
+
+class LIDAR(Sensor):
+    sensor_id_glob = 200
+    def __init__(self, vehicle, world, actor_list, folder_output, transform,config):
+        self.rotation_lidar = rotation_carla(transform.rotation)
+        self.rotation_lidar_transpose = self.rotation_lidar.T
+        self.queue = queue.PriorityQueue()
+        self.bp = self.set_attributes(world.get_blueprint_library())
+        self.sensor = world.spawn_actor(self.bp, transform, attach_to=vehicle)
+        actor_list.append(self.sensor)
+        self.sensor.listen(lambda data: self.queue.put((data.timestamp, data)))
+        self.sensor_id = self.__class__.sensor_id_glob
+        self.__class__.sensor_id_glob += 1
+        self.folder_output = folder_output
+        self.frame_output = folder_output+"/frames"
+        os.makedirs(self.frame_output) if not os.path.exists(self.frame_output) else [os.remove(f) for f in glob.glob(self.frame_output+"/*") if os.path.isfile(f)]
+
+        self.i_packet = 0
+        self.i_frame = 0
+        self.ts_tmp = 0.0
+
+        settings = world.get_settings()
+        self.packet_per_frame = 1/(self.bp.get_attribute('rotation_frequency').as_float()*settings.fixed_delta_seconds)
+        self.packet_period = settings.fixed_delta_seconds
+
+        self.all_points = np.empty(shape=(0), dtype=np.float32)
+
+        self.last_frame = -99999
+        self.capture_freq = config.get('capture_freq',10)
+        self.capture_period = 1/self.capture_freq
+        print('created %s' % self.sensor)
+
+    def init(self):
+        pass
+
+    def save(self, tick,fps_simu):
+
+        while not self.queue.empty():
+            data = self.queue.get()[1]
+            ts = data.timestamp-Sensor.initial_ts
+            if ts-self.ts_tmp > self.packet_period*1.5 or ts-self.ts_tmp < 0:
+                print("[Error in timestamp] HDL64E: previous_ts %f -> ts %f" %(self.ts_tmp, ts))
+                sys.exit()
+
+            self.ts_tmp = ts
+
+            buffer = np.frombuffer(data.raw_data,dtype=np.float32)
+            self.all_points = np.concatenate((self.all_points, buffer), axis = 0)
+            self.i_packet += 1
+            if self.i_packet%self.packet_per_frame == 0:
+                #save all points
+                path = self.frame_output+"/%06d.bin" %self.i_frame
+                if tick*self.capture_freq >= self.i_frame * fps_simu: # throw away sample when capturing to fast
+                    self.all_points.tofile(path)
+                    self.last_frame = tick
+                    self.i_frame += 1
+                    if _DEBUG:
+                        print("Export : "+path)
+                self.all_points = np.empty(shape=(0), dtype=np.float32)
+
+        return self.i_frame
+
+
+
+
+    def set_attributes(self, blueprint_library):
+        lidar_bp = blueprint_library.find('sensor.lidar.ray_cast')
+        lidar_bp.set_attribute('channels', '64')
+        lidar_bp.set_attribute('range', '80.0')    # 80.0 m
+        lidar_bp.set_attribute('points_per_second', str(64/0.00004608))
+        lidar_bp.set_attribute('rotation_frequency', '20')
+        lidar_bp.set_attribute('upper_fov', str(2))
+        lidar_bp.set_attribute('lower_fov', str(-24.8))
+        return lidar_bp
+
+class SemanticLidar(Sensor):
+    sensor_id_glob = 300
+    def __init__(self, vehicle, world, actor_list, folder_output, transform,config):
+        self.rotation_lidar = rotation_carla(transform.rotation)
+        self.rotation_lidar_transpose = self.rotation_lidar.T
+        self.queue = queue.PriorityQueue()
+        self.bp = self.set_attributes(world.get_blueprint_library())
+        self.sensor = world.spawn_actor(self.bp, transform, attach_to=vehicle)
+        actor_list.append(self.sensor)
+        self.sensor.listen(lambda data: self.queue.put((data.timestamp, data)))
+        self.sensor_id = self.__class__.sensor_id_glob
+        self.__class__.sensor_id_glob += 1
+        self.folder_output = folder_output
+
+        self.i_packet = 0
+        self.i_frame = 0
+        self.ts_tmp = 0.0
+
+        settings = world.get_settings()
+        self.packet_per_frame = 1/(self.bp.get_attribute('rotation_frequency').as_float()*settings.fixed_delta_seconds)
+        self.packet_period = settings.fixed_delta_seconds
+
+        self.last_frame = -99999
+        self.capture_freq = config.get('capture_freq',10)
+        self.capture_period = 1/self.capture_freq
+
+        self.vehicles = {}
+        self.pedestrians = {}
+        print('created %s' % self.sensor)
+
+    def init(self):
+        pass
+
+    def save(self, tick,fps_simu):
+        while not self.queue.empty():
+            data = self.queue.get()[1]
+            ts = data.timestamp-Sensor.initial_ts
+            if ts-self.ts_tmp > self.packet_period*1.5 or ts-self.ts_tmp < 0:
+                print("[Error in timestamp] HDL64E: previous_ts %f -> ts %f" %(self.ts_tmp, ts))
+                sys.exit()
+
+            self.ts_tmp = ts
+
+            buffer = np.frombuffer(data.raw_data, dtype=np.dtype([('x','f4'),('y','f4'),('z','f4'),('cos','f4'),('index','u4'),('semantic','u4')]))
+            points = np.array([buffer[:]['index'],buffer[:]['semantic']])
+            self.i_packet += 1
+
+            #pedestrians
+            mask = np.array([buffer[:]['index'],buffer[:]['semantic']])[:][1]==4
+            pedestr = np.unique(points[0][mask])
+            for p in pedestr: # Pedestrian
+                self.pedestrians[int(p)] = tick
+
+            #vehicle
+            mask = np.array([buffer[:]['index'],buffer[:]['semantic']])[:][1]==10
+            vehicle = np.unique(points[0][mask])
+            for p in vehicle:
+                self.vehicles[int(p)] = tick
+
+
+
+        #remove vehicles when not seen in the last frame: (i.e. (tick - entry[]) > capture_period)
+        keys = list(self.pedestrians.keys())
+        for k in keys:
+            if tick - self.pedestrians[k] > self.capture_period*1.2:
+                del self.pedestrians[k]
+        keys = list(self.vehicles.keys())
+        for k in keys:
+            if tick - self.vehicles[k] > self.capture_period*1.2:
+                del self.vehicles[k]
+
+        return list(self.vehicles.keys()),list(self.pedestrians.keys())
+
+
+
+
+    def set_attributes(self, blueprint_library):
+        lidar_bp = blueprint_library.find('sensor.lidar.ray_cast_semantic')
+        lidar_bp.set_attribute('channels', '64')
+        lidar_bp.set_attribute('range', '80.0')    # 80.0 m
+        lidar_bp.set_attribute('points_per_second', str(64/0.00004608*2)) #twice the number of points
+        lidar_bp.set_attribute('rotation_frequency', '40') #twice the speed of the basic lidar sensor
         lidar_bp.set_attribute('upper_fov', str(2))
         lidar_bp.set_attribute('lower_fov', str(-24.8))
         return lidar_bp

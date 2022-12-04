@@ -194,7 +194,7 @@ class CarlaWorldAPI:
             print("No vehicles found")
 
         # no synchronous mode, reloading world not possible when synchronous
-        sim = self.client.get_world();
+        sim = self.client.get_world()
         self.settings = sim.get_settings()
         self.settings.synchronous_mode = False
         self.traffic_manager.set_synchronous_mode(False)
