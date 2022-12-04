@@ -59,7 +59,7 @@ def parse_train_configs():
 
     parser.add_argument('--start_epoch', type=int, default=1, metavar='N',
                         help='the starting epoch')
-    parser.add_argument('--num_epochs', type=int, default=3, metavar='N',
+    parser.add_argument('--num_epochs', type=int, default=100, metavar='N',
                         help='number of total epochs to run')
     parser.add_argument('--lr_type', type=str, default='cosin',
                         help='the type of learning rate scheduler (cosin or multi_step or one_cycle)')
@@ -115,7 +115,12 @@ def parse_train_configs():
     ####################################################################
     ############## Hardware configurations #############################
     ####################################################################
-    configs.device = torch.device('cpu' if configs.no_cuda else 'cuda')
+    if torch.cuda.is_available():
+        configs.device = torch.device('cpu' if configs.no_cuda else 'cuda')
+        if configs.gpu_idx is None:
+            configs.gpu_idx = 0
+    else:
+        configs.device = torch.device('cpu')
     configs.ngpus_per_node = torch.cuda.device_count()
 
     configs.pin_memory = True
@@ -126,7 +131,7 @@ def parse_train_configs():
 
     configs.imagenet_pretrained = True
     configs.head_conv = 64
-    configs.num_classes = 3
+    configs.num_classes = 2 #TODO: change to 2?
     configs.num_center_offset = 2
     configs.num_z = 1
     configs.num_dim = 3

@@ -40,7 +40,7 @@ from utils.logger import Logger
 from config.train_config import parse_train_configs
 from losses.losses import Compute_Loss
 
-
+from torchsummary import summary
 def main():
     configs = parse_train_configs()
 
@@ -134,6 +134,8 @@ def main_worker(gpu_idx, configs):
     if configs.is_master_node:
         num_parameters = get_num_parameters(model)
         logger.info('number of trained parameters of the model: {}'.format(num_parameters))
+
+    summary(model,(3,608,608))
 
     if logger is not None:
         logger.info(">>> Loading dataset & getting dataloader...")
