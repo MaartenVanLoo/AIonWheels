@@ -81,7 +81,7 @@ def parse_test_configs():
 
     configs.imagenet_pretrained = False
     configs.head_conv = 64
-    configs.num_classes = 3
+    configs.num_classes = 2
     configs.num_center_offset = 2
     configs.num_z = 1
     configs.num_dim = 3
@@ -168,7 +168,8 @@ if __name__ == '__main__':
             bev_map = draw_predictions(bev_map, detections.copy(), configs.num_classes)
 
             if (len(detections)>0):
-                print(detections[0]) #vehicle detectionnnn
+                print(detections[0]) #vehicle detection
+
             # Rotate the bev_map
             bev_map = cv2.rotate(bev_map, cv2.ROTATE_180)
 
@@ -178,7 +179,7 @@ if __name__ == '__main__':
             img_bgr = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
             #calib = Calibration(img_path.replace(".png", ".txt").replace("image_2", "calib"))
             #print(detections)
-            kitti_dets = convert_det_to_real_values(detections)
+            kitti_dets = convert_det_to_real_values(detections, configs.num_classes)
             calculate_distance(kitti_dets)
 
             #if len(kitti_dets) > 0:

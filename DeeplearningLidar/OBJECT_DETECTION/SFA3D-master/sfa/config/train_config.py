@@ -51,7 +51,7 @@ def parse_train_configs():
                         help='print frequency (default: 50)')
     parser.add_argument('--tensorboard_freq', type=int, default=50, metavar='N',
                         help='frequency of saving tensorboard (default: 50)')
-    parser.add_argument('--checkpoint_freq', type=int, default=2, metavar='N',
+    parser.add_argument('--checkpoint_freq', type=int, default=5, metavar='N',
                         help='frequency of saving checkpoints (default: 5)')
     ####################################################################
     ##############     Training strategy            ####################
@@ -59,7 +59,7 @@ def parse_train_configs():
 
     parser.add_argument('--start_epoch', type=int, default=1, metavar='N',
                         help='the starting epoch')
-    parser.add_argument('--num_epochs', type=int, default=3, metavar='N',
+    parser.add_argument('--num_epochs', type=int, default=100, metavar='N',
                         help='number of total epochs to run')
     parser.add_argument('--lr_type', type=str, default='cosin',
                         help='the type of learning rate scheduler (cosin or multi_step or one_cycle)')
@@ -93,7 +93,7 @@ def parse_train_configs():
                         help='distributed backend')
     parser.add_argument('--gpu_idx', default=None, type=int,
                         help='GPU index to use.')
-    parser.add_argument('--no_cuda', action='store_true',
+    parser.add_argument('--no_cuda',action='store_true',
                         help='If true, cuda is not used.')
     parser.add_argument('--multiprocessing-distributed', action='store_true',
                         help='Use multi-processing distributed training to launch '
@@ -115,7 +115,12 @@ def parse_train_configs():
     ####################################################################
     ############## Hardware configurations #############################
     ####################################################################
-    configs.device = torch.device('cpu' if configs.no_cuda else 'cuda')
+    if torch.cuda.is_available():
+        configs.device = torch.device('cpu' if configs.no_cuda else 'cuda')
+        if configs.gpu_idx is None:
+            configs.gpu_idx = 0
+    else:
+        configs.device = torch.device('cpu')
     configs.ngpus_per_node = torch.cuda.device_count()
 
     configs.pin_memory = True
@@ -126,7 +131,7 @@ def parse_train_configs():
 
     configs.imagenet_pretrained = True
     configs.head_conv = 64
-    configs.num_classes = 3
+    configs.num_classes = 2 #TODO: change to 2?
     configs.num_center_offset = 2
     configs.num_z = 1
     configs.num_dim = 3
