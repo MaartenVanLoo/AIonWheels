@@ -244,7 +244,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Testing config for the Implementation')
     parser.add_argument('--host', type=str, default='127.0.0.1',
                         help='IP of carla host')
-    parser.add_argument('--map', type=int, default='1',
+    parser.add_argument('--map', type=int, default=2,
                         help='The map to run')
     args = parser.parse_args()
     main(args)

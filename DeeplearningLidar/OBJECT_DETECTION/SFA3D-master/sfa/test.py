@@ -46,7 +46,7 @@ def parse_test_configs():
     parser.add_argument('-a', '--arch', type=str, default='fpn_resnet_18', metavar='ARCH',
                         help='The name of the model architecture')
     parser.add_argument('--pretrained_path', type=str,
-                        default='../checkpoints/fpn_resnet_18/Model_fpn_resnet_18_epoch_2.pth', metavar='PATH',
+                        default='../checkpoints/fpn_resnet_18/Model_fpn_resnet_18_epoch_25.pth', metavar='PATH',
                              #default='../checkpoints/fpn_resnet_18/fpn_resnet_18_epoch_300.pth', metavar='PATH',
                         help='the path of the pretrained checkpoint')
     parser.add_argument('--K', type=int, default=50,
@@ -181,12 +181,15 @@ if __name__ == '__main__':
             #calib = Calibration(img_path.replace(".png", ".txt").replace("image_2", "calib"))
             #print(detections)
             kitti_dets = convert_det_to_real_values(detections, configs.num_classes)
-            calculate_distance(kitti_dets)
+
+            #calculate_distance(kitti_dets)
 
             #if len(kitti_dets) > 0:
             #    kitti_dets[:, 1:] = lidar_to_camera_box(kitti_dets[:, 1:], calib.V2C, calib.R0, calib.P2)
             #    img_bgr = show_rgb_image_with_boxes(img_bgr, kitti_dets, calib)
 
+            #flip bev_map (lidar data) horizontally to allign with the image above
+            bev_map =cv2.flip(bev_map,1)
             out_img = merge_rgb_to_bev(img_bgr, bev_map, output_width=configs.output_width)
             #out_img = bev_map
             print('\tDone testing the {}th sample, time: {:.1f}ms, speed {:.2f}FPS'.format(batch_idx, (t2 - t1) * 1000,
@@ -207,9 +210,12 @@ if __name__ == '__main__':
                 else:
                     raise TypeError
 
+
             cv2.imshow('test-img', out_img)
             print('\n[INFO] Press n to see the next sample >>> Press Esc to quit...\n')
-            if cv2.waitKey(0) & 0xFF == 27:
+            timeout = 1 if configs.output_format == 'video' else 400
+
+            if cv2.waitKey(timeout) & 0xFF == 27:
                 break
     if out_cap:
         out_cap.release()
