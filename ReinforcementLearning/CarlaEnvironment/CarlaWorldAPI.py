@@ -237,11 +237,16 @@ class CarlaWorldAPI:
             self.world.render(self.display)
             pygame.display.flip()
 
-        # update agent
+        #update agent
         if self.agent.done():
             self.agent.set_destination(random.choice(self.spawn_points).location)
             self.world.hud.notification("The target has been reached, searching for another target", seconds=4.0)
             print("The target has been reached, searching for another target")
+        if self.agent.requires_plan():
+            self.agent.set_destination(random.choice(self.spawn_points).location)
+            self.world.hud.notification("Getting close to target, searching for next target",
+                                        seconds=4.0)
+            print("Getting close to target, searching for next target")
 
         control = self.agent.run_step(action=action)
         control.manual_gear_shift = False

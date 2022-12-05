@@ -3,8 +3,10 @@ Custom local carla planner
 This planner only has automatic lateral control,
 Longitudinal control must be handled externaly
 """
+import time
 from collections import deque
-from random import random
+
+import numpy.random as random
 
 import carla
 
@@ -42,7 +44,7 @@ class AIonWheelsLocalPlanner(object):
         # Base parameters
         self._dt = 1.0 / 20.0
         # self._target_speed = 20.0  # Km/h  #not used
-        self._sampling_radius = 2.0
+        self._sampling_radius = 3.0
         self._args_lateral_dict = {'K_P': 1.95, 'K_I': 0.05, 'K_D': 0.2, 'dt': self._dt}
         self._args_longitudinal_dict = {'K_P': 1.0, 'K_I': 0.05, 'K_D': 0, 'dt': self._dt}
         # self._max_throt = 0.75
@@ -60,6 +62,10 @@ class AIonWheelsLocalPlanner(object):
 
         # initializing controller
         self._init_controller()
+
+
+        #line drawing variabels
+        self._current_frame = 0
 
     def _init_controller(self):
         """Controller initialization"""
@@ -91,7 +97,7 @@ class AIonWheelsLocalPlanner(object):
         # Purge the queue of obsolete waypoints
         veh_location = self._vehicle.get_location()
         vehicle_speed = get_speed(self._vehicle) / 3.6
-        self._min_distance = self._base_min_distance + 0.5 * vehicle_speed
+        self._min_distance = self._base_min_distance + 0.4 * vehicle_speed
 
         num_waypoint_removed = 0
         for waypoint, _ in self._waypoints_queue:
@@ -139,7 +145,11 @@ class AIonWheelsLocalPlanner(object):
         if debug:
             draw_waypoints(self._vehicle.get_world(), [self.target_waypoint], 1.0)
 
-
+        self._current_frame -= 1
+        if self._current_frame <= 0:
+            self._current_frame = 20
+            _draw_path(self._vehicle.get_world(), self._waypoints_queue)
+        print(f"Current queue length: {len(self._waypoints_queue)}")
         return control
 
     def _compute_next_waypoints(self, k=1):
@@ -207,8 +217,17 @@ class AIonWheelsLocalPlanner(object):
                 new_waypoint_queue.append(wp)
             self._waypoints_queue = new_waypoint_queue
 
-        for elem in current_plan:
-            self._waypoints_queue.append(elem)
+        if len(self._waypoints_queue) == 0:
+            for elem in current_plan:
+                self._waypoints_queue.append(elem)
+        else:
+            for elem in current_plan:
+                if not self._waypoints_queue[-1] == elem:
+                    self._waypoints_queue.append(elem)
+                else:
+                    self._waypoints_queue.pop() # current plan wants to take this node => hence removing it from both
+                    # the plan and the waypoints is still a valid route without 180° turns
+                    print(f"removed node from waypoint queue while setting new targer")
 
         self._stop_waypoint_creation = stop_waypoint_creation
 
@@ -259,3 +278,15 @@ def _compute_connection(current_waypoint, next_waypoint, threshold=35):
         return RoadOption.LEFT
     else:
         return RoadOption.RIGHT
+
+
+def _draw_path(world, path):
+    offset = carla.Location(0.1)
+    points = [p[0].transform.location+offset for p in path]
+    green =carla.Color(0,5,0,a=20)
+    for i in range(len(points)-1):
+        begin = points[i]
+        end = points[i+1]
+        begin.z += 0.1
+        end.z += 0.1
+        world.debug.draw_line(begin, end, thickness = 1, color = green, life_time = 5)

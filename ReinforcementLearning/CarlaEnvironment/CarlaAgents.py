@@ -96,6 +96,9 @@ class CarlaAgentRL(object):
         if not start_location:
             start_location = self._local_planner.target_waypoint.transform.location
             clean_queue = True
+        elif len(self._local_planner.get_plan()) > 1:
+            start_location = self._local_planner.get_plan()[-1]
+            clean_queue = False
         else:
             start_location = self._vehicle.get_location()
             clean_queue = False
@@ -104,7 +107,7 @@ class CarlaAgentRL(object):
         end_waypoint = self._map.get_waypoint(end_location)
 
         route_trace = self.trace_route(start_waypoint, end_waypoint)
-        self._local_planner.set_global_plan(route_trace, clean_queue=clean_queue)
+        self._local_planner.set_global_plan(route_trace,stop_waypoint_creation=False, clean_queue=clean_queue)
 
     def trace_route(self, start_waypoint, end_waypoint):
         """
@@ -120,6 +123,9 @@ class CarlaAgentRL(object):
     def done(self):
         """Check whether the agent has reached its destination."""
         return self._local_planner.done()
+
+    def requires_plan(self):
+        return len(self._local_planner.get_plan()) < 200
 
     def destroy(self):
         carla.command.DestroyActor(self._vehicle)
