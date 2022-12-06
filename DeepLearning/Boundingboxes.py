@@ -123,73 +123,82 @@ try:
         world_2_camera = np.array(camera.get_transform().get_inverse_matrix())
 
         # Take snap every x frames
-        #if image.frame % 10 == 0:
-        # Save the image -- for export
-        frame_path = 'output/%06d' % image.frame
-        image.save_to_disk(frame_path + '.png')
+        if image.frame % 2 == 0:
+            # Save the image -- for export
+            frame_path = 'output/%06d' % image.frame
+            image.save_to_disk(frame_path + '.png')
 
-        # Initialize the exporter
-        writer = Writer(frame_path + '.png', image_w, image_h)
+            # Initialize the exporter
+            writer = Writer(frame_path + '.png', image_w, image_h)
 
-        for npc in world.get_actors().filter('*vehicle*'): #* * matches everything different
+            for npc in world.get_actors().filter('*vehicle*'): #* * matches everything different
 
-            # Filter out the ego vehicle
-            if npc.id in traffic_list:
+                # Filter out the ego vehicle
+                if npc.id in traffic_list:
 
-                bb = npc.bounding_box
-                dist = npc.get_transform().location.distance(ego_car.get_transform().location)
+                    bb = npc.bounding_box
+                    dist = npc.get_transform().location.distance(ego_car.get_transform().location)
 
-                # Filter for the vehicles within 50m
-                if 1 < dist < 40:
-                    forward_vec = ego_car.get_transform().get_forward_vector()
-                    ray = npc.get_transform().location - ego_car.get_transform().location
+                    # Filter for the vehicles within 50m
+                    if 1 < dist < 40:
+                        forward_vec = ego_car.get_transform().get_forward_vector()
+                        ray = npc.get_transform().location - ego_car.get_transform().location
 
-                    if forward_vec.dot(ray) > 1:
-                        p1 = get_image_point(bb.location, K, world_2_camera)
-                        verts = [v for v in bb.get_world_vertices(npc.get_transform())]
-                        x_max = -10000
-                        x_min = 10000
-                        y_max = -10000
-                        y_min = 10000
+                        if forward_vec.dot(ray) > 1:
+                            p1 = get_image_point(bb.location, K, world_2_camera)
+                            verts = [v for v in bb.get_world_vertices(npc.get_transform())]
 
-                        for vert in verts:
-                            p = get_image_point(vert, K, world_2_camera)
-                            # Find the rightmost vertex
-                            if p[0] > x_max:
-                                x_max = p[0]
-                            # Find the leftmost vertex
-                            if p[0] < x_min:
-                                x_min = p[0]
-                            # Find the highest vertex
-                            if p[1] > y_max:
-                                y_max = p[1]
-                            # Find the lowest  vertex
-                            if p[1] < y_min:
-                                y_min = p[1]
+                            x_max = -10000
+                            x_min = 10000
+                            y_max = -10000
+                            y_min = 10000
 
-                        #image = cv2.line(image, start_point, end_point, color, thickness)
-                        img = cv2.rectangle(img, (int(x_min), int(y_min)), (int(x_max), int(y_max)), (0, 255, 0), 2)
-                        #cv2.line(img, (int(x_min),int(y_min)), (int(x_max),int(y_min)), (0,0,255, 255), 1)
-                        #cv2.line(img, (int(x_min),int(y_max)), (int(x_max),int(y_max)), (0,0,255, 255), 1)
-                        #cv2.line(img, (int(x_min),int(y_min)), (int(x_min),int(y_max)), (0,0,255, 255), 1)
-                        #cv2.line(img, (int(x_max),int(y_min)), (int(x_max),int(y_max)), (0,0,255, 255), 1)
+                            for vert in verts:
+                                p = get_image_point(vert, K, world_2_camera)
+                                # Find the rightmost vertex
+                                if p[0] > x_max:
+                                    x_max = p[0]
+                                    #x_max = x_max.append(p[0])
+                                # Find the leftmost vertex
+                                if p[0] < x_min:
+                                    x_min = p[0]
+                                    #x_min = x_min.append(p[0])
+                                # Find the highest vertex
+                                if p[1] > y_max:
+                                    y_max = p[1]
+                                   #y_max.append(p[1])
+                                # Find the lowest  vertex
+                                if p[1] < y_min:
+                                    y_min = p[1]
+                                    #y_min.append(p[1])
 
-                        #Put label next to image
-                        img = cv2.putText(img, text = npc.type_id.split('.')[1], org = (int(x_min), int(y_min)), fontFace = cv2.FONT_HERSHEY_SIMPLEX, fontScale = 0.3, color = (0,0,255, 255), thickness = 1)
+                            #image = cv2.line(image, start_point, end_point, color, thickness)
+                            #img = cv2.rectangle(img, (int(x_min[len(x_min)-1]), int(y_min[len(y_min)-1])), (int(x_max[len(x_max)-1]), int(y_max[len(y_max)-1])), (0, 255, 0), 2)
+                            img = cv2.rectangle(img, (int(x_min), int(y_min)), (int(x_max), int(y_max)),(0, 255, 0), 2)
+                            #cv2.line(img, (int(x_min),int(y_min)), (int(x_max),int(y_min)), (0,0,255, 255), 1)
+                            #cv2.line(img, (int(x_min),int(y_max)), (int(x_max),int(y_max)), (0,0,255, 255), 1)
+                            #cv2.line(img, (int(x_min),int(y_min)), (int(x_min),int(y_max)), (0,0,255, 255), 1)
+                            #cv2.line(img, (int(x_max),int(y_min)), (int(x_max),int(y_max)), (0,0,255, 255), 1)
 
-                        # Add the object to the frame (ensure it is inside the image)
-                        if x_min > 0 and x_max < image_w and y_min > 0 and y_max < image_h:
+                            #Put label next to image
+                            img = cv2.putText(img, text=npc.type_id.split('.')[1], org=(int(x_min), int(y_min)),fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.3, color=(0, 0, 255, 255),thickness=1)
+                            #img = cv2.putText(img, text = npc.type_id.split('.')[1], org = (int(x_min[len(x_min)-1]), int(y_min[len(y_min)-1])), fontFace = cv2.FONT_HERSHEY_SIMPLEX, fontScale = 0.3, color = (0,0,255, 255), thickness = 1)
+
+                            # Add the object to the frame (ensure it is inside the image)
+                            #if x_min[len(x_min)-1] > 0 and x_max[len(x_max)-1] < image_w and y_min[len(y_min)-1] > 0 and y_max[len(y_max)-1] < image_h:
+                            if x_min > 0 and x_max < image_w and y_min > 0 and y_max < image_h:
                                 writer.addObject(npc.type_id.split('.')[1], x_min, y_min, x_max, y_max)
+                                    #writer.addObject(npc.type_id.split('.')[1], x_min[len(x_min)-1], y_min[len(y_min)-1], x_max[len(x_max)-1], y_max[len(x_max)-1])
 
-        # Save the bounding boxes in the scene
-        writer.save(frame_path + '.xml')
+            # Save the bounding boxes in the scene
+            writer.save(frame_path + '.xml')
 
-        # Display the image in an OpenCV display window
-        # add lines to save image
-        cv2.imshow('BoundingBoxes',img)
-        cv2.imwrite('output/%06d.png' % image.frame, img)
-        if cv2.waitKey(1) == ord('q'):
-            break
+            # Display the image in an OpenCV display window
+            # add lines to save image
+            cv2.imshow('BoundingBoxes',img)
+            #cv2.imwrite('output/%06d.png' % image.frame, img)
+            if cv2.waitKey(1) == ord('q'):
+                break
 
 except: pass
 finally:
