@@ -85,8 +85,7 @@ def train(config = None):
         #                             download=True, transform=transform)
 
         trainloader = torch.utils.data.DataLoader(trainset, batch_size=config.batch_size,
-                                            shuffle=True, num_workers=2)
-
+                                            shuffle=True, num_workers=8)
 
         criterion = nn.CrossEntropyLoss()
         optimizer = optim.SGD(net.parameters(), lr=config.lr, momentum=0.9)
@@ -109,14 +108,13 @@ def train(config = None):
                 loss.backward()
                 optimizer.step()
 
-                # # Optional
-                # wandb.watch(net)
-
                 # print statistics
                 running_loss += loss.item()
-                if i % 2000 == 1999:    # print every 2000 mini-batches
-                    wandb.log({"loss": loss, "epoch": epoch})
-                    print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}')
+
+
+                if i % 200 == 199:    # print every 200 mini-batches
+                    wandb.log({"loss": running_loss / 200, "epoch": epoch})
+                    print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 200:.3f}')
                     running_loss = 0.0
 
         print('Finished Training')
@@ -126,4 +124,4 @@ def train(config = None):
         torch.save(net.state_dict(), PATH)
 
 
-wandb.agent(sweep_id, train, count=10)
+wandb.agent(sweep_id, train, count=20)
