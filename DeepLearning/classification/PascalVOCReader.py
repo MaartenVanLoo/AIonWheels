@@ -10,6 +10,12 @@ def read_content(xml_file: str):
     for member in root.findall('object'):
         class_name = member[0].text  # class name
 
+        """
+        if (class_name == "Unknown"):
+            ...
+            als er geen object op image is, leeg label
+        """
+
         # bbox coordinates
         xmin = int(member[4][0].text)
         ymin = int(member[4][1].text)
