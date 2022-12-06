@@ -83,12 +83,21 @@ def distanceAlongPath(waypoints: list, collisionBoxes):
             travelDistance += waypoint.distance(next_waypoint)
             continue
         ray = Ray(waypoint, next_waypoint)
+        rayLeft,rayRight=calcCorners(ray,waypoint,next_waypoint)
         best_time = np.Inf
         flag = False
         for target in possibleTargets:
             collision, time = rayBoxIntersection(ray, target)
+            collisionLeft,timeLeft=rayBoxIntersection(rayLeft, target)
+            collisionRight, timeRight = rayBoxIntersection(rayRight, target)
             if collision and time < best_time:
                 best_time = time
+                flag = True
+            if collisionLeft and timeLeft < best_time:
+                best_time = timeLeft
+                flag = True
+            if collisionRight and timeRight < best_time:
+                best_time = timeLeft
                 flag = True
 
         # returned collision time should always be between 0 and 1
@@ -98,3 +107,13 @@ def distanceAlongPath(waypoints: list, collisionBoxes):
         else:
             travelDistance += waypoint.distance(next_waypoint)
     return travelDistance
+
+def calcCorners(middleRay,waypoint,nextwaypoint):
+    norm=np.sqrt(np.power(middleRay.origin.x)+np.power(middleRay.origin.y)+np.power(middleRay.origin.z))
+    v=carla.Vector3D(middleRay.direction.y/norm,-middleRay.direction.x/norm,0)
+    width=1.5
+    a=carla.Location(waypoint.x+v.x*width,waypoint.y+v.y*width,waypoint.z)
+    b = carla.Location(nextwaypoint.x + v.x * width, nextwaypoint.y + v.y * width, nextwaypoint.z)
+    c = carla.Location(waypoint.x - v.x * width, waypoint.y - v.y * width, waypoint.z)
+    d = carla.Location(nextwaypoint.x - v.x * width, nextwaypoint.y - v.y * width, nextwaypoint.z)
+    return Ray(a,b),Ray(c,d)
