@@ -16,7 +16,7 @@ import weakref
 
 from ReinforcementLearning.CarlaEnvironment import TrafficGenerator
 from ReinforcementLearning.CarlaEnvironment.utils import dist
-from ReinforcementLearning.CarlaEnvironment.utils.ClinetSideBouningBoxes import ClientSideBoundingBoxes
+from ReinforcementLearning.CarlaEnvironment.utils.ClientSideBouningBoxes import ClientSideBoundingBoxes
 
 
 class CarlaWorldAPI:
@@ -237,7 +237,7 @@ class CarlaWorldAPI:
             return
         if self.display:
             self.world.render(self.display)
-            worldapi._drawBoundingBoxes()
+            self._drawBoundingBoxes()
             pygame.display.flip()
 
         #update agent
@@ -311,7 +311,7 @@ class CarlaWorldAPI:
 
             #TODO:scale boxes with the size of the agent box to incorporate the non zero size of the agent
             #TODO:check orientation
-            box.extent += agent_bb.extent
+            #box.extent += agent_bb.extent
 
         # change all waypoints to "agent_space":
         transformed_waypoints = [agent_bb.location] #first point = agent bounding box
@@ -319,7 +319,7 @@ class CarlaWorldAPI:
             vec = waypoint.transform.location-agent_tt.location + agent_bb.location
             transformed_waypoints.append(carla.Location(vec.x, vec.y, vec.z))
 
-        return dist.distanceAlongPath(transformed_waypoints, bb)
+        return dist.distanceAlongPath(transformed_waypoints, bb, agent_bb.extent.y)
 
 
     def debug(self):

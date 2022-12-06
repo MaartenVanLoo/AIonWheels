@@ -64,7 +64,7 @@ def rayBoxIntersection(ray, box):
     return does_intersect, tNear
 
 
-def distanceAlongPath(waypoints: list, collisionBoxes):
+def distanceAlongPath(waypoints: list, collisionBoxes, width):
     travelDistance = 0
     for i in range(len(waypoints) - 1):
         if (travelDistance > 100):
@@ -83,7 +83,7 @@ def distanceAlongPath(waypoints: list, collisionBoxes):
             travelDistance += waypoint.distance(next_waypoint)
             continue
         ray = Ray(waypoint, next_waypoint)
-        rayLeft,rayRight=calcCorners(ray,waypoint,next_waypoint)
+        rayLeft,rayRight=calcCorners(ray,waypoint,next_waypoint, width)
         best_time = np.Inf
         flag = False
         for target in possibleTargets:
@@ -108,8 +108,8 @@ def distanceAlongPath(waypoints: list, collisionBoxes):
             travelDistance += waypoint.distance(next_waypoint)
     return travelDistance
 
-def calcCorners(middleRay,waypoint,nextwaypoint):
-    norm=np.sqrt(np.power(middleRay.origin.x)+np.power(middleRay.origin.y)+np.power(middleRay.origin.z))
+def calcCorners(middleRay,waypoint,nextwaypoint, width):
+    norm=np.sqrt(np.power(middleRay.origin.x,2)+np.power(middleRay.origin.y,2)+np.power(middleRay.origin.z,2))
     v=carla.Vector3D(middleRay.direction.y/norm,-middleRay.direction.x/norm,0)
     width=1.5
     a=carla.Location(waypoint.x+v.x*width,waypoint.y+v.y*width,waypoint.z)
