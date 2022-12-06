@@ -37,6 +37,7 @@ class Labels:
 
                 bbox = actor.bounding_box
                 point = inv_transform.transform(transform.location - kit_pos)
+
                 labels.append({
                     'type': 'Car',
                     'xmin': 0,  # not needed for dataset
@@ -46,9 +47,9 @@ class Labels:
                     'h': bbox.extent.z * 2,
                     'w': bbox.extent.y * 2,
                     'l': bbox.extent.x * 2,
-                    'x': point.x,
-                    'y': point.y,
-                    'z': point.z,
+                    'x': bbox.location + point.x,
+                    'y': bbox.location + point.y,
+                    'z': bbox.location + point.z,
                     'yaw': np.radians(transform.rotation.yaw - kit_trans.rotation.yaw),
                 })
 

@@ -80,6 +80,7 @@ class CarlaAgentRL(object):
 
     def getTransform(self):
         return self._world.get_actor(self._vehicle.id).get_transform()
+
     def getBBox(self):
         return self._world.get_actor(self._vehicle.id).bounding_box
 
@@ -94,16 +95,19 @@ class CarlaAgentRL(object):
             :param start_location (carla.Location): starting location of the route
         """
         if not start_location:
-            start_location = self._local_planner.target_waypoint.transform.location
-            clean_queue = True
+            if len(self._local_planner.get_plan()) > 1:
+                start_waypoint = self._local_planner.get_plan()[-1][0]
+                clean_queue = False
+            else:
+                start_waypoint = self._local_planner.target_waypoint
+                clean_queue = True
         elif len(self._local_planner.get_plan()) > 1:
-            start_location = self._local_planner.get_plan()[-1]
+            start_waypoint = self._local_planner.get_plan()[-1][0]
             clean_queue = False
         else:
-            start_location = self._vehicle.get_location()
+            start_waypoint = self._map.get_waypoint(self._vehicle.get_location())
             clean_queue = False
 
-        start_waypoint = self._map.get_waypoint(start_location)
         end_waypoint = self._map.get_waypoint(end_location)
 
         route_trace = self.trace_route(start_waypoint, end_waypoint)
@@ -127,5 +131,7 @@ class CarlaAgentRL(object):
     def requires_plan(self):
         return len(self._local_planner.get_plan()) < 200
 
+    def getWaypoints(self) -> list:
+        return list(self._local_planner.get_plan())
     def destroy(self):
         carla.command.DestroyActor(self._vehicle)

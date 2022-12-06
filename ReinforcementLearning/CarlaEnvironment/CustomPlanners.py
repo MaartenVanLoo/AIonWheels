@@ -149,7 +149,7 @@ class AIonWheelsLocalPlanner(object):
         if self._current_frame <= 0:
             self._current_frame = 20
             _draw_path(self._vehicle.get_world(), self._waypoints_queue)
-        print(f"Current queue length: {len(self._waypoints_queue)}")
+        #print(f"Current queue length: {len(self._waypoints_queue)}")
         return control
 
     def _compute_next_waypoints(self, k=1):
@@ -227,7 +227,7 @@ class AIonWheelsLocalPlanner(object):
                 else:
                     self._waypoints_queue.pop() # current plan wants to take this node => hence removing it from both
                     # the plan and the waypoints is still a valid route without 180° turns
-                    print(f"removed node from waypoint queue while setting new targer")
+                    print(f"Removed node from waypoint queue while setting new target")
 
         self._stop_waypoint_creation = stop_waypoint_creation
 
@@ -280,13 +280,20 @@ def _compute_connection(current_waypoint, next_waypoint, threshold=35):
         return RoadOption.RIGHT
 
 
-def _draw_path(world, path):
+
+def _draw_path(world, path, fading = 1):
     offset = carla.Location(0.1)
     points = [p[0].transform.location+offset for p in path]
-    green =carla.Color(0,5,0,a=20)
+    alpha = 20
     for i in range(len(points)-1):
         begin = points[i]
         end = points[i+1]
         begin.z += 0.1
         end.z += 0.1
-        world.debug.draw_line(begin, end, thickness = 1, color = green, life_time = 5)
+        color = carla.Color(0,5,0,a=int(alpha))
+        world.debug.draw_line(begin, end, thickness = 1, color = color, life_time = 5)
+
+        # update alpha
+        alpha *= fading
+        if (alpha < 1):
+            return  # limited lenthg

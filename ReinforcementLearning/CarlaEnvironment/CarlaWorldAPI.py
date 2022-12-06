@@ -15,6 +15,8 @@ import pygame
 import weakref
 
 from ReinforcementLearning.CarlaEnvironment import TrafficGenerator
+from ReinforcementLearning.CarlaEnvironment.utils import dist
+from ReinforcementLearning.CarlaEnvironment.utils.ClinetSideBouningBoxes import ClientSideBoundingBoxes
 
 
 class CarlaWorldAPI:
@@ -235,6 +237,7 @@ class CarlaWorldAPI:
             return
         if self.display:
             self.world.render(self.display)
+            worldapi._drawBoundingBoxes()
             pygame.display.flip()
 
         #update agent
@@ -276,6 +279,82 @@ class CarlaWorldAPI:
 
     def getLidarSensor(self):
         return self.lidar_sensor
+
+
+    def getDistanceAlongPath(self):
+        """
+        Distance measured allong the waypoint path of the actor
+        """
+        actors = self.world.world.get_actors(self.vehicles_list)
+        bb = [actor.bounding_box for actor in actors]
+        transforms = [actor.get_transform() for actor in actors]
+
+        agent = self.agent._vehicle
+        agent_tt = agent.get_transform()
+        agent_bb = agent.bounding_box
+
+        invRotation = carla.Transform(
+            carla.Location(0,0,0),
+            carla.Rotation(-agent_tt.rotation.pitch, -agent_tt.rotation.yaw, -agent_tt.rotation.roll))
+
+        waypoints = self.agent.getWaypoints()
+        waypoints = [waypoint[0] for waypoint in waypoints] #only filter out the location
+
+        #agent space = center of agent bounding box
+        # change all boxes to "agent space"
+        for box, transform in zip(bb, transforms):
+            box.location += transform.location - agent_tt.location - agent_bb.location
+            # correct the global angle with the agent angle
+            box.rotation.yaw =   transform.rotation.yaw - agent_tt.rotation.yaw
+            box.rotation.pitch = transform.rotation.pitch - agent_tt.rotation.pitch
+            box.rotation.roll =  transform.rotation.roll - agent_tt.rotation.roll
+
+            #TODO:scale boxes with the size of the agent box to incorporate the non zero size of the agent
+            #TODO:check orientation
+            box.extent += agent_bb.extent
+
+        # change all waypoints to "agent_space":
+        transformed_waypoints = [agent_bb.location] #first point = agent bounding box
+        for waypoint in waypoints:
+            vec = waypoint.transform.location-agent_tt.location + agent_bb.location
+            transformed_waypoints.append(carla.Location(vec.x, vec.y, vec.z))
+
+        return dist.distanceAlongPath(transformed_waypoints, bb)
+
+
+    def debug(self):
+        """
+        some debug code
+        """
+        #get all actors:
+        actors = self.world.world.get_actors(self.vehicles_list)
+        bb = [actor.bounding_box for actor in actors]
+        transforms = [actor.get_transform() for actor in actors]
+
+        agent = self.agent._vehicle
+        agent_bb = agent.bounding_box
+        agent_tt = agent.get_transform()
+
+
+    def _drawBoundingBoxes(self):
+        actors = self.world.world.get_actors().filter(
+            'vehicle.*')
+        agent = self.agent._vehicle
+        transforms = [actor.get_transform() for actor in actors]
+        agent_tt = agent.get_transform()
+
+        close_actors = []
+        for idx,actor in enumerate(actors):
+            if (agent_tt.location.distance(transforms[idx].location) < 50):
+                close_actors.append(actor)
+
+        # draw bounding boxes close to agent:
+        cam_id = self.world.camera_manager.sensor.id
+        bounding_boxes = ClientSideBoundingBoxes.get_bounding_boxes(self,close_actors, self.world.world.get_actor(cam_id))
+        ClientSideBoundingBoxes.draw_bounding_boxes(self,self.display, bounding_boxes)
+
+
+
 
 
 
@@ -416,17 +495,19 @@ if __name__ == "__main__":
     worldapi = None
     try:
         worldapi = CarlaWorldAPI(args=args)
-        worldapi.spawnVehicles(args={'vehicle_filter': 'vehicle.tesla.cybertruck'})
+        #worldapi.spawnVehicles(args={'vehicle_filter': 'vehicle.tesla.cybertruck'})
+        worldapi.spawnVehicles()
         worldapi.addAgent(CarlaAgents.CarlaAgentRL(worldapi.world.player, num_actions=11))
         worldapi.addCollisionSensor()
-        worldapi.addLidarSensor()
+        #worldapi.addLidarSensor()
 
 
         print(worldapi.agent.getPos())
         while True:
-            worldapi.step(action=10)
-            worldapi.getClosestVechicle()
-            print(worldapi.getCollisionIntensity())
+            worldapi.step(action=8)
+            #worldapi.getClosestVechicle()
+            print(f"Distance:{worldapi.getDistanceAlongPath()}")
+            #print(worldapi.getCollisionIntensity())
 
     except:
         traceback.print_exc()
