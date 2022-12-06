@@ -1,40 +1,10 @@
 import carla
-import math
 import random
-import time
 import queue
 import numpy as np
 import cv2
 from pascal_voc_writer import Writer
 import trafficgenerator
-
-### Set up simulator ###
-client = carla.Client('localhost', 2000)
-world = client.get_world()
-bp_lib = world.get_blueprint_library()
-
-# Get the map spawn points
-spawn_points = world.get_map().get_spawn_points()
-
-# spawn vehicle
-vehicle_bp1 = bp_lib.find('vehicle.lincoln.mkz_2020')
-vehicle = world.try_spawn_actor(vehicle_bp1, random.choice(spawn_points))
-
-# spawn camera
-camera_bp = bp_lib.find('sensor.camera.rgb')
-camera_init_trans = carla.Transform(carla.Location(z=2))
-camera = world.spawn_actor(camera_bp, camera_init_trans, attach_to=vehicle)
-vehicle.set_autopilot(True)
-
-# Set up the simulator in synchronous mode
-settings = world.get_settings()
-settings.synchronous_mode = True # Enables synchronous mode
-settings.fixed_delta_seconds = 0.05
-world.apply_settings(settings)
-
-# Create a queue to store and retrieve the sensor data
-image_queue = queue.Queue()
-camera.listen(image_queue.put)
 
 ### Geometric transformations ###
 def build_projection_matrix(w, h, fov):
@@ -65,61 +35,81 @@ def get_image_point(loc, K, w2c):
 
     return point_img[0:2]
 
-# Retrieve camera specifications
-# Get the world to camera matrix
-world_2_camera = np.array(camera.get_transform().get_inverse_matrix())
+# ----------------- #
+#  Set up simulator #
+# ----------------- #
+client = carla.Client('localhost', 2000)
+map = 'Town02'
+world = client.load_world(map) # Define the map to be used
+world = client.get_world()
+
+spawn_points = world.get_map().get_spawn_points() # Get the map spawn points
+
+# ----------------- #
+#  Set up ego car   #
+# ----------------- #
+ego_car_bp = world.get_blueprint_library().find('vehicle.lincoln.mkz_2020')
+ego_car = world.try_spawn_actor(ego_car_bp, random.choice(spawn_points))
+ego_car.set_autopilot(True)
+
+# ----------------- #
+#  Set up sensors   #
+# ----------------- #
+cam_bp = world.get_blueprint_library().find('sensor.camera.rgb')
+camera_init_trans = carla.Transform(carla.Location(z=2))
+camera = world.spawn_actor(cam_bp, camera_init_trans, attach_to=ego_car)
+
+image_queue = queue.Queue() # Create a queue to store and retrieve the sensor data
+camera.listen(image_queue.put)
 
 # Get the attributes from the camera
-image_w = camera_bp.get_attribute("image_size_x").as_int()
-image_h = camera_bp.get_attribute("image_size_y").as_int()
-fov = camera_bp.get_attribute("fov").as_float()
+image_w = cam_bp.get_attribute("image_size_x").as_int()
+image_h = cam_bp.get_attribute("image_size_y").as_int()
+fov = cam_bp.get_attribute("fov").as_float()
+
+settings = world.get_settings() # Get the current settings
+settings.synchronous_mode = True # Enables synchronous mode
+settings.fixed_delta_seconds = 0.1 # Sets the fixed time step 20 FPS
+world.apply_settings(settings)
 
 # Calculate the camera projection matrix to project from 3D -> 2D
 K = build_projection_matrix(image_w, image_h, fov)
 
-### Bounding boxes ###
+# ----------------- #
+#  Bounding boxes   #
+# ----------------- #
 
-# Get the bounding boxes from trafic lights
-# Retrieve all bounding boxes for traffic lights within the level
-bounding_box_set = world.get_level_bbs(carla.CityObjectLabel.TrafficLight)
-
-# Filter the list to extract bounding boxes within a 50m radius
-
-
-
-### Draw the bounding boxes ###
-# Set up the set of bounding boxes from the level
-# We filter for traffic lights and traffic signs
+#TO BE ADDED: city lights, traffic lights, traffic signs, pedestrians, vehicles, etc.
 
 # Remember the edge pairs
 edges = [[0,1], [1,3], [3,2], [2,0], [0,4], [4,5], [5,1], [5,7], [7,6], [6,4], [6,2], [7,3]]
 
-trafficmanager = client.get_trafficmanager()
-traffic_list=trafficgenerator.generateTraffic(world, client, trafficmanager, 100, args = {})
-#args vehicle.* for all vehicles args ={'vehicle_filter': 'vehicle.lincoln.mkz_2020'}
+traffic_manager = client.get_trafficmanager()
+traffic_list = trafficgenerator.generateTraffic(world, client, traffic_manager, 20, args={})
 
-#na impala zelf toegevoegd
-#carmodels = ['dodge', 'audi', 'model3', 'mini', 'mustang', 'lincoln', 'prius', 'nissan', 'crown', 'impala', 'tesla']
+list_actor = world.get_actors()
+for actor_ in list_actor:
+    if isinstance(actor_, carla.TrafficLight):
+        # for any light, first set the light state, then set time. for yellow it is
+        # carla.TrafficLightState.Yellow and Red it is carla.TrafficLightState.Red
+        actor_.set_state(carla.TrafficLightState.Green)
+        actor_.set_green_time(1000.0)
+        # actor_.set_green_time(5000.0)
+        # actor_.set_yellow_time(1000.0)
+
+# Retrieve the first image
+world.tick()
+image = image_queue.get()
+
+# Reshape the raw data into an RGB array
+img = np.reshape(np.copy(image.raw_data), (image.height, image.width, 4))
+
+# Display the image in an OpenCV display window
+cv2.namedWindow('BoundingBoxes', cv2.WINDOW_AUTOSIZE)
+cv2.imshow('BoundingBoxes',img)
+cv2.waitKey(1)
 
 try:
-    #for i in range(100):
-    #    vehicle_bp = world.get_blueprint_library().find('vehicle.tesla.cybertruck')
-    #    npc = world.try_spawn_actor(vehicle_bp, random.choice(spawn_points))
-    #    if npc:
-    #        npc.set_autopilot(True)
-
-    # Retrieve the first image
-    world.tick()
-    image = image_queue.get()
-
-    # Reshape the raw data into an RGB array
-    img = np.reshape(np.copy(image.raw_data), (image.height, image.width, 4))
-
-    # Display the image in an OpenCV display window
-    cv2.namedWindow('ImageWindowName', cv2.WINDOW_AUTOSIZE)
-    cv2.imshow('ImageWindowName',img)
-    cv2.waitKey(1)
-
     ### Game loop ###
     while True:
 
@@ -132,6 +122,8 @@ try:
         # Get the camera matrix
         world_2_camera = np.array(camera.get_transform().get_inverse_matrix())
 
+        # Take snap every x frames
+        #if image.frame % 10 == 0:
         # Save the image -- for export
         frame_path = 'output/%06d' % image.frame
         image.save_to_disk(frame_path + '.png')
@@ -139,18 +131,18 @@ try:
         # Initialize the exporter
         writer = Writer(frame_path + '.png', image_w, image_h)
 
-        for npc in world.get_actors().filter('*vehicle*'): #* * matches everything
+        for npc in world.get_actors().filter('*vehicle*'): #* * matches everything different
 
             # Filter out the ego vehicle
-            if npc.id != vehicle.id:
+            if npc.id in traffic_list:
 
                 bb = npc.bounding_box
-                dist = npc.get_transform().location.distance(vehicle.get_transform().location)
+                dist = npc.get_transform().location.distance(ego_car.get_transform().location)
 
                 # Filter for the vehicles within 50m
-                if dist < 25:
-                    forward_vec = vehicle.get_transform().get_forward_vector()
-                    ray = npc.get_transform().location - vehicle.get_transform().location
+                if 1 < dist < 40:
+                    forward_vec = ego_car.get_transform().get_forward_vector()
+                    ray = npc.get_transform().location - ego_car.get_transform().location
 
                     if forward_vec.dot(ray) > 1:
                         p1 = get_image_point(bb.location, K, world_2_camera)
@@ -175,34 +167,34 @@ try:
                             if p[1] < y_min:
                                 y_min = p[1]
 
-                        cv2.line(img, (int(x_min),int(y_min)), (int(x_max),int(y_min)), (0,0,255, 255), 1)
-                        cv2.line(img, (int(x_min),int(y_max)), (int(x_max),int(y_max)), (0,0,255, 255), 1)
-                        cv2.line(img, (int(x_min),int(y_min)), (int(x_min),int(y_max)), (0,0,255, 255), 1)
-                        cv2.line(img, (int(x_max),int(y_min)), (int(x_max),int(y_max)), (0,0,255, 255), 1)
+                        #image = cv2.line(image, start_point, end_point, color, thickness)
+                        img = cv2.rectangle(img, (int(x_min), int(y_min)), (int(x_max), int(y_max)), (0, 255, 0), 2)
+                        #cv2.line(img, (int(x_min),int(y_min)), (int(x_max),int(y_min)), (0,0,255, 255), 1)
+                        #cv2.line(img, (int(x_min),int(y_max)), (int(x_max),int(y_max)), (0,0,255, 255), 1)
+                        #cv2.line(img, (int(x_min),int(y_min)), (int(x_min),int(y_max)), (0,0,255, 255), 1)
+                        #cv2.line(img, (int(x_max),int(y_min)), (int(x_max),int(y_max)), (0,0,255, 255), 1)
 
                         #Put label next to image
-                        cv2.putText(img, text = npc.type_id.split('.'), org = (int(x_min),int(y_min)), fontFace = cv2.FONT_HERSHEY_SIMPLEX, fontScale = 0.3, color = (0,0,255, 255), thickness = 0.5)
+                        img = cv2.putText(img, text = npc.type_id.split('.')[1], org = (int(x_min), int(y_min)), fontFace = cv2.FONT_HERSHEY_SIMPLEX, fontScale = 0.3, color = (0,0,255, 255), thickness = 1)
 
                         # Add the object to the frame (ensure it is inside the image)
                         if x_min > 0 and x_max < image_w and y_min > 0 and y_max < image_h:
-                                writer.addObject(npc.type_id.split('.')[1][2], x_min, y_min, x_max, y_max)
-                            #writer.addObject('elonMUSKKKKK', x_min, y_min, x_max, y_max)
+                                writer.addObject(npc.type_id.split('.')[1], x_min, y_min, x_max, y_max)
 
         # Save the bounding boxes in the scene
         writer.save(frame_path + '.xml')
 
-        cv2.imshow('ImageWindowName',img)
+        # Display the image in an OpenCV display window
+        # add lines to save image
+        cv2.imshow('BoundingBoxes',img)
+        cv2.imwrite('output/%06d.png' % image.frame, img)
         if cv2.waitKey(1) == ord('q'):
             break
-    cv2.destroyAllWindows()
 
-except:
-    pass
+except: pass
 finally:
-    #destory all actors
-    camera.destroy()
-    for actor in world.get_actors().filter('*'):
-        actor.destroy()
+    if camera is not None:
+        camera.destroy()
     if traffic_list:
         client.apply_batch([carla.command.DestroyActor(x) for x in traffic_list])
-
+    cv2.destroyAllWindows()
