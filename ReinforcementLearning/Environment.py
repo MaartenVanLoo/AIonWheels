@@ -323,7 +323,7 @@ class SimpleACC(gym.Env):
         return string
 
     def chooseRandomCar(self, num_actions, speed, position, acceleration):
-        number_of_cars = 6
+        number_of_cars = 5
         choice = np.random.randint(0, number_of_cars+1)
 
         if choice == 0:
@@ -338,8 +338,8 @@ class SimpleACC(gym.Env):
             return SpeedUpBrakeCar(num_actions, speed, position, acceleration)
         elif choice == 5:
             return RandomCar(num_actions, speed, position, acceleration)
-        elif choice == 6:
-            return NoCar(num_actions, speed, position, acceleration)
+        #elif choice == 6:
+        #    return NoCar(num_actions, speed, position, acceleration)
 
     def step(self, action):
         # step state
@@ -412,7 +412,7 @@ class SimpleACC(gym.Env):
         :return:
         """
         distance = self.car.getPos() - self.agent.getPos()
-        distance = np.clip(distance, -500, 500)
+        distance = np.clip(distance, -1, 100)
         #if (len(self.history['car']) > 1):
         #prevDistance = self.history['car'][-2] - self.history['agent'][-2]
         #prevSpeed = self.history['agent_speed'][-2]
@@ -445,7 +445,7 @@ class SimpleACC(gym.Env):
             u = action-self.prev_action  ## TODO: what is U????
         # https://nl.mathworks.com/help/reinforcement-learning/ug/train-ddpg-agent
         # -for-adaptive-cruise-control.html
-        reward = -(0.1 * e * e + u * u) + m_t - distance_penalty  + self.reward_offset
+        reward = -(0.1 * e * e + u * u) + m_t - distance_penalty + self.reward_offset
         # speed_reward = -sigmoid(abs(dv/5))*2+2
 
         # combined_reward = distance_reward*sigmoid(-distance+10)+\
@@ -595,7 +595,7 @@ if __name__ == "__main__":
             'device': 'cuda',
             'batch_size': 2048,
             'mini_batch': 24,  # only update once after n experiences
-            'num_frames': 1000000,
+            'num_frames': 2000000,
             'gamma': 0.90,
             'replay_size': 250000,
             'lr': 0.0003,
@@ -603,7 +603,7 @@ if __name__ == "__main__":
 
             'history_frames': 3,
             'num_inputs': 6,  # =size of states!
-            'num_actions': 101,
+            'num_actions': 11,
             'hidden': [128, 512, 512, 128, 64],
         }
         env = SimpleACC(config)

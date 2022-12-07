@@ -3,6 +3,7 @@ This file contains the main world class used as top level API to connect with ca
 """
 import argparse
 import math
+import time
 import traceback
 
 import numpy.random as random
@@ -203,7 +204,8 @@ class CarlaWorldAPI:
         sim.apply_settings(self.settings)
 
         maps = self.client.get_available_maps()
-        self.client.load_world(random.choice(maps), reset_settings=False)
+        #self.client.load_world(random.choice(maps), reset_settings=False)
+        self.client.load_world("Town03", reset_settings=False)
         # self.client.reload_world(reset_settings=False)
 
         # reset synchronous mode and reload GUI elements
@@ -286,6 +288,7 @@ class CarlaWorldAPI:
         Distance measured allong the waypoint path of the actor
         """
         actors = self.world.world.get_actors(self.vehicles_list)
+
         bb = [actor.bounding_box for actor in actors]
         transforms = [actor.get_transform() for actor in actors]
 
@@ -305,22 +308,41 @@ class CarlaWorldAPI:
         for box, transform in zip(bb, transforms):
             box.location += transform.location - agent_tt.location - agent_bb.location
             # correct the global angle with the agent angle
-            box.rotation.yaw =   transform.rotation.yaw - agent_tt.rotation.yaw
-            box.rotation.pitch = transform.rotation.pitch - agent_tt.rotation.pitch
-            box.rotation.roll =  transform.rotation.roll - agent_tt.rotation.roll
+            box.rotation.yaw =   transform.rotation.yaw   #- agent_tt.rotation.yaw
+            box.rotation.pitch = transform.rotation.pitch #- agent_tt.rotation.pitch
+            box.rotation.roll =  transform.rotation.roll  #- agent_tt.rotation.roll
 
             #TODO:scale boxes with the size of the agent box to incorporate the non zero size of the agent
             #TODO:check orientation
             #box.extent += agent_bb.extent
 
         # change all waypoints to "agent_space":
-        transformed_waypoints = [agent_bb.location] #first point = agent bounding box
+
+        agent_waypoint = agent_tt.location
+        agent_waypoint.z = waypoints[0].transform.location.z
+        transformed_waypoints = []#[agent_waypoint - agent_tt.location + agent_bb.location] #first point = agent
+                                 # bounding box
         for waypoint in waypoints:
-            vec = waypoint.transform.location-agent_tt.location + agent_bb.location
+            vec = waypoint.transform.location
+            vec.x += -agent_tt.location.x + agent_bb.location.x
+            vec.y += -agent_tt.location.y + agent_bb.location.y
+            #invRotation = carla.Transform(carla.Location(0,0,0), carla.Rotation(
+            #      -agent_tt.rotation.pitch,             #-waypoint.transform.rotation.pitch
+            #        -agent_tt.rotation.yaw,             #-waypoint.transform.rotation.yaw
+            #       -agent_tt.rotation.roll))                #-waypoint.transform.rotation.roll
+            #vec = invRotation.transform(vec)
             transformed_waypoints.append(carla.Location(vec.x, vec.y, vec.z))
+        agent_waypoint = carla.Location(0,0,transformed_waypoints[0].z)
+        transformed_waypoints.insert(0,agent_waypoint)
 
-        return dist.distanceAlongPath(transformed_waypoints, bb, agent_bb.extent.y)
+        z_offset = transformed_waypoints[0].z # first waypoint must be zero, others adapt accordingly
+        for waypoint in transformed_waypoints:
+            waypoint.z -= z_offset
 
+        distance = dist.distanceAlongPath(transformed_waypoints, bb, agent_bb.extent.y, self.world)
+        #correct distance for own car length
+        distance -= agent_bb.extent.x
+        return distance
 
     def debug(self):
         """
@@ -495,6 +517,7 @@ if __name__ == "__main__":
     worldapi = None
     try:
         worldapi = CarlaWorldAPI(args=args)
+        worldapi.reset() #load random map
         #worldapi.spawnVehicles(args={'vehicle_filter': 'vehicle.tesla.cybertruck'})
         worldapi.spawnVehicles()
         worldapi.addAgent(CarlaAgents.CarlaAgentRL(worldapi.world.player, num_actions=11))
@@ -504,10 +527,15 @@ if __name__ == "__main__":
 
         print(worldapi.agent.getPos())
         while True:
-            worldapi.step(action=8)
+            DIST = worldapi.getDistanceAlongPath()
+            print(f"Distance:{DIST}")
+            action = int(DIST-worldapi.agent.getVel().length() - 7)
+
+            action = min(max(int(action),0),9) #clip action
+            worldapi.step(action=action)
             #worldapi.getClosestVechicle()
-            print(f"Distance:{worldapi.getDistanceAlongPath()}")
             #print(worldapi.getCollisionIntensity())
+            #time.sleep(0.1)
 
     except:
         traceback.print_exc()

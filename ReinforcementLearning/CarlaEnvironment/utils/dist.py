@@ -8,6 +8,26 @@ class Ray(object):
         self.origin = carla.Location(start.x,start.y,start.z)
         self.direction = end - start
 
+    def draw(self,world):
+        #world.debug.draw_line(self.origin, self.origin + self.direction)
+        t = world.player.get_transform()
+        b = world.player.bounding_box
+        start = self.origin + carla.Location(0,0,0) #create new object by doing a mathematical operation
+        end   = self.origin +self.direction
+        start.x += t.location.x + b.location.x
+        start.y += t.location.y + b.location.y
+        start.z = t.location.z + b.location.z
+        end.x += t.location.x + b.location.x
+        end.y += t.location.y + b.location.y
+        end.z = t.location.z + b.location.z
+
+        world.world.debug.draw_line(carla.Vector3D(start),
+                                    carla.Vector3D(end),
+                                    thickness=0.1,
+                                    color=carla.Color(5,0,0,20),life_time = 1)
+        pass
+
+
 
 def rayBoxIntersection(ray, box):
     """
@@ -24,6 +44,7 @@ def rayBoxIntersection(ray, box):
     # transform ray
     # rotation and translation
     origin = ray.origin-box.location
+    origin = invRotation.transform(origin)
     direction = invRotation.transform(carla.Vector3D(ray.direction.x, ray.direction.y, ray.direction.z))
     #avoid division by zero:
     if (abs(direction.x) < 1e-6):
@@ -64,7 +85,7 @@ def rayBoxIntersection(ray, box):
     return does_intersect, tNear
 
 
-def distanceAlongPath(waypoints: list, collisionBoxes, width):
+def distanceAlongPath(waypoints: list, collisionBoxes, width, world = None):
     travelDistance = 0
     for i in range(len(waypoints) - 1):
         if (travelDistance > 100):
@@ -72,6 +93,8 @@ def distanceAlongPath(waypoints: list, collisionBoxes, width):
 
         waypoint = waypoints[i]
         next_waypoint = waypoints[i + 1]
+        if waypoint.distance(next_waypoint) < 1e-6:
+            continue
         possibleTargets = []
         for box in collisionBoxes:
             if box.contains(waypoint, carla.Transform()):
@@ -79,11 +102,25 @@ def distanceAlongPath(waypoints: list, collisionBoxes, width):
             if (box.location.distance(waypoint) < 10 or
                     box.location.distance(next_waypoint) < 10):  # fast filtering
                 possibleTargets.append(box)
+
+        ray = Ray(waypoint, next_waypoint)
+        rayLeft, rayRight = calcCorners(ray, waypoint, next_waypoint, width)
+
+        if world:
+            ray.draw(world)
+            rayLeft.draw(world)
+            rayRight.draw(world)
+
         if len(possibleTargets) == 0:  # no collision
             travelDistance += waypoint.distance(next_waypoint)
             continue
         ray = Ray(waypoint, next_waypoint)
         rayLeft,rayRight=calcCorners(ray,waypoint,next_waypoint, width)
+
+        if world:
+            ray.draw(world)
+            rayLeft.draw(world)
+            rayRight.draw(world)
         best_time = np.Inf
         flag = False
         for target in possibleTargets:
@@ -97,7 +134,7 @@ def distanceAlongPath(waypoints: list, collisionBoxes, width):
                 best_time = timeLeft
                 flag = True
             if collisionRight and timeRight < best_time:
-                best_time = timeLeft
+                best_time = timeRight
                 flag = True
 
         # returned collision time should always be between 0 and 1
@@ -109,9 +146,14 @@ def distanceAlongPath(waypoints: list, collisionBoxes, width):
     return travelDistance
 
 def calcCorners(middleRay,waypoint,nextwaypoint, width):
-    norm=np.sqrt(np.power(middleRay.origin.x,2)+np.power(middleRay.origin.y,2)+np.power(middleRay.origin.z,2))
-    v=carla.Vector3D(middleRay.direction.y/norm,-middleRay.direction.x/norm,0)
-    width=1.5
+    v=carla.Vector3D(middleRay.direction.y,-middleRay.direction.x,0)
+    norm=np.sqrt(np.power(v.x,2)+np.power(v.y,2)+np.power(v.z,2))
+    if (norm <= 1e-6):
+        print('Error')
+    assert(norm > 1e-6)
+    v.x = v.x/norm
+    v.y = v.y/norm
+    v.z = v.z/norm
     a=carla.Location(waypoint.x+v.x*width,waypoint.y+v.y*width,waypoint.z)
     b = carla.Location(nextwaypoint.x + v.x * width, nextwaypoint.y + v.y * width, nextwaypoint.z)
     c = carla.Location(waypoint.x - v.x * width, waypoint.y - v.y * width, waypoint.z)

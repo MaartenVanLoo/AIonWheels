@@ -448,7 +448,7 @@ class Qlearner:
         os.environ["WANDB_API_KEY"] ='827fc9095ed2096f0d61efa2cca1450526099892'
 
         wandb.login()
-        run = wandb.init(project="AIonWheels", tags="qLearning",config=self.config)
+        run = wandb.init(project="AIonWheels_RL", tags="lead",config=self.config)
         self.wandb_enabled = True
         self.model_name = run.name + ".pth"
 

@@ -7,13 +7,15 @@ from collections import deque, namedtuple
 import torch
 import math
 import numpy as np
+from tqdm import tqdm
+
 import wandb
 
 import matplotlib
 import matplotlib.pyplot as plt
 
 _mov_average_size = 10  # moving average of last 10 epsiodes
-ENABLE_WANDB=False
+ENABLE_WANDB=True
 #matplotlib.use("Tkagg")
 
 class DQN(torch.nn.Module):
@@ -284,8 +286,8 @@ class Qlearner:
 
     def __epsilon_by_frame(self, frame):
         epsilon_start = self.config.get('epsilon_start',1.0)
-        epsilon_final = self.config.get('epsilon_final',0.02)
-        epsilon_decay = self.config.get('epsilon_decay',300000)
+        epsilon_final = self.config.get('epsilon_final',0.03)
+        epsilon_decay = self.config.get('epsilon_decay',500000)
         return epsilon_final + (epsilon_start - epsilon_final) * math.exp(-1. * frame / epsilon_decay)
 
     def __update(self):
@@ -323,7 +325,7 @@ class Qlearner:
 
         state = self.env.reset()
         n_experiences = 0
-        for frame_idx in range(1, self.num_frames + 1):
+        for frame_idx in tqdm(range(1, self.num_frames + 1)):
             self.metrics = {}
             self.currentDQN.eval()
             epsilon = self.__epsilon_by_frame(frame_idx)
@@ -448,7 +450,7 @@ class Qlearner:
         os.environ["WANDB_API_KEY"] ='827fc9095ed2096f0d61efa2cca1450526099892'
 
         wandb.login()
-        run = wandb.init(project="AIonWheels", tags="qLearning",config=self.config)
+        run = wandb.init(project="AIonWheels_RL", tags="qLearning",config=self.config)
         self.wandb_enabled = True
         self.model_name = run.name + ".pth"
 
