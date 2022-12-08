@@ -87,21 +87,22 @@ def rayBoxIntersection(ray, box):
 
 def distanceAlongPath(waypoints: list, collisionBoxes, width, world = None, debug = False):
     travelDistance = 0
+    best_idx = -1
     for i in range(len(waypoints) - 1):
         if (travelDistance > 400):
-            return 400
+            return 400,best_idx
 
         waypoint = waypoints[i]
         next_waypoint = waypoints[i + 1]
         if waypoint.distance(next_waypoint) < 1e-6:
             continue
         possibleTargets = []
-        for box in collisionBoxes:
+        for idx,box in enumerate(collisionBoxes):
             if box.contains(waypoint, carla.Transform()):
-                return travelDistance #if waypoint inside bounding box == collision at t = 0
+                return travelDistance,idx #if waypoint inside bounding box == collision at t = 0
             if (box.location.distance(waypoint) < 10 or
                     box.location.distance(next_waypoint) < 10):  # fast filtering
-                possibleTargets.append(box)
+                possibleTargets.append((idx, box))
 
 
         if world and debug:
@@ -120,27 +121,30 @@ def distanceAlongPath(waypoints: list, collisionBoxes, width, world = None, debu
 
         best_time = np.Inf
         flag = False
-        for target in possibleTargets:
+        for idx, target in possibleTargets:
             collision, time = rayBoxIntersection(ray, target)
             collisionLeft,timeLeft=rayBoxIntersection(rayLeft, target)
             collisionRight, timeRight = rayBoxIntersection(rayRight, target)
             if collision and time < best_time:
                 best_time = time
+                best_idx = idx
                 flag = True
             if collisionLeft and timeLeft < best_time:
                 best_time = timeLeft
+                best_idx = idx
                 flag = True
             if collisionRight and timeRight < best_time:
                 best_time = timeRight
+                best_idx = idx
                 flag = True
 
         # returned collision time should always be between 0 and 1
         if flag:  # collision found => return the total traveled length until this point
             travelDistance += waypoint.distance(next_waypoint) * best_time
-            return travelDistance
+            return travelDistance,best_idx
         else:
             travelDistance += waypoint.distance(next_waypoint)
-    return travelDistance
+    return travelDistance,best_idx
 
 def calcCorners(middleRay,waypoint,nextwaypoint, width):
     v=carla.Vector3D(middleRay.direction.y,-middleRay.direction.x,0)

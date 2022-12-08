@@ -347,10 +347,12 @@ class CarlaWorldAPI:
         for waypoint in transformed_waypoints:
             waypoint.z -= z_offset
 
-        distance = dist.distanceAlongPath(transformed_waypoints, bb, agent_bb.extent.y, self.world, debug=debug)
+        distance, idx = dist.distanceAlongPath(transformed_waypoints, bb, agent_bb.extent.y, self.world, debug=debug)
         #correct distance for own car length
         distance -= agent_bb.extent.x
-        return distance
+
+        id = -1 if idx == -1 else actors[idx].id
+        return distance,id
 
     def debug(self):
         """

@@ -54,7 +54,8 @@ class CarlaRLEnv(CarlaWorldAPI):
         self.addAgent(CarlaAgents.CarlaAgentRL(self.world.player, num_actions=self.num_actions))
         self.step(int((self.num_actions + 1) / 2))
 
-        vehicleId, distance = self.getClosestVechicle()
+        #vehicleId, distance = self.getClosestVechicle()
+        distance, _ = self.getDistanceAlongPath()
         self.frames = deque(maxlen=self.config.get('history_frames', 3))
         while len(self.frames) < self.config.get('history_frames', 3):
             self.frames.append(self.__getState(distance))
@@ -81,7 +82,8 @@ class CarlaRLEnv(CarlaWorldAPI):
         control = super().step(action)
         self.stepCount += 1
 
-        vehicleId, distance = self.getClosestVechicle()
+        #vehicleId, distance = self.getClosestVechicle()
+        distance, vehicleId = self.getDistanceAlongPath()
         self.frames.append(self.__getState(distance))
         state = np.array(list(self.frames)).flatten()
 
@@ -255,7 +257,7 @@ if __name__ == "__main__":
         'target_update_freq':2000,
         'history_frames': 3,
         'num_inputs': 12,  # =size of states!
-        'num_actions': 11,
+        'num_actions': 101,
         'hidden': [128, 512, 512, 128, 64],
     }
 
@@ -269,7 +271,7 @@ if __name__ == "__main__":
 
         #config['num_inputs'] = len(worldapi.reset())  # always correct, but expensive in a carla environent
         qlearning = Qlearner(worldapi, DQN, config)
-        qlearning.load("../models/TrainedModel_meadow-63.pth") # works well
+        qlearning.load("../models/ancient-wind-78.pth") # works well
         #qlearning.load("../models/TrainedModel_sky-64.pth")
         #qlearning.load("../models/prime-sun-67.pth")
         #qlearning.train()
