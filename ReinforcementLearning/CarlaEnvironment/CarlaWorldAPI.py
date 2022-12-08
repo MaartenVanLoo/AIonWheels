@@ -317,22 +317,30 @@ class CarlaWorldAPI:
             #box.extent += agent_bb.extent
 
         # change all waypoints to "agent_space":
-
-        agent_waypoint =  carla.Location(agent_tt.location.x, agent_tt.location.y, agent_tt.location.z)
-        agent_waypoint.z = waypoints[0].transform.location.z
         transformed_waypoints = []#[agent_waypoint - agent_tt.location + agent_bb.location] #first point = agent
                                  # bounding box
+
+        #get baseline
+        coords = ClientSideBoundingBoxes._vehicle_to_world([0,0,0,1], agent)
+
         for waypoint in waypoints:
             vec = waypoint.transform.location
-            vec.x += -agent_tt.location.x + agent_bb.location.x
-            vec.y += -agent_tt.location.y + agent_bb.location.y
+            vec.x -= coords[0,0]
+            vec.y -= coords[0,1]
+            vec.z -= coords[0,2]
+            vec.z += agent_bb.extent.z #move points up from vehicle to bb space
+
+            #vec.x += -agent_tt.location.x + agent_bb.location.x
+            #vec.y += -agent_tt.location.y + agent_bb.location.y
+            #vec.z += -agent_tt.location.z + agent_bb.extent.z
             #invRotation = carla.Transform(carla.Location(0,0,0), carla.Rotation(
             #      -agent_tt.rotation.pitch,             #-waypoint.transform.rotation.pitch
             #        -agent_tt.rotation.yaw,             #-waypoint.transform.rotation.yaw
             #       -agent_tt.rotation.roll))                #-waypoint.transform.rotation.roll
             #vec = invRotation.transform(vec)
             transformed_waypoints.append(carla.Location(vec.x, vec.y, vec.z))
-        agent_waypoint = carla.Location(0,0,transformed_waypoints[0].z)
+        #agent_waypoint = carla.Location(0,0,transformed_waypoints[0].z)
+        agent_waypoint = carla.Location(0,0,0)
         transformed_waypoints.insert(0,agent_waypoint)
 
         z_offset = transformed_waypoints[0].z # first waypoint must be zero, others adapt accordingly
@@ -540,7 +548,7 @@ if __name__ == "__main__":
         frame = 0
         while True:
             frame += 1
-            if frame%3 == 0:
+            if frame%4 == 0:
                 DIST = worldapi.getDistanceAlongPath(debug=True) #draw lines, not every frame to improve performance
             else:
                 DIST = worldapi.getDistanceAlongPath()

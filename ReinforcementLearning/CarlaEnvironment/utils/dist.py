@@ -16,10 +16,10 @@ class Ray(object):
         end   = self.origin +self.direction
         start.x += t.location.x + b.location.x
         start.y += t.location.y + b.location.y
-        start.z += t.location.z + b.location.z
+        start.z += t.location.z + b.extent.z
         end.x += t.location.x + b.location.x
         end.y += t.location.y + b.location.y
-        end.z += t.location.z + b.location.z
+        end.z += t.location.z + b.extent.z
 
         world.world.debug.draw_line(carla.Vector3D(start),
                                     carla.Vector3D(end),
