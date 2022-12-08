@@ -15,7 +15,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 _mov_average_size = 10  # moving average of last 10 epsiodes
-ENABLE_WANDB=True
+ENABLE_WANDB = False
 #matplotlib.use("Tkagg")
 
 class DQN(torch.nn.Module):
