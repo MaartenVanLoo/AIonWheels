@@ -2,9 +2,13 @@
 import torch
 import torchvision
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") #Testing whether a GPU (cuda device) is available. If there is one, use this, if not use the CPU.
-print(device)
+version = torch.version.__version__[:5]
+print('torch version is {}'.format(version))
 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") #Testing whether a GPU (cuda device) is available. If there is one, use this, if not use the CPU.
+print(torch.__version__)
+print(torch.cuda.is_available())
+print(device)
 model = torchvision.models.detection.fasterrcnn_resnet50_fpn().to(device)
 
 
@@ -54,10 +58,10 @@ model = torchvision.models.detection.fasterrcnn_resnet50_fpn().to(device)
 # output = model(images, targets)
 
 
-# # For inference
+# For inference
 # model.eval()
 # x = [torch.rand(3, 300, 400), torch.rand(3, 500, 400)]
 # predictions = model(x)
 
-# # optionally, if you want to export the model to ONNX:
+# optionally, if you want to export the model to ONNX:
 # torch.onnx.export(model, x, "faster_rcnn.onnx", opset_version = 11)
