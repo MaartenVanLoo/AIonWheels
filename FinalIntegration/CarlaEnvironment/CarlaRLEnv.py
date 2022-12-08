@@ -282,14 +282,14 @@ def main():
         qlearning = Qlearner(worldapi, DQN, config)
         #qlearning.load("../models/ancient-wind-78.pth") #only brakes?
         #qlearning.load("../models/bumbling-universe-79.pth") #potential candidate, to slow??
-        qlearning.load("../models/eternal-river-81.pth")
+        qlearning.load("FinalIntegration/models/eternal-river-81.pth")
 
 
         #qlearning.load("../models/TrainedModel_sky-64.pth")
         #qlearning.load("../models/prime-sun-67.pth")
-        qlearning.train()
-        qlearning.save("models/" + qlearning.model_name)
-        #qlearning.eval()
+        #qlearning.train()
+        #qlearning.save("models/" + qlearning.model_name)
+        qlearning.eval()
         #qlearning.save("../models/TrainedModel_meadow-63_carla.pth")
         #qlearning.save("../models/prime-sun-67_carla.pth")
         worldapi.reset() #force to save episode history
