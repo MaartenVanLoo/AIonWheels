@@ -5,6 +5,8 @@ import numpy as np
 import cv2
 from pascal_voc_writer import Writer
 import trafficgenerator
+import os
+import logging
 
 ### Geometric transformations ###
 def build_projection_matrix(w, h, fov):
@@ -56,8 +58,17 @@ ego_car.set_autopilot(True)
 #  Set up sensors   #
 # ----------------- #
 cam_bp = world.get_blueprint_library().find('sensor.camera.rgb')
+#attr for cam freq zoeken !!!!
+cam_bp.set_attribute('sensor_tick', '0')
+cam_bp.set_attribute('shutter_speed', '190')
+cam_bp.set_attribute('bloom_intensity', '0.675') #off
+cam_bp.set_attribute('gamma', '2.2')
+cam_bp.set_attribute('lens_flare_intensity', '0.1')
 camera_init_trans = carla.Transform(carla.Location(z=2))
-camera = world.spawn_actor(cam_bp, camera_init_trans, attach_to=ego_car)
+cam_bp.set_attribute("image_size_x",str(600))
+cam_bp.set_attribute("image_size_y",str(400))
+cam_bp.set_attribute("fov",str(110))
+camera = world.spawn_actor(cam_bp, camera_init_trans, attach_to=ego_car, attachment_type=carla.AttachmentType.Rigid)
 
 image_queue = queue.Queue() # Create a queue to store and retrieve the sensor data
 camera.listen(image_queue.put)
@@ -69,7 +80,7 @@ fov = cam_bp.get_attribute("fov").as_float()
 
 settings = world.get_settings() # Get the current settings
 settings.synchronous_mode = True # Enables synchronous mode
-settings.fixed_delta_seconds = 0.1 # Sets the fixed time step 20 FPS
+settings.fixed_delta_seconds = 0.05# Sets the fixed time step 20 FPS
 world.apply_settings(settings)
 
 # Calculate the camera projection matrix to project from 3D -> 2D
@@ -85,7 +96,8 @@ K = build_projection_matrix(image_w, image_h, fov)
 edges = [[0,1], [1,3], [3,2], [2,0], [0,4], [4,5], [5,1], [5,7], [7,6], [6,4], [6,2], [7,3]]
 
 traffic_manager = client.get_trafficmanager()
-traffic_list = trafficgenerator.generateTraffic(world, client, traffic_manager, 20, args={})
+traffic_list = trafficgenerator.generateTraffic(world, client, traffic_manager, 40, args={}) #"vehicle_filter": "omafiets"
+
 
 list_actor = world.get_actors()
 for actor_ in list_actor:
@@ -97,19 +109,39 @@ for actor_ in list_actor:
         # actor_.set_green_time(5000.0)
         # actor_.set_yellow_time(1000.0)
 
-# Retrieve the first image
-world.tick()
-image = image_queue.get()
 
-# Reshape the raw data into an RGB array
-img = np.reshape(np.copy(image.raw_data), (image.height, image.width, 4))
-
-# Display the image in an OpenCV display window
-cv2.namedWindow('BoundingBoxes', cv2.WINDOW_AUTOSIZE)
-cv2.imshow('BoundingBoxes',img)
-cv2.waitKey(1)
 
 try:
+    x_max = -10000
+    x_min = 10000
+    y_max = -10000
+    y_min = 10000
+    x_max_temp = -10000
+    x_min_temp = 10000
+    y_max_temp = -10000
+    y_min_temp = 10000
+    x_max_temp2 = -10000
+    x_min_temp2 = 10000
+    y_max_temp2 = -10000
+    y_min_temp2 = 10000
+    x_max_temp3 = -10000
+    x_min_temp3 = 10000
+    y_max_temp3 = -10000
+    y_min_temp3 = 10000
+    x_max_temp4 = -10000
+    x_min_temp4 = 10000
+    y_max_temp4 = -10000
+    y_min_temp4 = 10000
+    x_max_temp5 = -10000
+    x_min_temp5 = 10000
+    y_max_temp5 = -10000
+    y_min_temp5 = 10000
+    x_max_temp6 = -10000
+    x_min_temp6 = 10000
+    y_max_temp6 = -10000
+    y_min_temp6 = 10000
+
+
     ### Game loop ###
     while True:
 
@@ -123,7 +155,7 @@ try:
         world_2_camera = np.array(camera.get_transform().get_inverse_matrix())
 
         # Take snap every x frames
-        if image.frame % 2 == 0:
+        if image.frame % 1 == 0:
             # Save the image -- for export
             frame_path = 'output/%06d' % image.frame
             image.save_to_disk(frame_path + '.png')
@@ -131,16 +163,15 @@ try:
             # Initialize the exporter
             writer = Writer(frame_path + '.png', image_w, image_h)
 
-            for npc in world.get_actors().filter('*vehicle*'): #* * matches everything different
-
+            for npc in world.get_actors(): #* * matches everything different
                 # Filter out the ego vehicle
                 if npc.id in traffic_list:
 
                     bb = npc.bounding_box
                     dist = npc.get_transform().location.distance(ego_car.get_transform().location)
 
-                    # Filter for the vehicles within 50m
-                    if 1 < dist < 40:
+                    # Filter for the vehicles within 30m
+                    if 1 < dist < 30:
                         forward_vec = ego_car.get_transform().get_forward_vector()
                         ray = npc.get_transform().location - ego_car.get_transform().location
 
@@ -148,6 +179,35 @@ try:
                             p1 = get_image_point(bb.location, K, world_2_camera)
                             verts = [v for v in bb.get_world_vertices(npc.get_transform())]
 
+
+                            x_max_temp7 = x_max_temp6
+                            x_min_temp7 = x_min_temp6
+                            y_max_temp7 = y_max_temp6
+                            y_min_temp7 = y_min_temp6
+                            x_max_temp6 = x_max_temp5
+                            x_min_temp6 = x_min_temp5
+                            y_max_temp6 = y_max_temp5
+                            y_min_temp6 = y_min_temp5
+                            x_max_temp5 = x_max_temp4
+                            x_min_temp5 = x_min_temp4
+                            y_max_temp5 = y_max_temp4
+                            y_min_temp5 = y_min_temp4
+                            x_max_temp4 = x_max_temp3
+                            x_min_temp4 = x_min_temp3
+                            y_max_temp4 = y_max_temp3
+                            y_min_temp4 = y_min_temp3
+                            x_max_temp3 = x_max_temp2
+                            x_min_temp3 = x_min_temp2
+                            y_max_temp3 = y_max_temp2
+                            y_min_temp3 = y_min_temp2
+                            x_max_temp2 = x_max_temp
+                            x_min_temp2 = x_min_temp
+                            y_max_temp2 = y_max_temp
+                            y_min_temp2 = y_min_temp
+                            x_max_temp = x_max
+                            x_min_temp = x_min
+                            y_max_temp = y_max
+                            y_min_temp = y_min
                             x_max = -10000
                             x_min = 10000
                             y_max = -10000
@@ -174,20 +234,43 @@ try:
 
                             #image = cv2.line(image, start_point, end_point, color, thickness)
                             #img = cv2.rectangle(img, (int(x_min[len(x_min)-1]), int(y_min[len(y_min)-1])), (int(x_max[len(x_max)-1]), int(y_max[len(y_max)-1])), (0, 255, 0), 2)
-                            img = cv2.rectangle(img, (int(x_min), int(y_min)), (int(x_max), int(y_max)),(0, 255, 0), 2)
+                            #img = cv2.rectangle(img, (int(x_min), int(y_min)), (int(x_max), int(y_max)),(0, 255, 0), 2)
+                            #img = cv2.rectangle(img, (int(x_min), int(y_min)), (int(x_max), int(y_max)),(0, 255, 0), 2)
+                            img = cv2.rectangle(img, (int(x_min_temp7), int(y_min_temp7)), (int(x_max_temp7), int(y_max_temp7)),(0, 255, 0), 2)
                             #cv2.line(img, (int(x_min),int(y_min)), (int(x_max),int(y_min)), (0,0,255, 255), 1)
                             #cv2.line(img, (int(x_min),int(y_max)), (int(x_max),int(y_max)), (0,0,255, 255), 1)
                             #cv2.line(img, (int(x_min),int(y_min)), (int(x_min),int(y_max)), (0,0,255, 255), 1)
                             #cv2.line(img, (int(x_max),int(y_min)), (int(x_max),int(y_max)), (0,0,255, 255), 1)
 
+                            #classification for xml file
+                            type = npc.type_id.split('.')[2]
+                            classification_text = ''
+                            #write case type statement not possible in 3.7 LOL
+                            # https://www.youtube.com/watch?v=kL55VnuDpxw
+                            if type == 'crossbike' or type == 'omafiets' or type == 'century':
+                                classification_text = 'bike'
+                            elif type == 'low_rider' or type == 'zx125' or type == 'yzf' or type == 'ninja':
+                                classification_text = 'motorcycle'
+                            elif type == 'firetruck':
+                                classification_text = 'firetruck'
+                            elif type == 'charger_police' or type == 'charger_police_2020':
+                                classification_text = 'police'
+                            elif type == 'ambulance':
+                                classification_text = 'ambulance'
+                            elif type == 'carlacola':
+                                classification_text = 'truck'
+                            else:
+                                classification_text = 'car'
+
+
                             #Put label next to image
-                            img = cv2.putText(img, text=npc.type_id.split('.')[1], org=(int(x_min), int(y_min)),fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.3, color=(0, 0, 255, 255),thickness=1)
+                            img = cv2.putText(img, text= classification_text, org=(int(x_min_temp7), int(y_min_temp7)),fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.3, color=(0, 0, 255, 255),thickness=1)
                             #img = cv2.putText(img, text = npc.type_id.split('.')[1], org = (int(x_min[len(x_min)-1]), int(y_min[len(y_min)-1])), fontFace = cv2.FONT_HERSHEY_SIMPLEX, fontScale = 0.3, color = (0,0,255, 255), thickness = 1)
 
                             # Add the object to the frame (ensure it is inside the image)
                             #if x_min[len(x_min)-1] > 0 and x_max[len(x_max)-1] < image_w and y_min[len(y_min)-1] > 0 and y_max[len(y_max)-1] < image_h:
-                            if x_min > 0 and x_max < image_w and y_min > 0 and y_max < image_h:
-                                writer.addObject(npc.type_id.split('.')[1], x_min, y_min, x_max, y_max)
+                            if x_min_temp7 > 0 and x_max_temp7 < image_w and y_min_temp7 > 0 and y_max_temp7 < image_h:
+                                writer.addObject(classification_text, x_min_temp7, y_min_temp7, x_max_temp7, y_max_temp7)
                                     #writer.addObject(npc.type_id.split('.')[1], x_min[len(x_min)-1], y_min[len(y_min)-1], x_max[len(x_max)-1], y_max[len(x_max)-1])
 
             # Save the bounding boxes in the scene
@@ -196,7 +279,7 @@ try:
             # Display the image in an OpenCV display window
             # add lines to save image
             cv2.imshow('BoundingBoxes',img)
-            #cv2.imwrite('output/%06d.png' % image.frame, img)
+            cv2.imwrite('output/%06d.png' % image.frame, img)
             if cv2.waitKey(1) == ord('q'):
                 break
 
