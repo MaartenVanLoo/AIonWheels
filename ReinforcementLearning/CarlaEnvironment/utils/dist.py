@@ -16,10 +16,10 @@ class Ray(object):
         end   = self.origin +self.direction
         start.x += t.location.x + b.location.x
         start.y += t.location.y + b.location.y
-        start.z = t.location.z + b.location.z
+        start.z += t.location.z + b.location.z
         end.x += t.location.x + b.location.x
         end.y += t.location.y + b.location.y
-        end.z = t.location.z + b.location.z
+        end.z += t.location.z + b.location.z
 
         world.world.debug.draw_line(carla.Vector3D(start),
                                     carla.Vector3D(end),
@@ -85,11 +85,11 @@ def rayBoxIntersection(ray, box):
     return does_intersect, tNear
 
 
-def distanceAlongPath(waypoints: list, collisionBoxes, width, world = None):
+def distanceAlongPath(waypoints: list, collisionBoxes, width, world = None, debug = False):
     travelDistance = 0
     for i in range(len(waypoints) - 1):
-        if (travelDistance > 100):
-            return 100
+        if (travelDistance > 400):
+            return 400
 
         waypoint = waypoints[i]
         next_waypoint = waypoints[i + 1]
@@ -103,10 +103,11 @@ def distanceAlongPath(waypoints: list, collisionBoxes, width, world = None):
                     box.location.distance(next_waypoint) < 10):  # fast filtering
                 possibleTargets.append(box)
 
-        ray = Ray(waypoint, next_waypoint)
-        rayLeft, rayRight = calcCorners(ray, waypoint, next_waypoint, width)
 
-        if world:
+        if world and debug:
+            ray = Ray(waypoint, next_waypoint)
+            rayLeft, rayRight = calcCorners(ray, waypoint, next_waypoint, width)
+
             ray.draw(world)
             rayLeft.draw(world)
             rayRight.draw(world)
@@ -117,10 +118,6 @@ def distanceAlongPath(waypoints: list, collisionBoxes, width, world = None):
         ray = Ray(waypoint, next_waypoint)
         rayLeft,rayRight=calcCorners(ray,waypoint,next_waypoint, width)
 
-        if world:
-            ray.draw(world)
-            rayLeft.draw(world)
-            rayRight.draw(world)
         best_time = np.Inf
         flag = False
         for target in possibleTargets:

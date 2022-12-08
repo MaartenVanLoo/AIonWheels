@@ -113,7 +113,7 @@ class CarlaWorldAPI:
 
         pass
 
-    def spawnVehicles(self, number_of_vehicles=30, args=None):
+    def spawnVehicles(self, number_of_vehicles=50, args=None):
         if args is None:
             args = dict()
         if self.vehicles_list:
@@ -205,7 +205,7 @@ class CarlaWorldAPI:
 
         maps = self.client.get_available_maps()
         #self.client.load_world(random.choice(maps), reset_settings=False)
-        self.client.load_world("Town03", reset_settings=False)
+        self.client.load_world("Town04_Opt", reset_settings=False)
         # self.client.reload_world(reset_settings=False)
 
         # reset synchronous mode and reload GUI elements
@@ -283,7 +283,7 @@ class CarlaWorldAPI:
         return self.lidar_sensor
 
 
-    def getDistanceAlongPath(self):
+    def getDistanceAlongPath(self, debug = False):
         """
         Distance measured allong the waypoint path of the actor
         """
@@ -318,7 +318,7 @@ class CarlaWorldAPI:
 
         # change all waypoints to "agent_space":
 
-        agent_waypoint = agent_tt.location
+        agent_waypoint =  carla.Location(agent_tt.location.x, agent_tt.location.y, agent_tt.location.z)
         agent_waypoint.z = waypoints[0].transform.location.z
         transformed_waypoints = []#[agent_waypoint - agent_tt.location + agent_bb.location] #first point = agent
                                  # bounding box
@@ -339,7 +339,7 @@ class CarlaWorldAPI:
         for waypoint in transformed_waypoints:
             waypoint.z -= z_offset
 
-        distance = dist.distanceAlongPath(transformed_waypoints, bb, agent_bb.extent.y, self.world)
+        distance = dist.distanceAlongPath(transformed_waypoints, bb, agent_bb.extent.y, self.world, debug=debug)
         #correct distance for own car length
         distance -= agent_bb.extent.x
         return distance
@@ -376,6 +376,16 @@ class CarlaWorldAPI:
         ClientSideBoundingBoxes.draw_bounding_boxes(self,self.display, bounding_boxes)
 
 
+    def setTrafficLights(self,state:carla.TrafficLightState, duration :float= None) -> None:
+        if not duration or duration < 0:
+            duration = 99999.0
+        list_actor = self.world.world.get_actors()
+        for actor_ in list_actor:
+            if isinstance(actor_, carla.TrafficLight):
+                # for any light, first set the light state, then set time. for yellow it is
+                # carla.TrafficLightState.Yellow and Red it is carla.TrafficLightState.Red
+                actor_.set_state(state)
+                actor_.set_green_time(duration)
 
 
 
@@ -519,19 +529,25 @@ if __name__ == "__main__":
         worldapi = CarlaWorldAPI(args=args)
         worldapi.reset() #load random map
         #worldapi.spawnVehicles(args={'vehicle_filter': 'vehicle.tesla.cybertruck'})
-        worldapi.spawnVehicles()
+        worldapi.spawnVehicles(50)
         worldapi.addAgent(CarlaAgents.CarlaAgentRL(worldapi.world.player, num_actions=11))
         worldapi.addCollisionSensor()
         #worldapi.addLidarSensor()
 
+        #worldapi.setTrafficLights(carla.TrafficLightState.Green)
 
         print(worldapi.agent.getPos())
+        frame = 0
         while True:
-            DIST = worldapi.getDistanceAlongPath()
+            frame += 1
+            if frame%3 == 0:
+                DIST = worldapi.getDistanceAlongPath(debug=True) #draw lines, not every frame to improve performance
+            else:
+                DIST = worldapi.getDistanceAlongPath()
             print(f"Distance:{DIST}")
             action = int(DIST-worldapi.agent.getVel().length() - 7)
 
-            action = min(max(int(action),0),9) #clip action
+            action = min(max(int(action),0),8) #clip action
             worldapi.step(action=action)
             #worldapi.getClosestVechicle()
             #print(worldapi.getCollisionIntensity())
