@@ -104,14 +104,15 @@ if __name__ == "__main__":
     config = {
         'target_path':"dataset/kitti/",
         'source_paths':[
-            "lala/Dataset/Town01/",
-            "lala/Dataset/Town02/",
-            "lala/Dataset/Town03/",
-            "lala/Dataset/Town04/",
-            "lala/Dataset/Town05/",
-            "lala/Dataset/Town06/",
-            "lala/Dataset/Town07/",
-            "lala/Dataset/Town10HD/"
+            "KITTI_Dataset_CARLA_v0.9.13/Town01/"
+            #"lala/Dataset/Town01/",
+            #"lala/Dataset/Town02/",
+            #"lala/Dataset/Town03/",
+            #"lala/Dataset/Town04/",
+            #"lala/Dataset/Town05/",
+            #"lala/Dataset/Town06/",
+            #"lala/Dataset/Town07/",
+            #"lala/Dataset/Town10HD/"
         ]
 
     }
