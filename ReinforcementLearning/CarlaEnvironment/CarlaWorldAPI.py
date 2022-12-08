@@ -205,7 +205,7 @@ class CarlaWorldAPI:
 
         maps = self.client.get_available_maps()
         #self.client.load_world(random.choice(maps), reset_settings=False)
-        self.client.load_world("Town04_Opt", reset_settings=False)
+        self.client.load_world("Town03_Opt", reset_settings=False)
         # self.client.reload_world(reset_settings=False)
 
         # reset synchronous mode and reload GUI elements
@@ -350,6 +350,8 @@ class CarlaWorldAPI:
         distance, idx = dist.distanceAlongPath(transformed_waypoints, bb, agent_bb.extent.y, self.world, debug=debug)
         #correct distance for own car length
         distance -= agent_bb.extent.x
+        #clip distance
+        distance = min(max(distance,0),100)
 
         id = -1 if idx == -1 else actors[idx].id
         return distance,id

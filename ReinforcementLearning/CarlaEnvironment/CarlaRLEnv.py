@@ -83,7 +83,8 @@ class CarlaRLEnv(CarlaWorldAPI):
         self.stepCount += 1
 
         #vehicleId, distance = self.getClosestVechicle()
-        distance, vehicleId = self.getDistanceAlongPath()
+        distance, vehicleId = self.getDistanceAlongPath(debug=True)
+        print(distance)
         self.frames.append(self.__getState(distance))
         state = np.array(list(self.frames)).flatten()
 
@@ -271,7 +272,8 @@ if __name__ == "__main__":
 
         #config['num_inputs'] = len(worldapi.reset())  # always correct, but expensive in a carla environent
         qlearning = Qlearner(worldapi, DQN, config)
-        qlearning.load("../models/ancient-wind-78.pth") # works well
+        #qlearning.load("../models/ancient-wind-78.pth") #only brakes?
+        qlearning.load("../models/bumbling-universe-79.pth")
         #qlearning.load("../models/TrainedModel_sky-64.pth")
         #qlearning.load("../models/prime-sun-67.pth")
         #qlearning.train()

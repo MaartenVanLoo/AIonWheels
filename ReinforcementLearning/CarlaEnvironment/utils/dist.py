@@ -89,8 +89,8 @@ def distanceAlongPath(waypoints: list, collisionBoxes, width, world = None, debu
     travelDistance = 0
     best_idx = -1
     for i in range(len(waypoints) - 1):
-        if (travelDistance > 400):
-            return 400,best_idx
+        if (travelDistance > 110):
+            return 110,best_idx
 
         waypoint = waypoints[i]
         next_waypoint = waypoints[i + 1]
