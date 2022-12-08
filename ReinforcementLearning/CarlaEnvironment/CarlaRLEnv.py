@@ -141,6 +141,13 @@ class CarlaRLEnv(CarlaWorldAPI):
 
     def __isTerminal(self, distance):
         #check for collision:
+        history = self.world.collision_sensor.get_collision_history()
+        history = [history[key] for key in history.keys()]
+        if len(history) == 0:
+            isCollision = False
+        else:
+            isCollision = history[-1] > 0
+
 
         #is terminal
         if self.evaluation:
@@ -151,9 +158,10 @@ class CarlaRLEnv(CarlaWorldAPI):
         else:
             done = distance <= 0.5 or \
                    self.episodeReward > 9999 or \
-                   self.stepCount > 5000
+                   self.stepCount > 5000 or \
+                   isCollision
             # (distance > 1000 and self.agent.getSpeed() >= self.car.getSpeed()) or \
-        return self.stepCount > 10000
+        return done
 
     def __info(self):
         return {} #empty dict
@@ -185,7 +193,7 @@ class CarlaRLEnv(CarlaWorldAPI):
 
 
 
-if __name__ == "__main__":
+def main():
     argparser = argparse.ArgumentParser(
         description='CARLA Automatic Control Client')
 
@@ -273,11 +281,15 @@ if __name__ == "__main__":
         #config['num_inputs'] = len(worldapi.reset())  # always correct, but expensive in a carla environent
         qlearning = Qlearner(worldapi, DQN, config)
         #qlearning.load("../models/ancient-wind-78.pth") #only brakes?
-        qlearning.load("../models/bumbling-universe-79.pth")
+        #qlearning.load("../models/bumbling-universe-79.pth") #potential candidate, to slow??
+        qlearning.load("../models/eternal-river-81.pth")
+
+
         #qlearning.load("../models/TrainedModel_sky-64.pth")
         #qlearning.load("../models/prime-sun-67.pth")
-        #qlearning.train()
-        qlearning.eval()
+        qlearning.train()
+        qlearning.save("models/" + qlearning.model_name)
+        #qlearning.eval()
         #qlearning.save("../models/TrainedModel_meadow-63_carla.pth")
         #qlearning.save("../models/prime-sun-67_carla.pth")
         worldapi.reset() #force to save episode history
@@ -290,3 +302,6 @@ if __name__ == "__main__":
             worldapi.cleanup()
 
     pass
+
+if __name__ == "__main__":
+    main()

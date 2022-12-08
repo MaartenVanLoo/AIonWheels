@@ -27,6 +27,9 @@ class DQN(torch.nn.Module):
         self._hidden = config.get('hidden', [128, 128])
         self.num_actions = config.get('num_actions', 7)
 
+        self.frame_idx = 0
+        self.prev_action = None
+
         modules = []
         modules.append(torch.nn.Linear(self.num_inputs, self._hidden[0]))
         modules.append(torch.nn.ReLU())
@@ -41,13 +44,35 @@ class DQN(torch.nn.Module):
         return self.model(x)
 
     def act(self, state, epsilon=0.0):
+        if self.frame_idx > 0:
+            #Repeat random action
+            self.frame_idx -= 1
+            print(f"Random Action: {self.prev_action}")
+            return self.prev_action
+        elif self.frame_idx < 0:
+            #Take own policy:
+            self.frame_idx += 1
+            with torch.no_grad():
+                state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
+            q_value = self.forward(state)
+            action = q_value.max(1)[1].data[0].cpu().numpy().tolist()  # argmax over actions
+            print(f"Policy Action: {action}")
+            return action
+
+
         if random.random() > epsilon:
             with torch.no_grad():
                 state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
             q_value = self.forward(state)
             action = q_value.max(1)[1].data[0].cpu().numpy().tolist()  # argmax over actions
+            self.frame_idx = -5
+            print(f"Policy Action: {action}")
         else:
+            self.frame_idx = 5
             action = random.randint(0, self.num_actions - 1)
+            print(f"Random Action: {self.prev_action}")
+
+        self.prev_action = action
         return action
 
 
@@ -285,9 +310,9 @@ class Qlearner:
         #    target_param.data.copy_(tau*local_param.data + (1-tau) * target_param.data)
 
     def __epsilon_by_frame(self, frame):
-        epsilon_start = self.config.get('epsilon_start',1.0)
-        epsilon_final = self.config.get('epsilon_final',0.03)
-        epsilon_decay = self.config.get('epsilon_decay',500000)
+        epsilon_start = self.config.get('epsilon_start',0.1)
+        epsilon_final = self.config.get('epsilon_final',0.002)
+        epsilon_decay = self.config.get('epsilon_decay',10000)
         return epsilon_final + (epsilon_start - epsilon_final) * math.exp(-1. * frame / epsilon_decay)
 
     def __update(self):
