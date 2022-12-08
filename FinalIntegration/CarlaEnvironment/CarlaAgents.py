@@ -7,7 +7,7 @@ import carla
 
 from FinalIntegration.CarlaEnvironment.agents.navigation.global_route_planner import GlobalRoutePlanner
 from FinalIntegration.CarlaEnvironment.agents.tools.misc import get_speed
-from CustomPlanners import AIonWheelsLocalPlanner
+from FinalIntegration.CarlaEnvironment.CustomPlanners import AIonWheelsLocalPlanner
 import numpy as np
 class CarlaAgent(object):
     def __init__(self, vehicle) -> None:
