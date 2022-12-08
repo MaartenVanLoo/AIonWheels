@@ -1,7 +1,5 @@
 import os
 
-import matplotlib.pyplot as plt
-
 from PascalVOCReader import read_content
 from PascalVOCReader import print_content
 
