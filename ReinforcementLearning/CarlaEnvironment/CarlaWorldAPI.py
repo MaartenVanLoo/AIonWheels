@@ -21,11 +21,15 @@ from ReinforcementLearning.CarlaEnvironment.utils.ClientSideBouningBoxes import 
 
 
 class CarlaWorldAPI:
-    def __init__(self, args, host='127.0.0.1', port=2000, width=1280, height=720, fullscreen=False, show=True) \
+    def __init__(self, args, host='127.0.0.1', port=2000, width=1280, height=720, fullscreen=False, show=True,
+                 debug = False) \
             -> None:
         super().__init__()
         pygame.init()
         pygame.font.init()
+
+        self.debug = debug
+
         self.world = None
         self.host = host
         self.port = port
@@ -253,7 +257,7 @@ class CarlaWorldAPI:
                                         seconds=4.0)
             print("Getting close to target, searching for next target")
 
-        control = self.agent.run_step(action=action)
+        control = self.agent.run_step(action=action, debug=self.debug)
         control.manual_gear_shift = False
         self.world.player.apply_control(control)
         return control
@@ -356,21 +360,10 @@ class CarlaWorldAPI:
         id = -1 if idx == -1 else actors[idx].id
         return distance,id
 
-    def debug(self):
-        """
-        some debug code
-        """
-        #get all actors:
-        actors = self.world.world.get_actors(self.vehicles_list)
-        bb = [actor.bounding_box for actor in actors]
-        transforms = [actor.get_transform() for actor in actors]
-
-        agent = self.agent._vehicle
-        agent_bb = agent.bounding_box
-        agent_tt = agent.get_transform()
-
 
     def _drawBoundingBoxes(self):
+        if not self.debug:
+            return
         actors = self.world.world.get_actors().filter(
             'vehicle.*')
         agent = self.agent._vehicle

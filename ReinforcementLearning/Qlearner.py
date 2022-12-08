@@ -1,5 +1,6 @@
 import operator
 import os
+import pathlib
 import random
 from bisect import bisect
 from collections import deque, namedtuple
@@ -294,6 +295,9 @@ class Qlearner:
 
 
     def save(self,filename: str)->None:
+        path = pathlib.Path(filename)
+        if not path.parent.exists():
+            os.makedirs(path.parent)
         torch.save(self.currentDQN.state_dict(), filename)
         pass
 

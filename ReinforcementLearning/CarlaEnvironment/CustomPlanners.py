@@ -142,11 +142,11 @@ class AIonWheelsLocalPlanner(object):
             control.manual_gear_shift = False
             self.past_steering = steering
 
-        if debug:
-            draw_waypoints(self._vehicle.get_world(), [self.target_waypoint], 1.0)
+        #if debug:
+        #    draw_waypoints(self._vehicle.get_world(), [self.target_waypoint], 1.0)
 
         self._current_frame -= 1
-        if self._current_frame <= 0:
+        if self._current_frame <= 0 and debug: #once a second!
             self._current_frame = 20
             _draw_path(self._vehicle.get_world(), self._waypoints_queue)
         #print(f"Current queue length: {len(self._waypoints_queue)}")

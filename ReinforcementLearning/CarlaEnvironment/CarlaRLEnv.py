@@ -21,9 +21,8 @@ def _sigmoid(x):
 
 class CarlaRLEnv(CarlaWorldAPI):
     def __init__(self, config, args, host='127.0.0.1', port=2000, width=1280, height=720, fullscreen = False,
-                 show=True) -> None:
-        super().__init__(args, host, port, width, height,fullscreen, show)
-        self.target_speed = 5
+                 show=True, debug = False) -> None:
+        super().__init__(args, host, port, width, height,fullscreen, show, debug)
         self.prev_action = 0
         self.frames = deque(maxlen=config.get('history_frames', 3))
         self.num_actions = config.get('num_actions', 7)
@@ -31,7 +30,7 @@ class CarlaRLEnv(CarlaWorldAPI):
         self.t_gap = 2
         self.distance_default = 4
 
-        self.target_speed=config.get('target_speed',15)
+        self.user_set_point=config.get('target_speed', 15)
         self.config = config
 
         self.episodeReward=0
@@ -83,7 +82,7 @@ class CarlaRLEnv(CarlaWorldAPI):
         self.stepCount += 1
 
         #vehicleId, distance = self.getClosestVechicle()
-        distance, vehicleId = self.getDistanceAlongPath(debug=True)
+        distance, vehicleId = self.getDistanceAlongPath(debug=self.debug)
         print(distance)
         self.frames.append(self.__getState(distance))
         state = np.array(list(self.frames)).flatten()
@@ -104,6 +103,8 @@ class CarlaRLEnv(CarlaWorldAPI):
         #    print(self.getCollisionIntensity())
         #    print(state)
         self.episodeHistory.append(np.concatenate((state , np.array([reward, done]))))
+
+        print(f"User Request: {self.user_set_point}. Speed limit: {self.agent.getSpeedLimit()}")
         return state, reward, done, info
 
     def eval(self):
@@ -112,9 +113,11 @@ class CarlaRLEnv(CarlaWorldAPI):
     def train(self):
         self.evaluation = False
 
+
     def __getState(self, distance):
         distance = np.clip(distance, 0, 500)
-        return distance, self.target_speed, self.agent.getVel().length(), self.prev_action
+        return distance, min(self.user_set_point, self.agent.getSpeedLimit()), self.agent.getVel().length(), \
+                             self.prev_action
 
     def __getReward(self, action, distance, vehicleId):
 
@@ -172,7 +175,7 @@ class CarlaRLEnv(CarlaWorldAPI):
 
     def __getTargetSpeed(self, distance, leadCarId):
         if (distance == np.Inf or leadCarId == -1):
-            return self.target_speed
+            return min(self.user_set_point, self.agent.getSpeedLimit())
         save_distance = self.__getSafeDistance()
         lead_car_speed = self.getVehicleSpeed(leadCarId).length()
 
@@ -180,8 +183,8 @@ class CarlaRLEnv(CarlaWorldAPI):
         # v1 when far away, v2 when near
         # alpha = 1 when distance > save distance
         # alpha = -1 when distance < save distance
-        v1 = self.target_speed
-        v2 = min(lead_car_speed, self.target_speed)
+        v1 = min(self.user_set_point, self.agent.getSpeedLimit())
+        v2 = min(lead_car_speed, min(self.user_set_point, self.agent.getSpeedLimit()))
         v = self.agent.getVel().length()
         speed = v if not abs(v) < 1e-6 else 1e-5
         speed = max(abs(speed), 4)
@@ -273,7 +276,8 @@ def main():
     worldapi=None
     Qlearner.ENABLE_WANDB = False
     try:
-        worldapi = CarlaRLEnv(config=config, args=args)#, width=1920, height=1080,fullscreen=True)
+        worldapi = CarlaRLEnv(config=config, args=args, show = False, debug = False)#, width=1920, height=1080,
+        # fullscreen=True)
         worldapi.spawnVehicles(number_of_vehicles = 50)
         worldapi.addAgent(CarlaAgents.CarlaAgentRL(worldapi.world.player, num_actions=config.get('num_actions',11)))
         print(worldapi.agent.getPos())
