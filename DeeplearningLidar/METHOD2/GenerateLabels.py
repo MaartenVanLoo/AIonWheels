@@ -25,6 +25,7 @@ class Labels:
         kit_trans = LIDAR.get_transform()
         inv_transform = carla.Transform(carla.Location(0,0,0), carla.Rotation(-kit_trans.rotation.pitch,-kit_trans.rotation.yaw,-kit_trans.rotation.roll))
         labels = []
+        labels_old = []
         if vehicles_list:
             actors = world.get_actors(vehicles_list)
 
@@ -47,11 +48,26 @@ class Labels:
                     'h': bbox.extent.z * 2,
                     'w': bbox.extent.y * 2,
                     'l': bbox.extent.x * 2,
-                    'x': bbox.location + point.x,
-                    'y': bbox.location + point.y,
-                    'z': bbox.location + point.z,
+                    'x': bbox.location.x + point.x,
+                    'y': bbox.location.y + point.y,
+                    'z': bbox.location.z + point.z,
                     'yaw': np.radians(transform.rotation.yaw - kit_trans.rotation.yaw),
                 })
+                labels_old.append({
+                    'type': 'Car',
+                    'xmin': 0,  # not needed for dataset
+                    'ymin': 0,  # not needed for dataset
+                    'xmax': 0,  # not needed for dataset
+                    'ymax': 0,  # not needed for dataset
+                    'h': bbox.extent.z * 2,
+                    'w': bbox.extent.y * 2,
+                    'l': bbox.extent.x * 2,
+                    'x': point.x,
+                    'y': point.y,
+                    'z': point.z,
+                    'yaw': np.radians(transform.rotation.yaw - kit_trans.rotation.yaw),
+                })
+
 
         if pedestrian_list:
             actors = world.get_actors(pedestrian_list)
@@ -73,6 +89,20 @@ class Labels:
                     'h': bbox.extent.z * 2,
                     'w': bbox.extent.y * 2,
                     'l': bbox.extent.x * 2,
+                    'x': bbox.location.x + point.x,
+                    'y': bbox.location.y + point.y,
+                    'z': bbox.location.z + point.z,
+                    'yaw': np.radians(transform.rotation.yaw - kit_trans.rotation.yaw),
+                })
+                labels_old.append({
+                    'type': 'Pedestrian',
+                    'xmin': 0,  # not needed for dataset
+                    'ymin': 0,  # not needed for dataset
+                    'xmax': 0,  # not needed for dataset
+                    'ymax': 0,  # not needed for dataset
+                    'h': bbox.extent.z * 2,
+                    'w': bbox.extent.y * 2,
+                    'l': bbox.extent.x * 2,
                     'x': point.x,
                     'y': point.y,
                     'z': point.z,
@@ -81,6 +111,14 @@ class Labels:
 
         with open(self.label_output + '/{:06d}.txt'.format(idx),'w') as f:
             for label in labels:
+                f.write(f"{label['type']} {truncated} {occluded} {alpha} "
+                        f"{label['xmin']} {label['ymin']} {label['xmax']} {label['ymax']} "
+                        f"{label['h']} {label['w']} {label['l']} "
+                        f"{label['x']} {label['y']} {label['z']} "
+                        f"{label['yaw']}\n")
+
+        with open(self.label_output + '/{:06d}_old.txt'.format(idx),'w') as f:
+            for label in labels_old:
                 f.write(f"{label['type']} {truncated} {occluded} {alpha} "
                         f"{label['xmin']} {label['ymin']} {label['xmax']} {label['ymax']} "
                         f"{label['h']} {label['w']} {label['l']} "

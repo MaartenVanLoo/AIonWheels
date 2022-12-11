@@ -356,7 +356,7 @@ class LIDAR(Sensor):
         lidar_bp = blueprint_library.find('sensor.lidar.ray_cast')
         lidar_bp.set_attribute('channels', '64')
         lidar_bp.set_attribute('range', '80.0')    # 80.0 m
-        lidar_bp.set_attribute('points_per_second', str(64/0.00004608*20))
+        lidar_bp.set_attribute('points_per_second', str(64/0.00004608))
         lidar_bp.set_attribute('rotation_frequency', '20')
         lidar_bp.set_attribute('upper_fov', str(2))
         lidar_bp.set_attribute('lower_fov', str(-24.8))
