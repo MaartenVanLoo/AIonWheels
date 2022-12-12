@@ -16,7 +16,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 _mov_average_size = 10  # moving average of last 10 epsiodes
-ENABLE_WANDB=True
+ENABLE_WANDB=False
 #matplotlib.use("Tkagg")
 
 class DQN(torch.nn.Module):
@@ -27,6 +27,8 @@ class DQN(torch.nn.Module):
         self.num_inputs = config.get('num_inputs', 3)
         self._hidden = config.get('hidden', [128, 128])
         self.num_actions = config.get('num_actions', 7)
+
+        self.debug = config.get('debug', False)
 
         self.frame_idx = 0
         self.prev_action = None
@@ -48,7 +50,8 @@ class DQN(torch.nn.Module):
         if self.frame_idx > 0:
             #Repeat random action
             self.frame_idx -= 1
-            print(f"Random Action: {self.prev_action}")
+            if self.debug:
+                print(f"Random Action: {self.prev_action}")
             return self.prev_action
         elif self.frame_idx < 0:
             #Take own policy:
@@ -57,7 +60,8 @@ class DQN(torch.nn.Module):
                 state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
             q_value = self.forward(state)
             action = q_value.max(1)[1].data[0].cpu().numpy().tolist()  # argmax over actions
-            print(f"Policy Action: {action}")
+            if self.debug:
+                print(f"Policy Action: {action}")
             return action
 
 
@@ -67,11 +71,13 @@ class DQN(torch.nn.Module):
             q_value = self.forward(state)
             action = q_value.max(1)[1].data[0].cpu().numpy().tolist()  # argmax over actions
             self.frame_idx = -5
-            print(f"Policy Action: {action}")
+            if self.debug:
+                print(f"Policy Action: {action}")
         else:
             self.frame_idx = 5
             action = random.randint(0, self.num_actions - 1)
-            print(f"Random Action: {self.prev_action}")
+            if self.debug:
+                print(f"Random Action: {self.prev_action}")
 
         self.prev_action = action
         return action

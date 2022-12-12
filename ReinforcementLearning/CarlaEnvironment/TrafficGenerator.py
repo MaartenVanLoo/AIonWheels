@@ -53,7 +53,8 @@ def get_actor_blueprints(world, filter, generation):
         print("   Warning! Actor Generation is not valid. No actor will be spawned.")
         return []
 
-def generateTraffic(world, client, traffic_manager, number_of_vehicles = 30, car_lights_on = False, args=None):
+def generateTraffic(world, client, traffic_manager, number_of_vehicles = 30,number_of_walkers = 0, car_lights_on =
+                    False, args=None):
     if args is None:
         args = dict()
 
@@ -144,19 +145,16 @@ def generateTraffic(world, client, traffic_manager, number_of_vehicles = 30, car
         for actor in all_vehicle_actors:
             traffic_manager.update_vehicle_lights(actor, True)
 
-    """
     # -------------
     # Spawn Walkers
     # -------------
     # some settings
     percentagePedestriansRunning = 0.0      # how many pedestrians will run
     percentagePedestriansCrossing = 0.0     # how many pedestrians will walk through the road
-    if args.seedw:
-        world.set_pedestrians_seed(args.seedw)
-        random.seed(args.seedw)
+
     # 1. take all the random locations to spawn
     spawn_points = []
-    for i in range(args.number_of_walkers):
+    for i in range(number_of_walkers):
         spawn_point = carla.Transform()
         loc = world.get_random_location_from_navigation()
         if (loc != None):
@@ -209,10 +207,7 @@ def generateTraffic(world, client, traffic_manager, number_of_vehicles = 30, car
     all_actors = world.get_actors(all_id)
 
     # wait for a tick to ensure client receives the last transform of the walkers we have just created
-    if args.asynch or not synchronous_master:
-        world.wait_for_tick()
-    else:
-        world.tick()
+    world.tick()
 
     # 5. initialize each controller and set target to walk to (list is [controler, actor, controller, actor ...])
     # set how many pedestrians can cross the road
@@ -224,13 +219,13 @@ def generateTraffic(world, client, traffic_manager, number_of_vehicles = 30, car
         all_actors[i].go_to_location(world.get_random_location_from_navigation())
         # max speed
         all_actors[i].set_max_speed(float(walker_speed[int(i/2)]))
-    """
+
     print('spawned %d vehicles and %d walkers, press Ctrl+C to exit.' % (len(vehicles_list), len(walkers_list)))
 
     # Example of how to use Traffic Manager parameters
     traffic_manager.global_percentage_speed_difference(30.0)
 
-    return vehicles_list
+    return vehicles_list,walkers_list
     """
     # stop walker controllers (list is [controller, actor, controller, actor ...])
     for i in range(0, len(all_id), 2):

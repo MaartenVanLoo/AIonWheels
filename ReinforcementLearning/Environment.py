@@ -605,6 +605,7 @@ if __name__ == "__main__":
             'num_inputs': 6,  # =size of states!
             'num_actions': 11,
             'hidden': [128, 512, 512, 128, 64],
+            'debug': False,
         }
         env = SimpleACC(config)
         config['num_inputs'] = len(env.reset())  # always correct :D

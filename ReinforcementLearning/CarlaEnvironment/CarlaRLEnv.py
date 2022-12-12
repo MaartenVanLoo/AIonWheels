@@ -83,7 +83,8 @@ class CarlaRLEnv(CarlaWorldAPI):
 
         #vehicleId, distance = self.getClosestVechicle()
         distance, vehicleId = self.getDistanceAlongPath(debug=self.debug)
-        print(distance)
+        if self.debug:
+            print(f"Distance:{distance}")
         self.frames.append(self.__getState(distance))
         state = np.array(list(self.frames)).flatten()
 
@@ -104,7 +105,8 @@ class CarlaRLEnv(CarlaWorldAPI):
         #    print(state)
         self.episodeHistory.append(np.concatenate((state , np.array([reward, done]))))
 
-        print(f"User Request: {self.user_set_point}. Speed limit: {self.agent.getSpeedLimit()}")
+        if self.debug:
+            print(f"User Request: {self.user_set_point}. Speed limit: {self.agent.getSpeedLimit()}")
         return state, reward, done, info
 
     def eval(self):
@@ -271,12 +273,15 @@ def main():
         'num_inputs': 12,  # =size of states!
         'num_actions': 101,
         'hidden': [128, 512, 512, 128, 64],
+        'debug':False,
     }
 
     worldapi=None
     Qlearner.ENABLE_WANDB = False
     try:
-        worldapi = CarlaRLEnv(config=config, args=args, show = False, debug = False)#, width=1920, height=1080,
+        #worldapi = CarlaRLEnv(host="192.168.0.99", config=config, args=args, show = False, debug = False)
+        worldapi = CarlaRLEnv(host="127.0.0.1", config=config, args=args, show = True, debug = True)
+        #,width=1920, height=1080)
         # fullscreen=True)
         worldapi.spawnVehicles(number_of_vehicles = 50)
         worldapi.addAgent(CarlaAgents.CarlaAgentRL(worldapi.world.player, num_actions=config.get('num_actions',11)))

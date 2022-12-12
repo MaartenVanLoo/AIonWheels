@@ -330,16 +330,7 @@ class CarlaWorldAPI:
             vec.z -= coords[0,2]
             vec.z += agent_bb.extent.z #move points up from vehicle to bb space
 
-            #vec.x += -agent_tt.location.x + agent_bb.location.x
-            #vec.y += -agent_tt.location.y + agent_bb.location.y
-            #vec.z += -agent_tt.location.z + agent_bb.extent.z
-            #invRotation = carla.Transform(carla.Location(0,0,0), carla.Rotation(
-            #      -agent_tt.rotation.pitch,             #-waypoint.transform.rotation.pitch
-            #        -agent_tt.rotation.yaw,             #-waypoint.transform.rotation.yaw
-            #       -agent_tt.rotation.roll))                #-waypoint.transform.rotation.roll
-            #vec = invRotation.transform(vec)
             transformed_waypoints.append(carla.Location(vec.x, vec.y, vec.z))
-        #agent_waypoint = carla.Location(0,0,transformed_waypoints[0].z)
         agent_waypoint = carla.Location(0,0,0)
         transformed_waypoints.insert(0,agent_waypoint)
 
