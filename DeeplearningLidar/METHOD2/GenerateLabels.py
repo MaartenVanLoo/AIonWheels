@@ -44,10 +44,10 @@ class Labels:
                 bbox.rotation.yaw += vehicle_transform.rotation.yaw
                 bbox.rotation.roll += vehicle_transform.rotation.roll
 
-                world.debug.draw_line(carla.Vector3D(vehicle_transform.location),
-                                    carla.Vector3D(sensor_loc),
-                                    thickness=0.1,
-                                    color=carla.Color(5, 0, 0, 20), life_time=1)
+                #world.debug.draw_line(carla.Vector3D(vehicle_transform.location),
+                #                    carla.Vector3D(sensor_loc),
+                #                    thickness=0.1,
+                #                    color=carla.Color(5, 0, 0, 20), life_time=1)
 
                 #global space to sensor space (all negative because transform is from sensor to global)
                 bbox.location = applyTransform(sensor_invtrans,bbox.location)
@@ -90,10 +90,10 @@ class Labels:
                 bbox.rotation.yaw += walker_transform.rotation.yaw
                 bbox.rotation.roll += walker_transform.rotation.roll
 
-                world.debug.draw_line(carla.Vector3D(walker_transform.location),
-                                      carla.Vector3D(sensor_loc),
-                                      thickness=0.1,
-                                      color=carla.Color(5, 0, 0, 20), life_time=1)
+                #world.debug.draw_line(carla.Vector3D(walker_transform.location),
+                #                      carla.Vector3D(sensor_loc),
+                #                      thickness=0.1,
+                #                      color=carla.Color(5, 0, 0, 20), life_time=1)
 
                 # global space to sensor space
                 bbox.location = applyTransform(sensor_invtrans,bbox.location)
