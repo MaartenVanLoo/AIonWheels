@@ -9,15 +9,15 @@ import traceback
 import numpy.random as random
 import numpy as np
 from FinalIntegration.CarlaEnvironment.CarlaWorld import HUD, World, KeyboardControl
-import FinalIntegration.CarlaEnvironment.CarlaAgents
+import FinalIntegration.CarlaEnvironment.CarlaAgents as CarlaAgents
 
 import carla
 import pygame
 import weakref
 
-from ReinforcementLearning.CarlaEnvironment import TrafficGenerator
-from ReinforcementLearning.CarlaEnvironment.utils import dist
-from ReinforcementLearning.CarlaEnvironment.utils.ClientSideBouningBoxes import ClientSideBoundingBoxes
+from FinalIntegration.CarlaEnvironment import TrafficGenerator
+from FinalIntegration.CarlaEnvironment.utils import dist
+from FinalIntegration.CarlaEnvironment.utils.ClientSideBouningBoxes import ClientSideBoundingBoxes
 
 
 class CarlaWorldAPI:
