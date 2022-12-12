@@ -439,6 +439,7 @@ class SemanticLidar(Sensor):
 
 
     def set_attributes(self, blueprint_library):
+        #velarray alpha prime
         lidar_bp = blueprint_library.find('sensor.lidar.ray_cast_semantic')
         lidar_bp.set_attribute('channels', '64')
         lidar_bp.set_attribute('range', '80.0')    # 80.0 m
