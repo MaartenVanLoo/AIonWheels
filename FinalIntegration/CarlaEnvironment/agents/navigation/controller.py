@@ -9,7 +9,7 @@ from collections import deque
 import math
 import numpy as np
 import carla
-from ReinforcementLearning.CarlaEnvironment.agents.tools.misc import get_speed
+from FinalIntegration.CarlaEnvironment.agents.tools.misc import get_speed
 
 class VehiclePIDController():
     """
