@@ -32,7 +32,7 @@ class CarlaWorldAPI:
 
         self.args = args
         self.client = carla.Client(host, port)
-        self.client.set_timeout(10.0)
+        self.client.set_timeout(100.0)
 
         self.traffic_manager = self.client.get_trafficmanager()
         self.sim_world = self.client.get_world()
