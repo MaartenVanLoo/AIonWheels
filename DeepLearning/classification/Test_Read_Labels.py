@@ -10,12 +10,22 @@ if __name__ == '__main__':
             bbox_coordinates = read_content("data/"+xml)
             print(bbox_coordinates)
 
+            # open file in write mode
+            for object in bbox_coordinates:
+                # moet nog aangepast worden, zodat er telkens per xml file
+                # een nieuwe text file aangemaakt wordt met de passende naam
+                # with open(increasing filename, 'w') as fp
+                with open(r'C:\Users\maxim\OneDrive - Universiteit Antwerpen\GitHub\AIonWheels\DeepLearning\classification\YOLO_Input', 'w') as fp:
+                    fp.write(str(object[0])+" "+str(object[1])+" "
+                    +str(object[2])+" "+str(object[3])+" "+str(object[4]))
+
             #we add the image to the list with his labels
             #can also be placed in the read_content function if necessary
+            """
             image_name = xml.replace(".xml", ".png")
             image_path = "data/"+image_name
             bbox_coordinates.insert(0, [image_path])
-            #print(bbox_coordinates)
-
+            print(bbox_coordinates)
+            """
             #print_content(bbox_coordinates)
 
