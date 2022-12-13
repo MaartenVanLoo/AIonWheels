@@ -8,31 +8,24 @@ import traceback
 
 import numpy.random as random
 import numpy as np
-from CarlaWorld import HUD, World, KeyboardControl
-import CarlaAgents
+from FinalIntegration.CarlaEnvironment.CarlaWorld import HUD, World, KeyboardControl
+import FinalIntegration.CarlaEnvironment.CarlaAgents as CarlaAgents
 
 import carla
 import pygame
 import weakref
 
-from ReinforcementLearning.CarlaEnvironment import TrafficGenerator
-import ReinforcementLearning.CarlaEnvironment.utils.dist_c as dist_c
-import ReinforcementLearning.CarlaEnvironment.utils.dist as dist
-from ReinforcementLearning.CarlaEnvironment.utils.ClientSideBouningBoxes import ClientSideBoundingBoxes
+from FinalIntegration.CarlaEnvironment import TrafficGenerator
+from FinalIntegration.CarlaEnvironment.utils import dist
+from FinalIntegration.CarlaEnvironment.utils.ClientSideBouningBoxes import ClientSideBoundingBoxes
 
 
 class CarlaWorldAPI:
-    def __init__(self, args, host='127.0.0.1', port=2000, width=1280, height=720, fullscreen=False, show=True,
-                 debug = False) \
+    def __init__(self, args, host='127.0.0.1', port=2000, width=1280, height=720, fullscreen=False, show=True) \
             -> None:
         super().__init__()
-        args.display = show
-
         pygame.init()
         pygame.font.init()
-
-        self.debug = debug
-
         self.world = None
         self.host = host
         self.port = port
@@ -70,16 +63,11 @@ class CarlaWorldAPI:
         self.agent = None
 
         self.vehicles_list = []
-        self.walkers_list = []
         self.number_of_vehicles = -1
 
         #sensors:
         self.collision_sensor = None
         self.lidar_sensor = None
-
-
-        self.py_time = 0.0
-        self.cpy_time = 0.0
 
     def cleanup(self):
         print("Cleaning up world")
@@ -131,10 +119,8 @@ class CarlaWorldAPI:
         if self.vehicles_list:
             print('Destroying %d vehicles' % len(self.vehicles_list))
             self.client.apply_batch([carla.command.DestroyActor(x) for x in self.vehicles_list])
-        self.vehicles_list,self.walkers_list = TrafficGenerator.generateTraffic(self.world.world, self.client,
-                                                                            self.traffic_manager,
+        self.vehicles_list = TrafficGenerator.generateTraffic(self.world.world, self.client, self.traffic_manager,
                                                               number_of_vehicles=number_of_vehicles,
-                                                              number_of_walkers=50,
                                                               args=args)
         self.number_of_vehicles = number_of_vehicles
 
@@ -267,7 +253,7 @@ class CarlaWorldAPI:
                                         seconds=4.0)
             print("Getting close to target, searching for next target")
 
-        control = self.agent.run_step(action=action, debug=self.debug)
+        control = self.agent.run_step(action=action)
         control.manual_gear_shift = False
         self.world.player.apply_control(control)
         return control
@@ -310,35 +296,12 @@ class CarlaWorldAPI:
         agent_tt = agent.get_transform()
         agent_bb = agent.bounding_box
 
-        waypoints = self.agent.getWaypoints()
-        waypoints = [waypoint[0] for waypoint in waypoints]  # only filter out the location
-
-        """Convert to global space"""
-
-        #waypoints => to center of bounding box
-        transformed_waypoints = []
-        for waypoint in waypoints:
-            z = waypoint.transform.location.z +agent_bb.location.z
-            transformed_waypoints.append(carla.Location(waypoint.transform.location.x, waypoint.transform.location.y,
-                                                        z))
-        agent_waypoint = agent_tt.location + agent_bb.location
-        transformed_waypoints.insert(0,carla.Location(agent_waypoint.x,agent_waypoint.y,agent_waypoint.z))
-
-        for box, transform in zip(bb, transforms):
-            #from vehicle to global space"""
-            box.location += transform.location
-            box.rotation.pitch += transform.rotation.pitch
-            box.rotation.yaw += transform.rotation.yaw
-            box.rotation.roll += transform.rotation.roll
-
-
-        """Convert to BB space"""
-        """
         invRotation = carla.Transform(
             carla.Location(0,0,0),
             carla.Rotation(-agent_tt.rotation.pitch, -agent_tt.rotation.yaw, -agent_tt.rotation.roll))
 
-
+        waypoints = self.agent.getWaypoints()
+        waypoints = [waypoint[0] for waypoint in waypoints] #only filter out the location
 
         #agent space = center of agent bounding box
         # change all boxes to "agent space"
@@ -368,29 +331,14 @@ class CarlaWorldAPI:
             vec.z += agent_bb.extent.z #move points up from vehicle to bb space
 
             transformed_waypoints.append(carla.Location(vec.x, vec.y, vec.z))
-        #agent_waypoint = carla.Location(0,0,transformed_waypoints[0].z)
         agent_waypoint = carla.Location(0,0,0)
         transformed_waypoints.insert(0,agent_waypoint)
 
         z_offset = transformed_waypoints[0].z # first waypoint must be zero, others adapt accordingly
         for waypoint in transformed_waypoints:
             waypoint.z -= z_offset
-        """
-        #start_py = time.time()
-        distance, idx = dist.distanceAlongPath(transformed_waypoints, bb, agent_bb.extent.y, self.world,
-                                                     debug=debug)
-        #end_py = time.time()
-        #self.py_time += end_py - start_py
 
-        #start_cpy = time.time()
-        #distance_c, idx_c = dist_c.distanceAlongPath(transformed_waypoints, bb, agent_bb.extent.y, self.world,
-        #                                             debug = debug)
-        #end_cpy = time.time()
-        #self.cpy_time += end_cpy - start_cpy
-        #print(f"Python: {self.py_time}\tCython: {self.cpy_time}\tImprovement: "
-        #      f"{(self.py_time - self.cpy_time)/(self.py_time+1e-6)*100:.2f} %")
-        #print(f"Distance   :{distance_c}\tidx:{idx_c}")
-        #print(f"Distance py:{distance}\tidx:{idx}")
+        distance, idx = dist.distanceAlongPath(transformed_waypoints, bb, agent_bb.extent.y, self.world, debug=debug)
         #correct distance for own car length
         distance -= agent_bb.extent.x
         #clip distance
@@ -399,11 +347,21 @@ class CarlaWorldAPI:
         id = -1 if idx == -1 else actors[idx].id
         return distance,id
 
+    def debug(self):
+        """
+        some debug code
+        """
+        #get all actors:
+        actors = self.world.world.get_actors(self.vehicles_list)
+        bb = [actor.bounding_box for actor in actors]
+        transforms = [actor.get_transform() for actor in actors]
+
+        agent = self.agent._vehicle
+        agent_bb = agent.bounding_box
+        agent_tt = agent.get_transform()
+
 
     def _drawBoundingBoxes(self):
-        if not self.debug:
-            return
-        #vehicles
         actors = self.world.world.get_actors().filter(
             'vehicle.*')
         agent = self.agent._vehicle
@@ -411,13 +369,6 @@ class CarlaWorldAPI:
         agent_tt = agent.get_transform()
 
         close_actors = []
-        for idx,actor in enumerate(actors):
-            if (agent_tt.location.distance(transforms[idx].location) < 50):
-                close_actors.append(actor)
-
-        #pedestrians
-        actors = self.world.world.get_actors().filter('walker.*')
-        transforms = [actor.get_transform() for actor in actors]
         for idx,actor in enumerate(actors):
             if (agent_tt.location.distance(transforms[idx].location) < 50):
                 close_actors.append(actor)

@@ -168,6 +168,7 @@ def main(args):
             prev_frame = frame_current
             gen.follow(KITTI.get_transform(), world)
             world.tick()    # Pass to the next simulator frame
+            #time.sleep(0.05)
 
         #VelodyneHDL64.save_poses()
         client.stop_recorder()

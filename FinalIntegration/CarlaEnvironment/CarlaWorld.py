@@ -86,8 +86,6 @@ class World(object):
 
     def __init__(self, carla_world, hud, args):
         """Constructor method"""
-        self.display = args.display
-
         self._args = args
         self.world = carla_world
         try:
@@ -111,9 +109,6 @@ class World(object):
         self.recording_enabled = False
         self.recording_start = 0
 
-
-
-
     def restart(self, args):
         """Restart the world"""
         # Keep same camera config if the camera manager exists.
@@ -126,7 +121,6 @@ class World(object):
         blueprint.set_attribute('role_name', 'hero')
         if blueprint.has_attribute('color'):
             color = random.choice(blueprint.get_attribute('color').recommended_values)
-            color = '217,96,65'
             blueprint.set_attribute('color', color)
 
         # Spawn the player.
@@ -151,14 +145,15 @@ class World(object):
 
         self.world.tick()
 
+
+
         # Set up the sensors.
         self.collision_sensor = CollisionSensor(self.player, self.hud)
         self.lane_invasion_sensor = LaneInvasionSensor(self.player, self.hud)
         self.gnss_sensor = GnssSensor(self.player)
-        if self.display:
-            self.camera_manager = CameraManager(self.player, self.hud)
-            self.camera_manager.transform_index = cam_pos_id
-            self.camera_manager.set_sensor(cam_index, notify=False)
+        self.camera_manager = CameraManager(self.player, self.hud)
+        self.camera_manager.transform_index = cam_pos_id
+        self.camera_manager.set_sensor(cam_index, notify=False)
         actor_type = get_actor_display_name(self.player)
         self.hud.notification(actor_type)
 
@@ -185,23 +180,19 @@ class World(object):
 
     def render(self, display):
         """Render world"""
-        if self.display:
-            self.camera_manager.render(display)
+        self.camera_manager.render(display)
         self.hud.render(display)
 
     def destroy_sensors(self):
         """Destroy sensors"""
-        if self.display:
-            self.camera_manager.sensor.destroy()
-            self.camera_manager.sensor = None
-            self.camera_manager.index = None
+        self.camera_manager.sensor.destroy()
+        self.camera_manager.sensor = None
+        self.camera_manager.index = None
 
     def destroy(self):
         """Destroys all actors"""
-        if self.display:
-            self.camera_manager.sensor.destroy()
         actors = [
-            #self.camera_manager.sensor,
+            self.camera_manager.sensor,
             self.collision_sensor.sensor,
             self.lane_invasion_sensor.sensor,
             self.gnss_sensor.sensor,

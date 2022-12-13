@@ -1,5 +1,6 @@
 import operator
 import os
+import pathlib
 import random
 from bisect import bisect
 from collections import deque, namedtuple
@@ -7,6 +8,8 @@ from collections import deque, namedtuple
 import torch
 import math
 import numpy as np
+from tqdm import tqdm
+
 import wandb
 
 import matplotlib
@@ -25,6 +28,11 @@ class DQN(torch.nn.Module):
         self._hidden = config.get('hidden', [128, 128])
         self.num_actions = config.get('num_actions', 7)
 
+        self.debug = config.get('debug', False)
+
+        self.frame_idx = 0
+        self.prev_action = None
+
         modules = []
         modules.append(torch.nn.Linear(self.num_inputs, self._hidden[0]))
         modules.append(torch.nn.ReLU())
@@ -39,13 +47,39 @@ class DQN(torch.nn.Module):
         return self.model(x)
 
     def act(self, state, epsilon=0.0):
+        if self.frame_idx > 0:
+            #Repeat random action
+            self.frame_idx -= 1
+            if self.debug:
+                print(f"Random Action: {self.prev_action}")
+            return self.prev_action
+        elif self.frame_idx < 0:
+            #Take own policy:
+            self.frame_idx += 1
+            with torch.no_grad():
+                state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
+            q_value = self.forward(state)
+            action = q_value.max(1)[1].data[0].cpu().numpy().tolist()  # argmax over actions
+            if self.debug:
+                print(f"Policy Action: {action}")
+            return action
+
+
         if random.random() > epsilon:
             with torch.no_grad():
                 state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
             q_value = self.forward(state)
             action = q_value.max(1)[1].data[0].cpu().numpy().tolist()  # argmax over actions
+            self.frame_idx = -5
+            if self.debug:
+                print(f"Policy Action: {action}")
         else:
+            self.frame_idx = 5
             action = random.randint(0, self.num_actions - 1)
+            if self.debug:
+                print(f"Random Action: {self.prev_action}")
+
+        self.prev_action = action
         return action
 
 
@@ -267,6 +301,9 @@ class Qlearner:
 
 
     def save(self,filename: str)->None:
+        path = pathlib.Path(filename)
+        if not path.parent.exists():
+            os.makedirs(path.parent)
         torch.save(self.currentDQN.state_dict(), filename)
         pass
 
@@ -283,9 +320,9 @@ class Qlearner:
         #    target_param.data.copy_(tau*local_param.data + (1-tau) * target_param.data)
 
     def __epsilon_by_frame(self, frame):
-        epsilon_start = self.config.get('epsilon_start',1.0)
-        epsilon_final = self.config.get('epsilon_final',0.02)
-        epsilon_decay = self.config.get('epsilon_decay',300000)
+        epsilon_start = self.config.get('epsilon_start',0.1)
+        epsilon_final = self.config.get('epsilon_final',0.002)
+        epsilon_decay = self.config.get('epsilon_decay',10000)
         return epsilon_final + (epsilon_start - epsilon_final) * math.exp(-1. * frame / epsilon_decay)
 
     def __update(self):
@@ -323,7 +360,7 @@ class Qlearner:
 
         state = self.env.reset()
         n_experiences = 0
-        for frame_idx in range(1, self.num_frames + 1):
+        for frame_idx in tqdm(range(1, self.num_frames + 1)):
             self.metrics = {}
             self.currentDQN.eval()
             epsilon = self.__epsilon_by_frame(frame_idx)
@@ -448,7 +485,7 @@ class Qlearner:
         os.environ["WANDB_API_KEY"] ='827fc9095ed2096f0d61efa2cca1450526099892'
 
         wandb.login()
-        run = wandb.init(project="AIonWheels", tags="qLearning",config=self.config)
+        run = wandb.init(project="AIonWheels_RL", tags="qLearning",config=self.config)
         self.wandb_enabled = True
         self.model_name = run.name + ".pth"
 

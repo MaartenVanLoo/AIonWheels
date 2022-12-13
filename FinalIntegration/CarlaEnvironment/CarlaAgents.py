@@ -5,9 +5,9 @@ Class implementing an interface for our Carla Agent
 """
 import carla
 
-from agents.navigation.global_route_planner import GlobalRoutePlanner
-from agents.tools.misc import get_speed
-from CustomPlanners import AIonWheelsLocalPlanner
+from FinalIntegration.CarlaEnvironment.agents.navigation.global_route_planner import GlobalRoutePlanner
+from FinalIntegration.CarlaEnvironment.agents.tools.misc import get_speed
+from FinalIntegration.CarlaEnvironment.CustomPlanners import AIonWheelsLocalPlanner
 import numpy as np
 class CarlaAgent(object):
     def __init__(self, vehicle) -> None:
@@ -55,14 +55,14 @@ class CarlaAgentRL(object):
         self._local_planner = AIonWheelsLocalPlanner(self._vehicle, opt_dict=opt_dict)
         self._global_planner = GlobalRoutePlanner(self._map, self._sampling_resolution)
 
-    def run_step(self, action: int, debug = False):
+    def run_step(self, action: int):
         actor_list = self._world.get_actors()
         vehicle_list = actor_list.filter("*vehicle*")
         lights_list = actor_list.filter("*traffic_light*")
 
         vehicle_speed = get_speed(self._vehicle) / 3.6  # m/s
 
-        control = self._local_planner.run_step(debug) # lateral control
+        control = self._local_planner.run_step() # lateral control
 
         action = self.actions[action]
         if action > 0:
@@ -112,9 +112,6 @@ class CarlaAgentRL(object):
 
         route_trace = self.trace_route(start_waypoint, end_waypoint)
         self._local_planner.set_global_plan(route_trace,stop_waypoint_creation=False, clean_queue=clean_queue)
-
-    def getSpeedLimit(self):
-        return self._vehicle.get_speed_limit()/3.6
 
     def trace_route(self, start_waypoint, end_waypoint):
         """

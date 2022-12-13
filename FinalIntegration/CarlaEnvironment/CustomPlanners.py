@@ -10,9 +10,9 @@ import numpy.random as random
 
 import carla
 
-from agents.navigation.local_planner import RoadOption
-from agents.navigation.controller import PIDLateralController
-from agents.tools.misc import draw_waypoints, get_speed
+from FinalIntegration.CarlaEnvironment.agents.navigation.local_planner import RoadOption
+from FinalIntegration.CarlaEnvironment.agents.navigation.controller import PIDLateralController
+from FinalIntegration.CarlaEnvironment.agents.tools.misc import draw_waypoints, get_speed
 
 
 class AIonWheelsLocalPlanner(object):
@@ -142,11 +142,11 @@ class AIonWheelsLocalPlanner(object):
             control.manual_gear_shift = False
             self.past_steering = steering
 
-        #if debug:
-        #    draw_waypoints(self._vehicle.get_world(), [self.target_waypoint], 1.0)
+        if debug:
+            draw_waypoints(self._vehicle.get_world(), [self.target_waypoint], 1.0)
 
         self._current_frame -= 1
-        if self._current_frame <= 0 and debug: #once a second!
+        if self._current_frame <= 0:
             self._current_frame = 20
             _draw_path(self._vehicle.get_world(), self._waypoints_queue)
         #print(f"Current queue length: {len(self._waypoints_queue)}")
