@@ -15,7 +15,7 @@ if __name__ == '__main__':
             image_name = xml.replace(".xml", ".png")
             image_path = "data/"+image_name
             bbox_coordinates.insert(0, [image_path])
-            print(bbox_coordinates)
+            #print(bbox_coordinates)
 
             #print_content(bbox_coordinates)
 
