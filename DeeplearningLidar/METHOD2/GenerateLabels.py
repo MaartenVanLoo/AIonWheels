@@ -24,7 +24,8 @@ class Labels:
         sensor_loc = LIDAR.get_location()
         sensor_trans = LIDAR.get_transform()
         sensor_invtrans = sensor_trans.get_inverse_matrix()
-        labels = []
+        labels_car = []
+        labels_pedestrian = []
         if vehicles_list:
             actors = world.get_actors(vehicles_list)
 
@@ -57,7 +58,7 @@ class Labels:
 
                 """bbox is now in sensor space """
 
-                labels.append({
+                labels_car.append({
                     'type': 'Car',
                     'xmin': 0,  # not needed for dataset
                     'ymin': 0,  # not needed for dataset
@@ -103,7 +104,7 @@ class Labels:
 
                 """bbox is now in sensor space """
 
-                labels.append({
+                labels_pedestrian.append({
                     'type': 'Pedestrian',
                     'xmin': 0,  # not needed for dataset
                     'ymin': 0,  # not needed for dataset
@@ -119,12 +120,27 @@ class Labels:
                 })
 
         with open(self.label_output + '/{:06d}.txt'.format(idx),'w') as f:
-            for label in labels:
+            for label in labels_car:
                 f.write(f"{label['type']} {truncated} {occluded} {alpha} "
                         f"{label['xmin']} {label['ymin']} {label['xmax']} {label['ymax']} "
                         f"{label['h']} {label['w']} {label['l']} "
                         f"{label['x']} {label['y']} {label['z']} "
                         f"{label['yaw']}\n")
+
+        with open(self.label_output + '/{:06d}_2.txt'.format(idx),'w') as f:
+            for label in labels_car:
+                f.write(f"{label['type']} {truncated} {occluded} {alpha} "
+                        f"{label['xmin']} {label['ymin']} {label['xmax']} {label['ymax']} "
+                        f"{label['h']} {label['w']} {label['l']} "
+                        f"{label['x']} {label['y']} {label['z']} "
+                        f"{label['yaw']}\n")
+            for label in labels_pedestrian:
+                f.write(f"{label['type']} {truncated} {occluded} {alpha} "
+                        f"{label['xmin']} {label['ymin']} {label['xmax']} {label['ymax']} "
+                        f"{label['h']} {label['w']} {label['l']} "
+                        f"{label['x']} {label['y']} {label['z']} "
+                        f"{label['yaw']}\n")
+
         with open(self.folder_output + '/test.txt','a') as f:
             f.write('{:06d}\n'.format(idx))
         pass

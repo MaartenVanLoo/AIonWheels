@@ -324,7 +324,7 @@ if __name__ == '__main__':
         # flip bev_map (lidar data) horizontally to allign with the image above
         bev_map = cv2.flip(bev_map, 1)
 
-        out_img = merge_rgb_to_bev(img_rgb, bev_map, output_width=configs.output_width)
+        out_img = bev_map#merge_rgb_to_bev(img_rgb, bev_map, output_width=configs.output_width)
         cv2.putText(out_img, str(idx), (2,20), cv2.FONT_HERSHEY_DUPLEX,0.8,(0,0,0),1)
         cv2.imshow('bev_map', out_img)
 
