@@ -10,8 +10,11 @@ ENV TZ=Europe/Brussels
 RUN sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tzdata
 RUN sudo apt-get install ffmpeg libsm6 libxext6  -y
 
-VOLUME /Dataset --> hier moet de dataset in komen
-VOLUME /Snapshots #Hier moet de file alles in wegschrijven; --> Snapshots elke 5 epochs en gegenereerd model
+#hier moet de dataset in komen
+VOLUME /Dataset
+#Hier moet de file alles in wegschrijven; --> Snapshots elke 5 epochs en gegenereerd model
+VOLUME /Snapshots
+
 
 # Install and upgrade things
 RUN pip install --upgrade pip
