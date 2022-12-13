@@ -7,7 +7,7 @@ def read_content(xml_file: str):
     tree = ET.parse(xml_file)
     root = tree.getroot()
 
-    print("xml_file:", xml_file)
+    #print("xml_file:", xml_file)
 
     for member in root.findall('size'):
         image_width = float(member[0].text)
@@ -18,19 +18,19 @@ def read_content(xml_file: str):
         class_name = member[0].text  # class name
 
         if class_name == 'car':
-            class_id = 1
+            class_id = 0
         elif class_name == 'motorcycle':
-            class_id = 2
+            class_id = 1
         elif class_name == 'bike':
-            class_id = 3
+            class_id = 2
         elif class_name == 'police':
-            class_id = 4
+            class_id = 3
         elif class_name == 'ambulance':
-            class_id = 5
+            class_id = 4
         elif class_name == 'firetruck':
-            class_id = 6
+            class_id = 5
         else:
-            class_id = 7 # truck
+            class_id = 6 # truck
 
 
         # bbox coordinates
