@@ -12,12 +12,6 @@ ENV TZ=Europe/Brussels
 RUN sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tzdata
 RUN sudo apt-get install ffmpeg libsm6 libxext6  -y
 
-#Add dataset in this directory
-#VOLUME /Dataset
-#Write results in this dir
-#VOLUME /Snapshots
-
-
 # Install and upgrade things
 RUN pip install --upgrade pip
 
