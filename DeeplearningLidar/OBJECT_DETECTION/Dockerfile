@@ -1,5 +1,5 @@
 #Docker run command:
-#docker run -d --name=AIonWheels --mount type=bind,source=<DATASET_DIR>,target=/application/dataset --mount type=bind,source=<CHECKPOINTS_DIR>,target=/application/checkpoints onzeImage
+#sudo docker run -d --name=AIonWheels --mount type=bind,source=<DATASET_DIR>,target=/application/dataset --mount type=bind,source=<CHECKPOINTS_DIR>,target=/application/checkpoints onzeImage
 
 FROM anibali/pytorch:1.8.1-cuda11.1-ubuntu20.04
 #FROM python:3.8.5
