@@ -1,5 +1,5 @@
-#Docker run command:
-#sudo docker pull s107661/aionwheels
+#Docker pull and run command:
+#sudo docker pull s107661/aionwheels2
 #sudo docker run -itd --name=AIonWheels --mount type=bind,source=<DATASET_DIR>,target=/application/dataset --mount type=bind,source=<CHECKPOINTS_DIR>,target=/application/checkpoints aionwheels
 
 FROM anibali/pytorch:1.8.1-cuda11.1-ubuntu20.04
