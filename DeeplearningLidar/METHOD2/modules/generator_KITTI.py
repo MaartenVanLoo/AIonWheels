@@ -445,7 +445,7 @@ class SemanticLidar(Sensor):
         lidar_bp.set_attribute('range', '90.0')    # 80.0 m
         lidar_bp.set_attribute('points_per_second', str(1800000*2)) #twice the number of points
         lidar_bp.set_attribute('rotation_frequency', '40') #twice the speed of the basic lidar sensor
-        lidar_bp.set_attribute('upper_fov', str(2))
+        lidar_bp.set_attribute('upper_fov', str(3))
         lidar_bp.set_attribute('lower_fov', str(-24.8))
         return lidar_bp
 

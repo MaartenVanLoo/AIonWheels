@@ -1,7 +1,7 @@
 .idea/
 .vscode/
 *.sw*
-
+*__pycache__*
 #ignore wandb folders
 *wandb/
 # ignore pytorch checkpoints (do not exclude .pth files,
