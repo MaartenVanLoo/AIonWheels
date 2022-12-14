@@ -218,8 +218,9 @@ class CarlaWorldAPI:
         sim.apply_settings(self.settings)
 
         maps = self.client.get_available_maps()
-        #self.client.load_world(random.choice(maps), reset_settings=False)
-        self.client.load_world("Town03_Opt", reset_settings=False)
+        maps = ["Town03_Opt", "Town04_Opt"]
+        self.client.load_world(random.choice(maps), reset_settings=False,map_layers=carla.MapLayer.NONE)
+        #self.client.load_world("Town04_Opt", reset_settings=False,map_layers=carla.MapLayer.NONE)
         # self.client.reload_world(reset_settings=False)
 
         # reset synchronous mode and reload GUI elements
@@ -299,7 +300,7 @@ class CarlaWorldAPI:
 
     def getDistanceAlongPath(self, debug = False):
         """
-        Distance measured allong the waypoint path of the actor
+        Distance measured along the waypoint path of the actor
         """
         actors = self.world.world.get_actors(self.vehicles_list)
 

@@ -355,10 +355,10 @@ class LIDAR(Sensor):
     def set_attributes(self, blueprint_library):
         lidar_bp = blueprint_library.find('sensor.lidar.ray_cast')
         lidar_bp.set_attribute('channels', '64')
-        lidar_bp.set_attribute('range', '80.0')    # 80.0 m
-        lidar_bp.set_attribute('points_per_second', str(64/0.00004608))
+        lidar_bp.set_attribute('range', '90.0')    # 90.0 m
+        lidar_bp.set_attribute('points_per_second', str(1800000))
         lidar_bp.set_attribute('rotation_frequency', '20')
-        lidar_bp.set_attribute('upper_fov', str(2))
+        lidar_bp.set_attribute('upper_fov', str(3))
         lidar_bp.set_attribute('lower_fov', str(-24.8))
         return lidar_bp
 
@@ -442,8 +442,8 @@ class SemanticLidar(Sensor):
         #velarray alpha prime
         lidar_bp = blueprint_library.find('sensor.lidar.ray_cast_semantic')
         lidar_bp.set_attribute('channels', '64')
-        lidar_bp.set_attribute('range', '80.0')    # 80.0 m
-        lidar_bp.set_attribute('points_per_second', str(64/0.00004608*2)) #twice the number of points
+        lidar_bp.set_attribute('range', '90.0')    # 80.0 m
+        lidar_bp.set_attribute('points_per_second', str(1800000*2)) #twice the number of points
         lidar_bp.set_attribute('rotation_frequency', '40') #twice the speed of the basic lidar sensor
         lidar_bp.set_attribute('upper_fov', str(2))
         lidar_bp.set_attribute('lower_fov', str(-24.8))

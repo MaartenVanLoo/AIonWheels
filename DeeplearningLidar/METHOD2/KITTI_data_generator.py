@@ -28,7 +28,7 @@ def main(args):
     i_map = list([1, 2, 3, 4, 5, 6, 7, 10])[map]
     start_record_full = time.time()
 
-    fps_simu = 50.0
+    fps_simu = 40.0
     time_stop = 2.0
     nbr_frame = 2000 #MAX = 10000
     nbr_walkers = 30

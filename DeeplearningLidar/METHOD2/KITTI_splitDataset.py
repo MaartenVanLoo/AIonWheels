@@ -23,7 +23,7 @@ def split(count, p_train = 0.8, p_validation = 0.2):
 
 def move(sample, frame_path, img_path, label_path):
     sh.copy2(sample[1],frame_path + f"{sample[0]:06d}.bin")
-    sh.copy2(sample[2],img_path + f"{sample[0]:06d}.png")
+    sh.copy2(sample[2],img_path + f"{sample[0]:06d}.jpg")
     sh.copy2(sample[3],label_path + f"{sample[0]:06d}.txt")
 
 

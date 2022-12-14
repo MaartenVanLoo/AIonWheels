@@ -136,5 +136,6 @@ class CarlaAgentRL(object):
 
     def getWaypoints(self) -> list:
         return list(self._local_planner.get_plan())
+
     def destroy(self):
         carla.command.DestroyActor(self._vehicle)

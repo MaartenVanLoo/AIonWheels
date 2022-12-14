@@ -42,12 +42,12 @@ def o3d_boundingBox(label):
     yaw = label[7]
 
     points = []
+    points2 = []
     for vertex in vertices:
         v_x  = x + l * vertex[0]
         v_y  = y + w * vertex[1]
         v_z  = z + h * vertex[2]
-
-        v_x, vy = rotateZ(v_x,v_y, x, y, yaw)
+        v_x, v_y = rotateZ(v_x,v_y, x, y, yaw)
         points.append([v_x,v_y,v_z])
     line_set = o3d.geometry.LineSet(
         points=o3d.utility.Vector3dVector(points),
@@ -61,7 +61,7 @@ def rotateZ(x, y , centerX, centerY, angle):
     s = math.sin(angle)
     c = math.cos(angle)
     x = x - centerX
-    y = x - centerY
+    y = y - centerY
     tmp_x = x * c - y * s
     tmp_y = x * s + y * c
     x = tmp_x + centerX
@@ -112,6 +112,13 @@ if __name__ == '__main__':
     for idx in range(len(dataset)):
         lidar = dataset.get_lidar(idx)
         labels,_ = dataset.get_label(idx)
+
+        #find min X, minY, min Z, max X, maxY, max Z
+        min_value = lidar.min(axis =0)
+        max_value = lidar.max(axis =0)
+        print(f"Min:{min_value}")
+        print(f"Max:{max_value}")
+
 
 
         #for box_idx, (cls_id, x, y, z, h, w, l, yaw) in enumerate(labels):
