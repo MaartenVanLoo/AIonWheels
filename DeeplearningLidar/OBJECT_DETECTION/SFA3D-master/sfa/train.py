@@ -24,6 +24,8 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 import torch.utils.data.distributed
 from tqdm import tqdm
+import wandb
+
 
 src_dir = os.path.dirname(os.path.realpath(__file__))
 while not src_dir.endswith("sfa"):
@@ -42,6 +44,9 @@ from losses.losses import Compute_Loss
 
 from torchsummary import summary
 def main():
+    wandb.login(key='6b0fafd9e35822ffee32959be7f2a8b645727f48')
+    wandb.init(project="AI_ON_WHEELS_DL_LIDAR", entity="distributed_ai",
+               )
     configs = parse_train_configs()
 
     # Re-produce results
@@ -233,6 +238,7 @@ def train_one_epoch(train_dataloader, model, optimizer, lr_scheduler, epoch, con
         else:
             reduced_loss = total_loss.data
         losses.update(to_python_float(reduced_loss), batch_size)
+        wandb.log({'loss',to_python_float(reduced_loss)})
         # measure elapsed time
         # torch.cuda.synchronize()
         batch_time.update(time.time() - start_time)
@@ -247,6 +253,7 @@ def train_one_epoch(train_dataloader, model, optimizer, lr_scheduler, epoch, con
                 logger.info(progress.get_message(batch_idx))
 
         start_time = time.time()
+        wandb.log({'episode loss', losses.avg})
 
 
 def validate(val_dataloader, model, configs):
