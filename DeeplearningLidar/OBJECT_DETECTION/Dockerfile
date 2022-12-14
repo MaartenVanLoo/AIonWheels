@@ -1,10 +1,10 @@
 #Docker pull and run command:
-#sudo docker pull s107661/aionwheels2
-#sudo docker run -itd --name=AIonWheels --mount type=bind,source=<DATASET_DIR>,target=/application/dataset --mount type=bind,source=<CHECKPOINTS_DIR>,target=/application/checkpoints aionwheels
+#sudo docker pull s107661/aionwheels
+#sudo docker run -itd --name=AIonWheels --mount type=bind,source=<DATASET_DIR>,target=/home/user/application/dataset --mount type=bind,source=<CHECKPOINTS_DIR>,target=/home/user/application/checkpoints s107661/aionwheels
 
 FROM anibali/pytorch:1.8.1-cuda11.1-ubuntu20.04
 #FROM python:3.8.5
-WORKDIR /application
+WORKDIR /home/user/application
 
 #needed for tzdata
 ENV TZ=Europe/Brussels
@@ -31,6 +31,6 @@ COPY SFA3D-master/ .
 #USER appuser
 
 # train SFA3D model
-CMD ["/bin/bash"]
-#CMD ["python", "sfa/train.py", "--gpu_idx", "0"]
+#CMD ["/bin/bash"]
+CMD ["python", "sfa/train.py", "--gpu_idx", "0","--num_epochs","300"]
 
