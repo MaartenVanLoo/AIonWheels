@@ -352,7 +352,7 @@ class Qlearner:
         n_experiences = 0
         for frame_idx in tqdm(range(1, self.num_frames + 1)):
             self.metrics = {}
-            self.currentDQN.eval()
+            self.currentDQN.train()
             epsilon = self.__epsilon_by_frame(frame_idx)
             self.metrics['epsilon']=epsilon
             action = self.currentDQN.act(state, epsilon)

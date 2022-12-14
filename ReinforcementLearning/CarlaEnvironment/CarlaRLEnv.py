@@ -30,7 +30,7 @@ class CarlaRLEnv(CarlaWorldAPI):
         self.t_gap = 2
         self.distance_default = 4
 
-        self.user_set_point=config.get('target_speed', 15)
+        self.user_set_point=config.get('target_speed', 30)
         self.config = config
 
         self.episodeReward=0
@@ -117,11 +117,17 @@ class CarlaRLEnv(CarlaWorldAPI):
 
 
     def __getState(self, distance):
-        distance = np.clip(distance, 0, 500)
+        distance = np.clip(distance, 0, 100)
         return distance, min(self.user_set_point, self.agent.getSpeedLimit()), self.agent.getVel().length(), \
                              self.prev_action
 
     def __getReward(self, action, distance, vehicleId):
+        history = self.world.collision_sensor.get_collision_history()
+        history = [history[key] for key in history.keys()]
+        if len(history) == 0:
+            isCollision = False
+        else:
+            isCollision = history[-1] > 0
 
         distance_penalty = 2 if (distance < self.__getSafeDistance()) else 0
 
@@ -136,12 +142,12 @@ class CarlaRLEnv(CarlaWorldAPI):
             u = action - self.prev_action
         # https://nl.mathworks.com/help/reinforcement-learning/ug/train-ddpg-agent
         # -for-adaptive-cruise-control.html
-        reward = -(0.1 * e * e + u * u) + m_t - distance_penalty + self.reward_offset
+        reward = -(0.1 * e * e + u * u) + m_t - distance_penalty + self.reward_offset - isCollision * 10
         # speed_reward = -sigmoid(abs(dv/5))*2+2
 
         # combined_reward = distance_reward*sigmoid(-distance+10)+\
         #                  speed_reward*sigmoid(distance - 10)
-        reward = max(reward, -10)
+        #reward = max(reward, -10)
         return reward
 
     def __isTerminal(self, distance):
@@ -156,13 +162,12 @@ class CarlaRLEnv(CarlaWorldAPI):
 
         #is terminal
         if self.evaluation:
-            done = distance <= 0.5 or \
-                   self.episodeReward > 50999 or \
-                   self.stepCount > 50000
+            done = self.episodeReward > 509999 or \
+                   self.stepCount > 50000 or \
+                   isCollision
             # (distance > 1000 and self.agent.getSpeed() >= self.car.getSpeed()) or \
         else:
-            done = distance <= 0.5 or \
-                   self.episodeReward > 9999 or \
+            done = self.episodeReward > 99999 or \
                    self.stepCount > 5000 or \
                    isCollision
             # (distance > 1000 and self.agent.getSpeed() >= self.car.getSpeed()) or \
@@ -259,15 +264,15 @@ def main():
         'device': 'cuda',
         'batch_size': 2048,
         'mini_batch': 24,  # only update once after n experiences
-        'num_frames': 51000,
+        'num_frames': 100000,
         'gamma': 0.90,
         'replay_size': 250000,
         'lr': 0.0003,
         'reward_offset': 1.5,
         #epsilon greedy
         'epsilon_start':0.5,
-        'epsilon_final': 0.04,
-        'epsilon_decay':3000,
+        'epsilon_final': 0.05,
+        'epsilon_decay':9000,
         'target_update_freq':2000,
         'history_frames': 3,
         'num_inputs': 12,  # =size of states!
@@ -280,22 +285,18 @@ def main():
     Qlearner.ENABLE_WANDB = False
     try:
         #worldapi = CarlaRLEnv(host="192.168.0.99", config=config, args=args, show = False, debug = False)
-        worldapi = CarlaRLEnv(host="127.0.0.1", config=config, args=args, show = True, debug = True)
+        worldapi = CarlaRLEnv(host="127.0.0.1", config=config, args=args, show = True, debug = False)
         #,width=1920, height=1080)
         # fullscreen=True)
         worldapi.spawnVehicles(number_of_vehicles = 50)
-        worldapi.addAgent(CarlaAgents.CarlaAgentRL(worldapi.world.player, num_actions=config.get('num_actions',11)))
+        worldapi.addAgent(CarlaAgents.CarlaAgentRL(worldapi.world.player, num_actions=config.get('num_actions', 11)))
         print(worldapi.agent.getPos())
 
         #config['num_inputs'] = len(worldapi.reset())  # always correct, but expensive in a carla environent
         qlearning = Qlearner(worldapi, DQN, config)
-        #qlearning.load("../models/ancient-wind-78.pth") #only brakes?
-        #qlearning.load("../models/bumbling-universe-79.pth") #potential candidate, to slow??
-        qlearning.load("../models/eternal-river-81.pth")
+        #qlearning.load("../models/eternal-river-81.pth") # base model
+        #qlearning.load("../CarlaEnvironment/models/eager-capybara-144.pth")
 
-
-        #qlearning.load("../models/TrainedModel_sky-64.pth")
-        #qlearning.load("../models/prime-sun-67.pth")
         qlearning.train()
         qlearning.save("models/" + qlearning.model_name)
         #qlearning.eval()

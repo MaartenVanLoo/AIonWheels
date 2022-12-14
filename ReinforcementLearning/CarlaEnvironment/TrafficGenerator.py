@@ -144,7 +144,7 @@ def generateTraffic(world, client, traffic_manager, number_of_vehicles = 30,numb
         all_vehicle_actors = world.get_actors(vehicles_list)
         for actor in all_vehicle_actors:
             traffic_manager.update_vehicle_lights(actor, True)
-
+    """
     # -------------
     # Spawn Walkers
     # -------------
@@ -219,7 +219,7 @@ def generateTraffic(world, client, traffic_manager, number_of_vehicles = 30,numb
         all_actors[i].go_to_location(world.get_random_location_from_navigation())
         # max speed
         all_actors[i].set_max_speed(float(walker_speed[int(i/2)]))
-
+    """
     print('spawned %d vehicles and %d walkers, press Ctrl+C to exit.' % (len(vehicles_list), len(walkers_list)))
 
     # Example of how to use Traffic Manager parameters

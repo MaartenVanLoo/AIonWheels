@@ -187,7 +187,7 @@ class World(object):
         """Render world"""
         if self.display:
             self.camera_manager.render(display)
-        self.hud.render(display)
+            self.hud.render(display)
 
     def destroy_sensors(self):
         """Destroy sensors"""

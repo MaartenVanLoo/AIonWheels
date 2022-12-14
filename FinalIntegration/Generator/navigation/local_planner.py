@@ -10,8 +10,8 @@ from collections import deque
 import random
 
 import carla
-from FinalIntegration.CarlaEnvironment.agents.navigation.controller import VehiclePIDController
-from FinalIntegration.CarlaEnvironment.agents.tools.misc import draw_waypoints, get_speed
+from .controller import VehiclePIDController
+from .tools.misc import draw_waypoints, get_speed
 
 
 class RoadOption(Enum):

@@ -10,9 +10,9 @@ import numpy.random as random
 
 import carla
 
-from FinalIntegration.CarlaEnvironment.agents.navigation.local_planner import RoadOption
-from FinalIntegration.CarlaEnvironment.agents.navigation.controller import PIDLateralController
-from FinalIntegration.CarlaEnvironment.agents.tools.misc import draw_waypoints, get_speed
+from .local_planner import RoadOption
+from .controller import PIDLateralController
+from .tools.misc import draw_waypoints, get_speed
 
 
 class AIonWheelsLocalPlanner(object):
@@ -142,11 +142,11 @@ class AIonWheelsLocalPlanner(object):
             control.manual_gear_shift = False
             self.past_steering = steering
 
-        if debug:
-            draw_waypoints(self._vehicle.get_world(), [self.target_waypoint], 1.0)
+        #if debug:
+        #    draw_waypoints(self._vehicle.get_world(), [self.target_waypoint], 1.0)
 
         self._current_frame -= 1
-        if self._current_frame <= 0:
+        if self._current_frame <= 0 and debug: #once a second!
             self._current_frame = 20
             _draw_path(self._vehicle.get_world(), self._waypoints_queue)
         #print(f"Current queue length: {len(self._waypoints_queue)}")
@@ -223,11 +223,27 @@ class AIonWheelsLocalPlanner(object):
         else:
             for elem in current_plan:
                 if not self._waypoints_queue[-1] == elem:
+                    #compute angle between waypoints:
+                    w = self._waypoints_queue[-1][0].transform.location     #waypoint
+                    w_1 = self._waypoints_queue[-2][0].transform.location   #prev waypoint
+                    w1 = elem[0].transform.location                         #next waypoint
+                    v1 = w - w_1
+                    v2 = w1 - w
+                    while v1.dot(v2) < 0:
+                        self._waypoints_queue.pop()
+                        w = self._waypoints_queue[-1][0].transform.location
+                        w_1 = self._waypoints_queue[-2][0].transform.location  # next waypoint
+                        v1 = w - w_1
+                        v2 = w1 - w
+                        print(f"Removed sharp corner from route while setting new target")
                     self._waypoints_queue.append(elem)
                 else:
                     self._waypoints_queue.pop() # current plan wants to take this node => hence removing it from both
-                    # the plan and the waypoints is still a valid route without 180° turns
+                    # the plan and the waypoints is still a valid route
                     print(f"Removed node from waypoint queue while setting new target")
+
+
+
 
         self._stop_waypoint_creation = stop_waypoint_creation
 

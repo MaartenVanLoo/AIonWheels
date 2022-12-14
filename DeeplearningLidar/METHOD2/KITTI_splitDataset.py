@@ -23,7 +23,7 @@ def split(count, p_train = 0.8, p_validation = 0.2):
 
 def move(sample, frame_path, img_path, label_path,idx):
     sh.copy2(sample[1],frame_path + f"{idx:06d}.bin")
-    sh.copy2(sample[2],img_path + f"{idx:06d}.png")
+    sh.copy2(sample[2],img_path + f"{idx:06d}.jpg")
     sh.copy2(sample[3],label_path + f"{idx:06d}.txt")
 
 
@@ -95,8 +95,8 @@ def splitDataset(source_paths, target_path, p_train, p_validation):
 
     sleep(0.1)
     print("\nCreating dataset")
-    for idx,sample in enumerate(tqdm(dataset)):
-        move(sample,velodyne_path, image_path, label_path, idx)
+    for sample in tqdm(dataset):
+        move(sample,velodyne_path, image_path, label_path)
 
 
 
@@ -104,15 +104,14 @@ if __name__ == "__main__":
     config = {
         'target_path':"dataset/kitti/",
         'source_paths':[
-            "KITTI_Dataset_CARLA_v0.9.13/Town01/"
-            #"lala/Dataset/Town01/",
-            #"lala/Dataset/Town02/",
-            #"lala/Dataset/Town03/",
-            #"lala/Dataset/Town04/",
-            #"lala/Dataset/Town05/",
-            #"lala/Dataset/Town06/",
-            #"lala/Dataset/Town07/",
-            #"lala/Dataset/Town10HD/"
+            "KITTI_Dataset_Carla_v0.9.13/Town01/",
+            "KITTI_Dataset_Carla_v0.9.13/Town02/",
+            "KITTI_Dataset_Carla_v0.9.13/Town03/",
+            "KITTI_Dataset_Carla_v0.9.13/Town04/",
+            "KITTI_Dataset_Carla_v0.9.13/Town05/",
+            "KITTI_Dataset_Carla_v0.9.13/Town06/",
+            "KITTI_Dataset_Carla_v0.9.13/Town07/",
+            "KITTI_Dataset_Carla_v0.9.13/Town10HD/",
         ]
 
     }
