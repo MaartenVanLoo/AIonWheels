@@ -5,6 +5,7 @@ import torch
 
 import FinalIntegration.DeepLearningLidar.config.kitti_config as cnf
 import numpy as np
+from models.model_utils import create_model
 
 class DeeplearningLidar(object):
     def __init__(self, carlaWorld, config = None) -> None:
@@ -46,7 +47,7 @@ class DeeplearningLidar(object):
         #Todo: forward model
         output = self._model(self.bev_map)
         #Todo: decode result
-        result = decode(output)
+        #result = decode(output)
 
         print(f"Inference time DL Lidar:\t{(time.time() - start) * 1000:3.0f} ms")
 
