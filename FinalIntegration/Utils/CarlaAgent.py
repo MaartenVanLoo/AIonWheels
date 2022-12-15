@@ -3,8 +3,8 @@ import math
 import carla
 import easydict
 import numpy as np
-from FinalIntegration.Generator.navigation.custom_planner import AIonWheelsLocalPlanner
-from FinalIntegration.Generator.navigation.global_route_planner import GlobalRoutePlanner
+from FinalIntegration.Utils.navigation.custom_planner import AIonWheelsLocalPlanner
+from FinalIntegration.Utils.navigation.global_route_planner import GlobalRoutePlanner
 
 
 class BasicAgent():
@@ -92,11 +92,15 @@ class CarlaAgent(BasicAgent):
             return self._target_speed
         else:
             return min(self._target_speed, self._vehicle.get_speed_limit() / 3.6)
-
+    def getSpeedLimit(self):
+        return self._vehicle.get_speed_limit()/3.6 #m/s
     def getSpeed(self):
         """Return the current velocity of the car in m/S"""
         vel = self._vehicle.get_velocity()
         return math.sqrt(vel.x ** 2 + vel.y ** 2 + vel.z ** 2)
+
+    def getVelocity(self):
+        return self.getSpeed()
 
     def getWaypoints(self) -> list:
         return list(self._local_planner.get_plan())
@@ -110,6 +114,10 @@ class CarlaAgent(BasicAgent):
     def getLength(self):
         """returns half of the length"""
         return self._vehicle.bounding_box.extent.x
+
+    def getTransform(self):
+        return self._vehicle.get_transform()
+
     # </editor-fold>
 
     # <editor-fold desc="Setters">
