@@ -47,7 +47,7 @@ class DQN(torch.nn.Module):
         if self.frame_idx > 0:
             #Repeat random action
             self.frame_idx -= 1
-            print(f"Random Action: {self.prev_action}")
+            #print(f"Random Action: {self.prev_action}")
             return self.prev_action
         elif self.frame_idx < 0:
             #Take own policy:
@@ -56,7 +56,7 @@ class DQN(torch.nn.Module):
                 state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
             q_value = self.forward(state)
             action = q_value.max(1)[1].data[0].cpu().numpy().tolist()  # argmax over actions
-            print(f"Policy Action: {action}")
+            #print(f"Policy Action: {action}")
             return action
 
 
@@ -66,11 +66,11 @@ class DQN(torch.nn.Module):
             q_value = self.forward(state)
             action = q_value.max(1)[1].data[0].cpu().numpy().tolist()  # argmax over actions
             self.frame_idx = -5
-            print(f"Policy Action: {action}")
+            #print(f"Policy Action: {action}")
         else:
             self.frame_idx = 5
             action = random.randint(0, self.num_actions - 1)
-            print(f"Random Action: {self.prev_action}")
+            #print(f"Random Action: {self.prev_action}")
 
         self.prev_action = action
         return action

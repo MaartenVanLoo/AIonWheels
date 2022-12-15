@@ -1,12 +1,16 @@
+import logging
+import threading
 import time
 
 import carla
 
-from FinalIntegration.Generator.CarlaAgent import CarlaAgent
-from FinalIntegration.Generator.Sensor import FollowCamera, Lidar, Camera, CollisionSensor
-from FinalIntegration.Generator.TrafficGenerator import generateTraffic
-from FinalIntegration.ReinforcementLearning.ReinforcementLearning import  ReinforcementLearning
+from FinalIntegration.Utils.CarlaAgent import CarlaAgent
+from FinalIntegration.Utils.Sensor import Sensor,FollowCamera, Lidar, Camera, CollisionSensor
+from FinalIntegration.Utils.TrafficGenerator import generateTraffic
+from FinalIntegration.ReinforcementLearning.RL_Module import  RL_Module
 from .dist import distanceAlongPath
+from ..DeepLearningLidar.DeepLearningLidar import DeeplearningLidar
+from ..DeepLearningRecognition.DeepLearningRecognition import DeepLearningRecognition
 
 
 class CarlaWorld(object):
@@ -15,6 +19,7 @@ class CarlaWorld(object):
         self.client.set_timeout(100.0)
         self.client.load_world("Town10HD_Opt")
         self.world = self.client.get_world()
+        self.map = self.world.get_map()
         self.traffic_manager = self.client.get_trafficmanager()
         self.fps = args.fps
         self._synchronous()
@@ -25,7 +30,7 @@ class CarlaWorld(object):
         self.walker_list = []
 
         lidar_transform = carla.Transform(carla.Location(x=0, y=0, z=1.80), carla.Rotation(pitch=0, yaw=0, roll=0))
-        camera_transform = carla.Transform(carla.Location(x=1, y=0, z=1), carla.Rotation(pitch=0, yaw=0, roll=0))
+        camera_transform = carla.Transform(carla.Location(x=1.1, y=0, z=1), carla.Rotation(pitch=0, yaw=0, roll=0))
 
         self._player = CarlaAgent(self.world, args)
         self.sensors["FollowCamera"] = FollowCamera(self._player.getVehicle(), self.world)
@@ -36,40 +41,48 @@ class CarlaWorld(object):
         # update world:
         self.world.tick()
 
+        # AI modules:
+        self.rl_module = RL_Module(self, args.rl_config)
+        self.dl_lidar = DeeplearningLidar(self, args.dl_lidar_config)
+        self.dl_recognition = DeepLearningRecognition(self, args.dl_recognition_config)
+
+
         # hud
         self.HUD = None
+
+        self.debug = args.debug  if 'debug' in args else False
 
     def getPlayer(self) ->CarlaAgent:
         return self._player
 
 
-    def step(self, rl_module: ReinforcementLearning, dl_lidar, dl_recognition):
+    def step(self):
         start = time.time()
         for sensor in self.sensors.values():
             sensor.step()
         stop = time.time()
-        print(f"Sensor update time:\t\t{(stop - start) * 1000:3.0f} ms")
-        #distance = dl_lidar.getDistance()
+        print(f"Sensor update time:\t\t\t{(stop - start) * 1000:3.0f} ms")
+        distance = self.dl_lidar.getDistance()
         distance, _ = distanceAlongPath(
             self.getGlobalPath(),
             self.getGlobalBoundingBoxes(),
             self.getPlayer().getWidth(),
             self.world,
-            debug = True
+            debug = self.debug
         )
-        action = rl_module.getAction(distance)
-        self._player.step(action)
+        distance -= self._player.getLength()
+        action = self.rl_module.getAction(distance)
+        self._player.step(action, debug = False)
+
 
         start = time.time()
         self.world.tick()
         stop = time.time()
-        print(f"Carla engine tick time:\t{(stop - start) * 1000:3.0f} ms")
+        print(f"Carla engine tick time:\t\t{(stop - start) * 1000:3.0f} ms")
         #update hud if required
         if self.HUD:
-            start = time.time()
             self.HUD.render(self)
-            stop = time.time()
-            print(f"HUD render time:\t\t{(stop - start) * 1000:3.0f} ms")
+
 
 
     def _synchronous(self):
@@ -119,7 +132,7 @@ class CarlaWorld(object):
         self.vehicle_list, self.walker_list = generateTraffic(self.world, self.client, self.traffic_manager,
                                                               number_of_vehicles=vehicles, number_of_walkers=walkers)
 
-    def get_sensor(self, name=""):
+    def get_sensor(self, name="") ->Sensor:
         return self.sensors.get(name, None)
 
     def attachHUD(self,hud):
