@@ -16,7 +16,8 @@ class DeeplearningLidar(object):
         self._agent = carlaWorld.getPlayer()
 
         self.device = torch.device(self.config.get('device', 'cuda') if torch.cuda.is_available() else 'cpu')
-        self._model = None
+        #TODO: aaanvullen
+        self._model = create_model(config)
         #self._model.eval() #set model in evaluation mode
         self._model_name = "/"
         self.bev_map = None
@@ -43,6 +44,11 @@ class DeeplearningLidar(object):
         self.bev_image = (self.bev_map.transpose(1, 2, 0) * 255).astype(np.uint8)
 
         #Todo: forward model
+        output = self._model(self.bev_map)
         #Todo: decode result
+        result = decode(output)
+
         print(f"Inference time DL Lidar:\t{(time.time() - start) * 1000:3.0f} ms")
 
+    def getBoundingBoxes(self):
+        return 0
