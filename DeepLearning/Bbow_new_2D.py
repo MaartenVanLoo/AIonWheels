@@ -166,6 +166,21 @@ def main(town, num_of_vehicles, num_of_walkers, num_of_frames):
     image_queue = queue.Queue()
     camera.listen(image_queue.put)
 
+    # Spawn liDar
+    lidar_bp = blueprint_library.find('sensor.lidar.ray_cast')
+    lidar_bp.set_attribute('channels', '64')
+    lidar_bp.set_attribute('range', '50')
+    lidar_bp.set_attribute('rotation_frequency', '20')
+    # fov
+    lidar_bp.set_attribute('points_per_second', '1300000')
+    lidar_bp.set_attribute('upper_fov', str(7))
+    lidar_bp.set_attribute('lower_fov', str(-16))
+    # lidar_bp.set_attribute('horizontal_fov', str(360))
+    # lidar_init_trans = carla.Transform(carla.Location(x=0.8, z=1.7))
+    lidar = world.spawn_actor(lidar_bp, carla.Transform(carla.Location(x=0.8, z=1.7)), attach_to=ego)
+    # Create a queue to store and retrieve the sensor data
+    lidar_queue = queue.Queue()
+    lidar.listen(lidar_queue.put)
 
     # Get the attributes from the camera
     image_w = camera_bp.get_attribute("image_size_x").as_int()
@@ -190,10 +205,12 @@ def main(town, num_of_vehicles, num_of_walkers, num_of_frames):
 
     world.tick()
     image = image_queue.get()
+    pointcloud = lidar_queue.get()
 
     # Reshape the raw data into an RGB array
     img = np.reshape(np.copy(image.raw_data), (image.height, image.width, 4))
     # Reshape pointcloud data
+    lidar_data = np.frombuffer(pointcloud.raw_data, dtype=np.dtype('f4'))
 
     # Display the image in an OpenCV display window
     cv2.namedWindow('CARLA RaceAI', cv2.WINDOW_AUTOSIZE)
@@ -207,7 +224,7 @@ def main(town, num_of_vehicles, num_of_walkers, num_of_frames):
             # Retrieve and reshape the image
             world.tick()
             image = image_queue.get()
-
+            pointcloud = lidar_queue.get()
 
             img = np.reshape(np.copy(image.raw_data), (image.height, image.width, 4))
 
@@ -283,7 +300,39 @@ def main(town, num_of_vehicles, num_of_walkers, num_of_frames):
                                 # If the box is fully contained, remove it
                                 boxes.remove(box)
                                 break
+                        """
+                            # If the box is 80% contained in other_box, remove it
+                            elif (other_box[0] <= box[0] and other_box[2] <= (box[2]+(box_w*0.2))) and (other_box[1] <= box[1] and other_box[3] <= (box[3]+(box_h*0.2))):
+                                boxes.remove(box)
+                                break
+                            elif (other_box[0] >= (box[0]-(box_w*0.2)) and other_box[2] >= box[2]) and (other_box[1] <= box[1] and other_box[3] <= (box[3]+(box_h*0.2))):
+                                boxes.remove(box)
+                                break
+                            elif (other_box[0] <= box[0] and other_box[2] <= (box[2]+(box_w*0.2))) and (other_box[1] >= (box[1]-(box_h*0.2)) and other_box[3] >= box[3]):
+                                boxes.remove(box)
+                                break
+                            elif (other_box[0] >= (box[0]-(box_w*0.2)) and other_box[2] >= box[2]) and (other_box[1] >= (box[1]-(box_h*0.2)) and other_box[3] >= box[3]):
+                                boxes.remove(box)
+                                break
+                            elif (other_box[0] <= box[0]+(box_w*0.2) and other_box[2] >= box[2]-(box_w*0.2)) and (other_box[1] <= box[1] and other_box[3] >= box[3]):
+                                boxes.remove(box)
+                                break
+                            elif (other_box[0] <= box[0] and other_box[2] >= box[2]) and (other_box[1] <= box[1]+(box_h*0.2) and other_box[3] >= box[3]-(box_h*0.2)):
+                                boxes.remove(box)
+                                break
 
+                            # Check if box is contained in multiple other_boxes
+                            if other_box[0] <= box[0]:
+                                xmin_bool = True
+                            if other_box[1] <= box[1]:
+                                ymin_bool = True
+                            if other_box[2] >= box[2]:
+                                xmax_bool = True
+                            if other_box[3] >= box[3]:
+                                ymax_bool = True
+                    if xmin_bool and ymin_bool and xmax_bool and ymax_bool:
+                        boxes.remove(box)
+                    """
                 image_path = 'output/camera_output/' + town + '/' + '%06d' % image.frame
                 image.save_to_disk(image_path + '.png')
                 writer = Writer(image_path + '.png', image_w, image_h)
@@ -304,6 +353,28 @@ def main(town, num_of_vehicles, num_of_walkers, num_of_frames):
                     os.makedirs('output/camera_output/' + town + '/bbox/')
                 cv2.imwrite('C:/Users/Bavo Lesy/PycharmProjects/RaceAI/output/camera_output/' + town + '/bbox/' + str(
                     image.frame) + '.png', img)
+
+            # Save liDAR data and create 3D bounding boxes
+            if pointcloud.frame % 20 == 0:
+
+                # lidar_data = np.frombuffer(pointcloud.raw_data, dtype=np.dtype('f4'))
+                # Save the pointcloud-- for export
+                # lidar_path = 'output/lidar_output/%06d' % pointcloud.frame
+                # Flip the pointcloud on y axis
+                # lidar_data = np.reshape(lidar_data, (int(lidar_data.shape[0] / 3), 3))
+
+                # lidar_data[:, 1] *= -1
+                # Save the pointcloud
+                # np.save(lidar_path, lidar_data)
+                # pointcloud.save_to_disk(lidar_path + '.ply')
+                # I think maybe z should be -z coord?
+                # Save the 3D bounding boxes of all the cars in the scene in xml file
+                # lidar_data = np.frombuffer(pointcloud.raw_data, dtype=np.dtype('f4'))
+                # lidar_data = np.reshape(lidar_data, (int(lidar_data.shape[0] / 4), 4))
+                # lidar_data = lidar_data[:, :3]
+                # lidar_data = lidar_data.reshape(-1)
+                # lidar_data = np.array(lidar_data, dtype=np.float32)
+                # lidar_data = np.reshape(lidar_data, (int(lidar_data.shape[0] / 3), 3))
 
                 if cv2.waitKey(1) == ord('q'):
                     break

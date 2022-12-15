@@ -93,16 +93,17 @@ def main(map, amount_of_vehicles):
     cam_bp.set_attribute('bloom_intensity', '0.675')
     cam_bp.set_attribute('gamma', '2.2')
     cam_bp.set_attribute('lens_flare_intensity', '0.1')
-    camera_init_trans = carla.Transform(carla.Location(z=2))
+    camera_init_trans = carla.Transform(carla.Location(z=1.5))
     cam_bp.set_attribute("image_size_x",str(600))
     cam_bp.set_attribute("image_size_y",str(400))
-    cam_bp.set_attribute("fov",str(110))
+    cam_bp.set_attribute("fov",str(50))
     camera = world.spawn_actor(cam_bp, camera_init_trans, attach_to=ego_car, attachment_type=carla.AttachmentType.Rigid) #geen rigid
 
     # Get the attributes from the camera
     image_w = cam_bp.get_attribute("image_size_x").as_int()
     image_h = cam_bp.get_attribute("image_size_y").as_int()
     fov = cam_bp.get_attribute("fov").as_float()
+
 
     #  Set up settings #
     settings = world.get_settings() # Get the current settings
@@ -133,8 +134,8 @@ def main(map, amount_of_vehicles):
     #        # carla.TrafficLightState.Yellow and Red it is carla.TrafficLightState.Red
     #        lights.set_state(carla.TrafficLightState.Green)
     #        lights.set_green_time(1000.0)
-            # actor_.set_green_time(5000.0)
-            # actor_.set_yellow_time(1000.0)
+    #        # actor_.set_green_time(5000.0)
+    #        # actor_.set_yellow_time(1000.0)
 
 
     # Display the image in an OpenCV display window
@@ -159,15 +160,21 @@ def main(map, amount_of_vehicles):
 
             # Take snap every x frames
             if image.frame % 20 == 0:
+                i = 0
+                boxes = []
+                new_boxes = []
+                # Save the image -- for export
+                frame_path = 'output/%06d' % image.frame
+                image.save_to_disk(frame_path + '.png')
+                writer = Writer(frame_path + '.png', image_w, image_h)
 
                 #geen boxes
                 for npc in world.get_actors(): #* * matches everything different
                     # Filter out the ego vehicle
-                    if npc.id != ego_car.id and npc.id in vehicle_list: #and npc.bounding_box.compute_visibility(npc.bounding_box.get_transform(), world) :
 
+                    if npc.id != ego_car.id and npc.id in vehicle_list :
                         bb = npc.bounding_box
                         dist = npc.get_transform().location.distance(ego_car.get_transform().location)
-                        print(npc.bounding_box.get_transform())
 
                         # Filter for the vehicles within 50m
                         if 2 < dist < 50:
@@ -197,12 +204,6 @@ def main(map, amount_of_vehicles):
                                     if p[1] < y_min:
                                         y_min = p[1]
 
-                                #image = cv2.line(image, start_point, end_point, color, thickness)
-                                cv2.rectangle(img, (int(x_min), int(y_min)), (int(x_max), int(y_max)),(0, 255, 0), 1)
-                                #cv2.line(img, (int(x_min),int(y_min)), (int(x_max),int(y_min)), (0,0,255, 255), 1)
-                                #cv2.line(img, (int(x_min),int(y_max)), (int(x_max),int(y_max)), (0,0,255, 255), 1)
-                                #cv2.line(img, (int(x_min),int(y_min)), (int(x_min),int(y_max)), (0,0,255, 255), 1)
-                                #cv2.line(img, (int(x_max),int(y_min)), (int(x_max),int(y_max)), (0,0,255, 255), 1)
 
                                 #classification for xml file
                                 type = npc.type_id.split('.')[2]
@@ -224,23 +225,51 @@ def main(map, amount_of_vehicles):
                                 else:
                                     classification_text = 'car'
 
-                                #Put label next to image
-                                img = cv2.putText(img, text= classification_text, org=(int(x_min), int(y_min)),fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.3, color=(0, 0, 255, 255),thickness=1)
+                                x_min = np.clip(x_min,0,image_w)
+                                x_max = np.clip(x_max,0,image_w)
+                                y_min =np.clip(y_min,0,image_h)
+                                y_max =np.clip(y_max,0,image_h)
+                                #if x_min > 0 and x_max < image_w and y_min > 0 and y_max < image_h:
+                                boxes.append([x_min, y_min, x_max, y_max, classification_text])
+                                i += 1
 
-                # Save the image -- for export
-                frame_path = 'output/%06d' % image.frame
-                image.save_to_disk(frame_path + '.png')
+                #x1 >= a1 y1 >= b1 x2 <= a2 y2 <= b2
+                #hoofdpijn is terug
+                #boxes = round(boxes, 2) dont work only crash
+                #if len(boxes) >= 2:
+                new_boxes = []
 
-                # Initialize the exporter
-                writer = Writer(frame_path + '.png', image_w, image_h)
+                for idx,other in enumerate(boxes):
+                    flag = True
+                    for box in boxes:
+                        if box != other:
+                            if box[0] <= other[0] and box[1] <= other[1] and box[2] >= other[2] and box[3] >= other[3]:
+                                print('fully within other box')
+                                flag = False
+                                break
+                                boxes.pop(idx)
+                    if flag:
+                        new_boxes.append(other)
 
-                # Add the object to the frame (ensure it is inside the image)
-                if x_min > 0 and x_max < image_w and y_min > 0 and y_max < image_h:
-                    writer.addObject(classification_text, x_min, y_min, x_max, y_max)
+
+
+                #else:
+                #    cv2.line(img, (int(box[0]), int(box[1])), (int(box[2]), int(box[1])), (0, 0, 255, 255), 1)
+                #    cv2.line(img, (int(box[0]), int(box[3])), (int(box[2]), int(box[3])), (0, 0, 255, 255), 1)
+                #    cv2.line(img, (int(box[0]), int(box[1])), (int(box[0]), int(box[3])), (0, 0, 255, 255), 1)
+                #    cv2.line(img, (int(box[2]), int(box[1])), (int(box[2]), int(box[3])), (0, 0, 255, 255), 1)
+                #    writer.addObject(box[4], box[0], box[1], box[2], box[3])
+
+
+                for box in new_boxes:
+                    cv2.line(img, (int(box[0]), int(box[1])), (int(box[2]), int(box[1])), (0, 0, 255, 255), 1)
+                    cv2.line(img, (int(box[0]), int(box[3])), (int(box[2]), int(box[3])), (0, 0, 255, 255), 1)
+                    cv2.line(img, (int(box[0]), int(box[1])), (int(box[0]), int(box[3])), (0, 0, 255, 255), 1)
+                    cv2.line(img, (int(box[2]), int(box[1])), (int(box[2]), int(box[3])), (0, 0, 255, 255), 1)
+                    writer.addObject(classification_text, box[0], box[1], box[2], box[3])
 
                 # Save the bounding boxes in the scene
                 writer.save(frame_path + '.xml')
-
                 # Display the image in an OpenCV display window
                 # add lines to save image
                 cv2.imshow('BoundingBoxes',img)
@@ -262,4 +291,4 @@ if __name__ == "__main__":
     # Measurement every 50 frames, we want 400 measurement per town, so 30 * 400 = 16000+ 4000 for bad measurements
     # TO DO: change weather dynamically for each town
 
-    main('Town03', amount_of_vehicles = 50)
+    main('Town02', amount_of_vehicles = 40)
