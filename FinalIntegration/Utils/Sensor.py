@@ -38,23 +38,37 @@ class Lidar(Sensor):
         self.sensor.listen(
             lambda data: Sensor.sensor_callback(data.frame, data.timestamp,data.transform, data, self._queue))
 
+        self._all_points = np.empty(shape=(0), dtype=np.float32)
+
+        #packet counter
+        self.i_packet = 0
+        settings = world.get_settings()
+        self.packet_per_frame = 1 / (
+                    self.bp.get_attribute('rotation_frequency').as_float() * settings.fixed_delta_seconds)
+
+
     def step(self):
         while not self._queue.empty():
             frame, data = self._queue.get()
             print(data)
+            buffer = np.frombuffer(data.raw_data, dtype=np.float32)
+            self._all_points = np.concatenate((self._all_points, buffer), axis=0)
 
-
-            #when frame is finished, update state:
-            self.state = None #Todo
+            self.i_packet += 1
+            if self.i_packet >= self.packet_per_frame:
+                self.i_packet = 0
+                #when frame is finished, update state:
+                self.state = self._all_points.reshape(-1, 4) #Todo
+                self._all_points = np.empty(shape=(0), dtype=np.float32)
 
     def _getBlueprint(self):
         library = self.world.get_blueprint_library()
         lidar_bp = library.find('sensor.lidar.ray_cast')
         lidar_bp.set_attribute('channels', '64')
-        lidar_bp.set_attribute('range', '80.0')  # 80.0 m
-        lidar_bp.set_attribute('points_per_second', str(2*64 / 0.00004608))
+        lidar_bp.set_attribute('range', '90.0')  # 80.0 m
+        lidar_bp.set_attribute('points_per_second', str(1800000))
         lidar_bp.set_attribute('rotation_frequency', '20')
-        lidar_bp.set_attribute('upper_fov', str(2))
+        lidar_bp.set_attribute('upper_fov', str(3))
         lidar_bp.set_attribute('lower_fov', str(-24.8))
         return lidar_bp
 
@@ -84,20 +98,21 @@ class Camera(Sensor):
         library = self.world.get_blueprint_library()
         camera_bp = library.find('sensor.camera.rgb')
 
-        camera_bp.set_attribute('image_size_x', '1392')
-        camera_bp.set_attribute('image_size_y', '1024')
-        camera_bp.set_attribute('fov', '72')  # 72 degrees # Always fov on width even if width is different than height
-        camera_bp.set_attribute('enable_postprocess_effects', 'True')
+        camera_bp.set_attribute('image_size_x', '600')
+        camera_bp.set_attribute('image_size_y', '400')
+        camera_bp.set_attribute('fov', '100')  # 72 degrees # Always fov on width even if width is different than height
         camera_bp.set_attribute('sensor_tick', str(1/20))  # 20Hz camera
         camera_bp.set_attribute('gamma', '2.2')
-        camera_bp.set_attribute('motion_blur_intensity', '0')
-        camera_bp.set_attribute('motion_blur_max_distortion', '0')
-        camera_bp.set_attribute('motion_blur_min_object_screen_size', '0')
-        camera_bp.set_attribute('shutter_speed', '1000')  # 1 ms shutter_speed
-        camera_bp.set_attribute('lens_k', '0')
-        camera_bp.set_attribute('lens_kcube', '0')
-        camera_bp.set_attribute('lens_x_size', '0')
-        camera_bp.set_attribute('lens_y_size', '0')
+        #camera_bp.set_attribute('motion_blur_intensity', '0')
+        #camera_bp.set_attribute('motion_blur_max_distortion', '0')
+        #camera_bp.set_attribute('motion_blur_min_object_screen_size', '0')
+        camera_bp.set_attribute('shutter_speed', '200')  # 1 ms shutter_speed
+        camera_bp.set_attribute('bloom_intensity', '0.675')
+        camera_bp.set_attribute('lens_flare_intensity', '0.675')
+        #camera_bp.set_attribute('lens_k', '0')
+        #camera_bp.set_attribute('lens_kcube', '0')
+        #camera_bp.set_attribute('lens_x_size', '0')
+        #camera_bp.set_attribute('lens_y_size', '0')
         return camera_bp
 
 
@@ -116,7 +131,6 @@ class FollowCamera(Sensor):
 
 
 class CollisionSensor(Sensor):
-
     def __init__(self, parent: carla.Actor, world: carla.World) -> None:
         super().__init__(parent, world, carla.Transform())
         self.blueprint = self._getBlueprint()
@@ -125,6 +139,7 @@ class CollisionSensor(Sensor):
 
         weak_self = weakref.ref(self)
         self.sensor.listen(lambda event: CollisionSensor._on_collision(weak_self, event))
+
 
     @staticmethod
     def _on_collision(weak_self, event):
@@ -135,6 +150,7 @@ class CollisionSensor(Sensor):
         actor_type = self._get_actor_display_name(event.other_actor)
         #self.hud.notification('Collision with %r' % actor_type)
         print(f'Collision with {actor_type}')
+        self.state = (event.frame, f'Collision with {actor_type}')
         impulse = event.normal_impulse
         intensity = math.sqrt(impulse.x ** 2 + impulse.y ** 2 + impulse.z ** 2)
         self.history.append((event.frame, intensity))
