@@ -35,8 +35,8 @@ class CarlaWorld(object):
         self._player = CarlaAgent(self.world, args)
         self.sensors["FollowCamera"] = FollowCamera(self._player.getVehicle(), self.world)
         self.sensors["CollisionSensor"] = CollisionSensor(self._player.getVehicle(), self.world)
-        #self.sensors["Lidar"] = Lidar(self._player.getVehicle(), self.world, lidar_transform)
-        #self.sensors["Camera"] = Camera(self._player.getVehicle(), self.world, camera_transform)
+        self.sensors["Lidar"] = Lidar(self._player.getVehicle(), self.world, lidar_transform)
+        self.sensors["Camera"] = Camera(self._player.getVehicle(), self.world, camera_transform)
 
         # update world:
         self.world.tick()
