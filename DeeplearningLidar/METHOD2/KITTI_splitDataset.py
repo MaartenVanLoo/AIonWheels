@@ -21,10 +21,10 @@ def split(count, p_train = 0.8, p_validation = 0.2):
     training, test = x[:t_count], x[t_count:]
     return training, test
 
-def move(sample, frame_path, img_path, label_path):
-    sh.copy2(sample[1],frame_path + f"{sample[0]:06d}.bin")
-    sh.copy2(sample[2],img_path + f"{sample[0]:06d}.jpg")
-    sh.copy2(sample[3],label_path + f"{sample[0]:06d}.txt")
+def move(sample, frame_path, img_path, label_path, idx):
+    sh.copy2(sample[1],frame_path + f"{idx:06d}.bin")
+    sh.copy2(sample[2],img_path + f"{idx:06d}.jpg")
+    sh.copy2(sample[3],label_path + f"{idx:06d}.txt")
 
 
 def splitDataset(source_paths, target_path, p_train, p_validation):
@@ -95,8 +95,8 @@ def splitDataset(source_paths, target_path, p_train, p_validation):
 
     sleep(0.1)
     print("\nCreating dataset")
-    for sample in tqdm(dataset):
-        move(sample,velodyne_path, image_path, label_path)
+    for idx,sample in enumerate(tqdm(dataset)):
+        move(sample,velodyne_path, image_path, label_path,idx)
 
 
 
@@ -104,14 +104,14 @@ if __name__ == "__main__":
     config = {
         'target_path':"dataset/kitti/",
         'source_paths':[
-            "KITTI_Dataset_Carla_v0.9.13/Town01/",
-            "KITTI_Dataset_Carla_v0.9.13/Town02/",
-            "KITTI_Dataset_Carla_v0.9.13/Town03/",
-            "KITTI_Dataset_Carla_v0.9.13/Town04/",
-            "KITTI_Dataset_Carla_v0.9.13/Town05/",
-            "KITTI_Dataset_Carla_v0.9.13/Town06/",
-            "KITTI_Dataset_Carla_v0.9.13/Town07/",
-            "KITTI_Dataset_Carla_v0.9.13/Town10HD/",
+            "KITTI_Dataset_Carla_v0.9.13/carla/Maps/Town01/",
+            "KITTI_Dataset_Carla_v0.9.13/carla/Maps/Town02/",
+            "KITTI_Dataset_Carla_v0.9.13/carla/Maps/Town03/",
+            "KITTI_Dataset_Carla_v0.9.13/carla/Maps/Town04/",
+            "KITTI_Dataset_Carla_v0.9.13/carla/Maps/Town05/",
+            "KITTI_Dataset_Carla_v0.9.13/carla/Maps/Town06/",
+            "KITTI_Dataset_Carla_v0.9.13/carla/Maps/Town07/",
+            "KITTI_Dataset_Carla_v0.9.13/carla/Maps/Town10HD/",
         ]
 
     }

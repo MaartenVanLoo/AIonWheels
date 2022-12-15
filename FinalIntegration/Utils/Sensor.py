@@ -98,20 +98,21 @@ class Camera(Sensor):
         library = self.world.get_blueprint_library()
         camera_bp = library.find('sensor.camera.rgb')
 
-        camera_bp.set_attribute('image_size_x', '1392')
-        camera_bp.set_attribute('image_size_y', '1024')
-        camera_bp.set_attribute('fov', '72')  # 72 degrees # Always fov on width even if width is different than height
-        camera_bp.set_attribute('enable_postprocess_effects', 'True')
+        camera_bp.set_attribute('image_size_x', '600')
+        camera_bp.set_attribute('image_size_y', '400')
+        camera_bp.set_attribute('fov', '100')  # 72 degrees # Always fov on width even if width is different than height
         camera_bp.set_attribute('sensor_tick', str(1/20))  # 20Hz camera
         camera_bp.set_attribute('gamma', '2.2')
-        camera_bp.set_attribute('motion_blur_intensity', '0')
-        camera_bp.set_attribute('motion_blur_max_distortion', '0')
-        camera_bp.set_attribute('motion_blur_min_object_screen_size', '0')
-        camera_bp.set_attribute('shutter_speed', '1000')  # 1 ms shutter_speed
-        camera_bp.set_attribute('lens_k', '0')
-        camera_bp.set_attribute('lens_kcube', '0')
-        camera_bp.set_attribute('lens_x_size', '0')
-        camera_bp.set_attribute('lens_y_size', '0')
+        #camera_bp.set_attribute('motion_blur_intensity', '0')
+        #camera_bp.set_attribute('motion_blur_max_distortion', '0')
+        #camera_bp.set_attribute('motion_blur_min_object_screen_size', '0')
+        camera_bp.set_attribute('shutter_speed', '200')  # 1 ms shutter_speed
+        camera_bp.set_attribute('bloom_intensity', '0.675')
+        camera_bp.set_attribute('lens_flare_intensity', '0.675')
+        #camera_bp.set_attribute('lens_k', '0')
+        #camera_bp.set_attribute('lens_kcube', '0')
+        #camera_bp.set_attribute('lens_x_size', '0')
+        #camera_bp.set_attribute('lens_y_size', '0')
         return camera_bp
 
 
