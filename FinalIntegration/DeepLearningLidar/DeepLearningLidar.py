@@ -43,6 +43,7 @@ class DeeplearningLidar(object):
         self.bev_image = (self.bev_map.transpose(1, 2, 0) * 255).astype(np.uint8)
 
         #Todo: forward model
+
         #Todo: decode result
         print(f"Inference time DL Lidar:\t{(time.time() - start) * 1000:3.0f} ms")
 

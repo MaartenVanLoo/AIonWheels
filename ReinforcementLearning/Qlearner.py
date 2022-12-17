@@ -370,6 +370,8 @@ class Qlearner:
 
             next_state, reward, done, info = self.env.step(action)
             self.metrics['reward']=reward
+            for key, value in info:
+                self.metrics[key]=value
 
             if 'collision' in info.keys():
                 collisions += int(info['collision'])

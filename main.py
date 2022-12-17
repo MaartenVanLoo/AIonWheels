@@ -3,6 +3,7 @@ import logging
 import os
 import traceback
 
+import carla
 import easydict
 from  easydict import EasyDict
 
@@ -25,11 +26,13 @@ def main(args):
     #create world
     carlaWorld = CarlaWorld(args)
 
-    hud = HUD(1400,700)
-    carlaWorld.attachHUD(hud)
+    #hud = HUD(1400,700)
+    #carlaWorld.attachHUD(hud)
     try:
         carlaWorld.spawn(50,0)
         for frame in range(100000):
+            if frame%1000==0:
+                carlaWorld.reset(map = None, layers= carla.MapLayer.All )
             carlaWorld.step()
     except:
         traceback.print_exc()

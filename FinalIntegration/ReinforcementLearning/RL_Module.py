@@ -3,7 +3,7 @@ import os
 import time
 from collections import deque
 
-from .Qlearner import DQN
+from .DQN import DQN
 
 import torch
 import numpy as np

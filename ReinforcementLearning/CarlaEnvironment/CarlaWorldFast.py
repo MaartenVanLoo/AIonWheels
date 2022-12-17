@@ -3,19 +3,13 @@ import threading
 import time
 
 import carla
-
-from FinalIntegration.Utils.CarlaAgent import CarlaAgent
+from .utils.dist import distanceAlongPath
 from FinalIntegration.Utils.Sensor import Sensor, FollowCamera, Lidar, Camera, CollisionSensor
-from FinalIntegration.Utils.TrafficGenerator import generateTraffic
-from FinalIntegration.ReinforcementLearning.RL_Module import RL_Module
-from .dist import distanceAlongPath
-from ..DeepLearningLidar.DeepLearningLidar import DeeplearningLidar
-from ..DeepLearningRecognition.DL_Recognition_module import DeepLearningRecognition
-
+from .CarlaAgentFast import CarlaAgent
 import numpy.random as random
+from .utils.TrafficGenerator import generateTraffic
 
-
-class CarlaWorld(object):
+class CarlaWorldFast(object):
     def __init__(self, args):
         self.args = args
         self.client = carla.Client(args.host, 2000)
@@ -35,19 +29,14 @@ class CarlaWorld(object):
         self.lidar_transform = carla.Transform(carla.Location(x=0, y=0, z=1.80), carla.Rotation(pitch=0, yaw=0, roll=0))
         self.camera_transform = carla.Transform(carla.Location(x=1.1, y=0, z=1), carla.Rotation(pitch=0, yaw=0, roll=0))
 
-        self._player = CarlaAgent(self.world, args)
+        self._player = CarlaAgent(self.world, args.agent_config)
         self.sensors["FollowCamera"] = FollowCamera(self._player.getVehicle(), self.world)
-        #self.sensors["CollisionSensor"] = CollisionSensor(self._player.getVehicle(), self.world)
+        self.sensors["CollisionSensor"] = CollisionSensor(self._player.getVehicle(), self.world)
         #self.sensors["Lidar"] = Lidar(self._player.getVehicle(), self.world, self.lidar_transform)
         #self.sensors["Camera"] = Camera(self._player.getVehicle(), self.world, self.camera_transform)
 
         # update world:
         self.world.tick()
-
-        # AI modules:
-        self.rl_module = RL_Module(self, args.rl_config)
-        self.dl_lidar = DeeplearningLidar(self, args.dl_lidar_config)
-        self.dl_recognition = DeepLearningRecognition(self, args.dl_recognition_config)
 
         # hud
         self.HUD = None
@@ -57,31 +46,33 @@ class CarlaWorld(object):
     def getPlayer(self) -> CarlaAgent:
         return self._player
 
-    def step(self):
+    def step(self, action: int):
         start = time.time()
         for sensor in self.sensors.values():
             sensor.step()
         stop = time.time()
-        print(f"Sensor update time:\t\t\t{(stop - start) * 1000:3.0f} ms")
-        distance = self.dl_lidar.getDistance()
-        distance, _ = distanceAlongPath(
+        #print(f"Sensor update time:\t\t\t{(stop - start) * 1000:3.0f} ms")
+        distance, idx = distanceAlongPath(
             self.getGlobalPath(),
             self.getGlobalBoundingBoxes(),
             self.getPlayer().getWidth(),
             self.world,
             debug=self.debug
         )
+        if idx != -1:
+            idx = self.world.get_actors(self.vehicle_list)[idx].id
+
         distance -= self._player.getLength()
-        action = self.rl_module.getAction(distance)
         self._player.step(action, debug=False)
 
         start = time.time()
         self.world.tick()
         stop = time.time()
-        print(f"Carla engine tick time:\t\t{(stop - start) * 1000:3.0f} ms")
+        #print(f"Carla engine tick time:\t\t{(stop - start) * 1000:3.0f} ms")
         # update hud if required
         if self.HUD:
             self.HUD.render(self)
+        return distance, idx
 
     def reset(self, map=None, layers=carla.MapLayer.All):
         # get variables to reset after reload
@@ -108,11 +99,11 @@ class CarlaWorld(object):
         self.client.load_world(map, reset_settings=False, map_layers=layers)
         self.world = self.client.get_world()
         self.map = self.world.get_map()
-
+        self.traffic_manager = self.client.get_trafficmanager()
         self._synchronous()
 
         # rebuild sensors & agent:
-        self._player = CarlaAgent(self.world, self.args)
+        self._player = CarlaAgent(self.world, self.args.agent_config)
         self.world.tick() #make sure the agent is created?
         for sensor in sensor_ids:
             if sensor == "FollowCamera":
@@ -132,11 +123,6 @@ class CarlaWorld(object):
         # restore hud
         if hud_backup:
             self.attachHUD(hud_backup)
-
-        #restore module agent references:
-        self.rl_module._agent = self._player
-        self.dl_lidar._agent = self._player
-        self.dl_recognition._agent = self._player
 
         self.world.tick()
 
