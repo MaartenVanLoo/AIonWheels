@@ -16,7 +16,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 _mov_average_size = 10  # moving average of last 10 epsiodes
-ENABLE_WANDB=False
+ENABLE_WANDB=True
 #matplotlib.use("Tkagg")
 
 class DQN(torch.nn.Module):
@@ -370,7 +370,7 @@ class Qlearner:
 
             next_state, reward, done, info = self.env.step(action)
             self.metrics['reward']=reward
-            for key, value in info:
+            for key, value in info.items():
                 self.metrics[key]=value
 
             if 'collision' in info.keys():
@@ -430,10 +430,10 @@ class Qlearner:
             # update target every 1000 frames
             if frame_idx % self.config.get('target_update_freq',20000) == 0:
                 self.__update_target()
-            # save network every 20 000 frames
+            # save network every 100 000 frames
             if frame_idx % 100000 == 0:
                 self.save(f"DQN_{frame_idx}.pt")
-
+                self.save(f"models/checkpoint_{frame_idx}_" + self.model_name)
             if (self.wandb_enabled):
                 wandb.log(self.metrics)
                 self.metrics={}

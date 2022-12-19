@@ -92,19 +92,41 @@ class CarlaWorldFast(object):
         # reset carla
         if map is None or map not in self.client.get_available_maps():
             maps = self.client.get_available_maps()
+            #maps = ["Town03_Opt", "Town04_Opt"]
             maps = [map for map in maps if "Opt" in map] #filter for opt maps
             map = random.choice(maps)
-        maps = ["Town03_Opt", "Town04_Opt"]
+
         print(f"Loading map: {map}")
-        self.client.load_world(map, reset_settings=False, map_layers=layers)
-        self.world = self.client.get_world()
-        self.map = self.world.get_map()
-        self.traffic_manager = self.client.get_trafficmanager()
+        if layers == carla.MapLayer.All:
+            self.client.load_world(map, reset_settings=True, map_layers=layers)
+        else:
+            self.client.load_world(map, reset_settings=True, map_layers=carla.MapLayer.NONE)
+            self.world = self.client.get_world()
+            if layers & carla.MapLayer.Buildings:
+                self.world.load_map_layer(carla.MapLayer.Buildings)
+            if layers & carla.MapLayer.Decals:
+                self.world.load_map_layer(carla.MapLayer.Decals)
+            if layers & carla.MapLayer.Foliage:
+                self.world.load_map_layer(carla.MapLayer.Foliage)
+            if layers & carla.MapLayer.Ground:
+                self.world.load_map_layer(carla.MapLayer.Ground)
+            if layers & carla.MapLayer.ParkedVehicles:
+                self.world.load_map_layer(carla.MapLayer.ParkedVehicles)
+            if layers & carla.MapLayer.Particles:
+                self.world.load_map_layer(carla.MapLayer.Particles)
+            if layers & carla.MapLayer.Props:
+                self.world.load_map_layer(carla.MapLayer.Props)
+            if layers & carla.MapLayer.StreetLights:
+                self.world.load_map_layer(carla.MapLayer.StreetLights)
+            if layers & carla.MapLayer.Walls:
+                self.world.load_map_layer(carla.MapLayer.Walls)
+        print(f"Map loaded: {map}")
         self._synchronous()
+        print(f"World set to synchronous")
 
         # rebuild sensors & agent:
         self._player = CarlaAgent(self.world, self.args.agent_config)
-        self.world.tick() #make sure the agent is created?
+
         for sensor in sensor_ids:
             if sensor == "FollowCamera":
                 self.sensors["FollowCamera"] = FollowCamera(self._player.getVehicle(), self.world)
@@ -128,22 +150,29 @@ class CarlaWorldFast(object):
 
     def _synchronous(self):
         # Set Synchronous mode
+        self.world = self.client.get_world()
+        print("Get world object done")
+
+        self.traffic_manager = self.client.get_trafficmanager()
+        self.traffic_manager.set_synchronous_mode(True)
+
         settings = self.world.get_settings()
         settings.synchronous_mode = True
         settings.fixed_delta_seconds = 1.0 / self.fps
-        settings.no_rendering_mode = False  # otherwise gpu sensors will stop working
         self.world.apply_settings(settings)
-        self.traffic_manager.set_synchronous_mode(True)
         self.world.tick()
+        self.map = self.world.get_map();
+        print("Get map object done")
 
     def _asynchronous(self):
         # Set asynchronous mode
+        self.traffic_manager.set_synchronous_mode(False)
+
         settings = self.world.get_settings()
         settings.synchronous_mode = False
-        settings.fixed_delta_seconds = 0.0
-        settings.no_rendering_mode = False  # otherwise gpu sensors will stop working
+        #settings.fixed_delta_seconds = 0.0
+        #settings.no_rendering_mode = False  # otherwise gpu sensors will stop working
         self.world.apply_settings(settings)
-        self.traffic_manager.set_synchronous_mode(False)
         self.world.wait_for_tick()
 
     def destroy(self):

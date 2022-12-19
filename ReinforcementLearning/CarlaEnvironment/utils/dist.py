@@ -151,9 +151,12 @@ def distanceAlongPath(waypoints: list, collisionBoxes, width, world = None, debu
         # returned collision time should always be between 0 and 1
         if flag:  # collision found => return the total traveled length until this point
             travelDistance += waypoint.distance(next_waypoint) * best_time
+            travelDistance = 110 if travelDistance > 110 else travelDistance
             return travelDistance,best_idx
         else:
             travelDistance += waypoint.distance(next_waypoint)
+
+    travelDistance = 110 if travelDistance > 110 else travelDistance
     return travelDistance,best_idx
 
 def calcCorners(middleRay,waypoint,nextwaypoint, width):
