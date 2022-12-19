@@ -32,7 +32,6 @@ class CarlaRLEnvFast(CarlaWorldFast):
         self.t_gap = 2
         self.distance_default = 4
 
-        self.user_set_point=config.get('target_speed', 30)
         self.config = config
 
         self.episodeReward=0
@@ -47,6 +46,8 @@ class CarlaRLEnvFast(CarlaWorldFast):
         self.frame= 0
         self.world.on_tick(self.on_world_tick)
 
+        self._player.train()
+
     def render(self):
         pass
     def plot(self):
@@ -55,6 +56,10 @@ class CarlaRLEnvFast(CarlaWorldFast):
     def reset(self,map=None, layers=carla.MapLayer.All):
         super().reset(map=None, layers=carla.MapLayer.Buildings | carla.MapLayer.Ground | carla.MapLayer.Foliage )
 
+        self._player.train()
+        sp = np.random.rand()*70+30 # random set point between 30 and 100 km/h
+        self.getPlayer().setTargetSpeed(sp/3.6)
+        print(f"Set target speed to {int(sp)} km/h [{int(sp/3.6)} m/s]")
         #vehicleId, distance = self.getClosestVechicle()
         distance, _ = distanceAlongPath(
             self.getGlobalPath(),
@@ -119,20 +124,20 @@ class CarlaRLEnvFast(CarlaWorldFast):
         self.episodeHistory.append(np.concatenate((state , np.array([reward, done]))))
 
         if self.debug:
-            print(f"User Request: {self.user_set_point}. Speed limit: {self.agent.getSpeedLimit()}")
+            print(f"User Request: {self._player.getTargetSpeed()}. Speed limit: {self._player.getSpeedLimit()}")
         return state, reward, done, info
 
     def eval(self):
         #set environment in evaluation mode:
         self.evaluation = True
+
     def train(self):
         self.evaluation = False
 
 
     def __getState(self, distance):
         distance = np.clip(distance, 0, 100)
-        return distance, min(self.user_set_point, self.getPlayer().getSpeedLimit()), self.getPlayer().getSpeed(), \
-                             self.prev_action
+        return distance, self._player.getTargetSpeed(), self.getPlayer().getSpeed(), self.prev_action
 
     def __getReward(self, action, distance, vehicleId):
         state = self.get_sensor("CollisionSensor").getState()
@@ -175,7 +180,7 @@ class CarlaRLEnvFast(CarlaWorldFast):
             isCollision = False
         else:
             state_frame, state_vehicle = state
-            if not state_frame == self.frame:
+            if not state_frame < self.frame:
                 isCollision = False
             else:
                 isCollision = not state_vehicle == ""
@@ -210,7 +215,7 @@ class CarlaRLEnvFast(CarlaWorldFast):
 
     def __getTargetSpeed(self, distance, leadCarId):
         if (distance == np.Inf or leadCarId == -1):
-            return min(self.user_set_point, self.getPlayer().getSpeedLimit())
+            return self.getPlayer().getTargetSpeed()
         save_distance = self.__getSafeDistance()
         #print(f"LeadCar:{leadCarId}")
         lead_car_speed = self.world.get_actor(leadCarId).get_velocity().length()
@@ -219,8 +224,8 @@ class CarlaRLEnvFast(CarlaWorldFast):
         # v1 when far away, v2 when near
         # alpha = 1 when distance > save distance
         # alpha = -1 when distance < save distance
-        v1 = min(self.user_set_point, self.getPlayer().getSpeedLimit())
-        v2 = min(lead_car_speed, min(self.user_set_point, self.getPlayer().getSpeedLimit()))
+        v1 = self.getPlayer().getTargetSpeed()
+        v2 = min(lead_car_speed, self.getPlayer().getTargetSpeed())
         v = self.getPlayer().getSpeed()
         speed = v if not abs(v) < 1e-6 else 1e-5
         speed = max(abs(speed), 4)
@@ -296,7 +301,7 @@ def main():
         'device': 'cuda',
         'batch_size': 2048,
         'mini_batch': 4,  # only update once after n experiences
-        'num_frames': 1500000,
+        'num_frames': 1000000,
         'gamma': 0.90,
         'replay_size': 250000,
         'lr': 0.0003,

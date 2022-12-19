@@ -48,7 +48,14 @@ class CarlaAgent(BasicAgent):
         #self behavior
         self.behavior = easydict.EasyDict()
         self.behavior.ignore_speed_limit = False
+        self.behavior.training = True
 
+
+    def eval(self, evaluation = True):
+        self.behavior.training = not evaluation
+
+    def train(self, training = True):
+        self.behavior.training = training
 
 
 
@@ -90,8 +97,12 @@ class CarlaAgent(BasicAgent):
     def getTargetSpeed(self):
         if self.behavior.ignore_speed_limit:
             return self._target_speed
+        elif self.behavior.training:
+            return min(self._target_speed,
+                       self._vehicle.get_speed_limit() * 1.6 / 3.6)  # increase speed limit for training, but avoid rediculus speeds causing crashes (however, 60 speed limits allow for >90!=> hopefully he learns the full range safe
         else:
             return min(self._target_speed, self._vehicle.get_speed_limit() / 3.6)
+
     def getSpeedLimit(self):
         return self._vehicle.get_speed_limit()/3.6 #m/s
     def getSpeed(self):
