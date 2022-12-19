@@ -88,6 +88,8 @@ class KittiDataset(Dataset):
         """Load images and targets for the training and validation phase"""
         sample_id = int(self.sample_id_list[index])
         img_path = os.path.join(self.image_dir, '{:06d}.png'.format(sample_id))
+        if not os.path.exists(img_path):
+            img_path = os.path.join(self.image_dir, '{:06d}.jpg'.format(sample_id))
         lidarData = self.get_lidar(sample_id)
         #calib = self.get_calib(sample_id) #TODO: I(maarten) disabled calibration assuming we import all data from the lidar point of view already
         labels, has_labels = self.get_label(sample_id)

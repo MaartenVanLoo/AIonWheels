@@ -208,6 +208,7 @@ def train_one_epoch(train_dataloader, model, optimizer, lr_scheduler, epoch, con
     model.train()
     start_time = time.time()
     for batch_idx, batch_data in enumerate(tqdm(train_dataloader)):
+        metrics = {}
         data_time.update(time.time() - start_time)
         metadatas, imgs, targets = batch_data
         batch_size = imgs.size(0)
@@ -238,7 +239,7 @@ def train_one_epoch(train_dataloader, model, optimizer, lr_scheduler, epoch, con
         else:
             reduced_loss = total_loss.data
         losses.update(to_python_float(reduced_loss), batch_size)
-        wandb.log({'loss',to_python_float(reduced_loss)})
+        metrics["loss"] = to_python_float(reduced_loss)
         # measure elapsed time
         # torch.cuda.synchronize()
         batch_time.update(time.time() - start_time)
@@ -253,7 +254,8 @@ def train_one_epoch(train_dataloader, model, optimizer, lr_scheduler, epoch, con
                 logger.info(progress.get_message(batch_idx))
 
         start_time = time.time()
-        wandb.log({'episode loss', losses.avg})
+        metrics["episode loss"] = losses.avg
+        wandb.log(metrics)
 
 
 def validate(val_dataloader, model, configs):
@@ -279,7 +281,7 @@ def validate(val_dataloader, model, configs):
             else:
                 reduced_loss = total_loss.data
             losses.update(to_python_float(reduced_loss), batch_size)
-
+    wandb.log({"Validation loss":losses.avg})
     return losses.avg
 
 

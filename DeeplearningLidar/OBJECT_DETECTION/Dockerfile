@@ -32,5 +32,5 @@ COPY SFA3D-master/ .
 
 # train SFA3D model
 #CMD ["/bin/bash"]
-CMD ["python", "sfa/train.py", "--gpu_idx", "0","--num_epochs","300"]
+CMD ["python", "sfa/train.py", "--gpu_idx", "0","--num_epochs","250", "--num_workers","5"]
 
