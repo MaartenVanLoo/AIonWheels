@@ -22,7 +22,6 @@ class CarlaWorld(object):
         self.client.set_timeout(100.0)
         self.client.load_world("Town03_Opt")
         self.world = self.client.get_world()
-        self.map = self.world.get_map()
         self.traffic_manager = self.client.get_trafficmanager()
         self.fps = args.fps
         self._synchronous()
@@ -37,9 +36,9 @@ class CarlaWorld(object):
 
         self._player = CarlaAgent(self.world, args)
         self.sensors["FollowCamera"] = FollowCamera(self._player.getVehicle(), self.world)
-        #self.sensors["CollisionSensor"] = CollisionSensor(self._player.getVehicle(), self.world)
-        #self.sensors["Lidar"] = Lidar(self._player.getVehicle(), self.world, self.lidar_transform)
-        #self.sensors["Camera"] = Camera(self._player.getVehicle(), self.world, self.camera_transform)
+        self.sensors["CollisionSensor"] = CollisionSensor(self._player.getVehicle(), self.world)
+        self.sensors["Lidar"] = Lidar(self._player.getVehicle(), self.world, self.lidar_transform)
+        self.sensors["Camera"] = Camera(self._player.getVehicle(), self.world, self.camera_transform)
 
         # update world:
         self.world.tick()
@@ -107,7 +106,7 @@ class CarlaWorld(object):
         print(f"Loading map: {map}")
         self.client.load_world(map, reset_settings=False, map_layers=layers)
         self.world = self.client.get_world()
-        self.map = self.world.get_map()
+
 
         self._synchronous()
 
@@ -149,6 +148,7 @@ class CarlaWorld(object):
         self.world.apply_settings(settings)
         self.traffic_manager.set_synchronous_mode(True)
         self.world.tick()
+        self.map = self.world.get_map()
 
     def _asynchronous(self):
         # Set asynchronous mode
