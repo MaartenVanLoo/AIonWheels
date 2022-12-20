@@ -4,10 +4,12 @@ import os
 import traceback
 from collections import deque
 
-from CarlaWorldAPI import CarlaWorldAPI
-from ReinforcementLearning.CarlaEnvironment import CarlaAgents
-import numpy as np
 
+import numpy as np
+import carla
+
+from ReinforcementLearning.CarlaEnvironment.CarlaWorldFast import CarlaWorldFast
+from ReinforcementLearning.CarlaEnvironment.utils.dist import distanceAlongPath
 from ReinforcementLearning.Qlearner import Qlearner, DQN
 
 _DISCRETE = True
@@ -20,10 +22,9 @@ def _sigmoid(x):
 
 
 #class CarlaRLEnv(CarlaWorldAPI):
-class CarlaRLEnv(CarlaWorldAPI):
-    def __init__(self, config, args, host='127.0.0.1', port=2000, width=1280, height=720, fullscreen = False,
-                 show=True, debug = False) -> None:
-        super().__init__(args, host, port, width, height,fullscreen, show, debug)
+class CarlaRLEnvFast(CarlaWorldFast):
+    def __init__(self, config, args) -> None:
+        super().__init__(args)
         self.prev_action = 0
         self.frames = deque(maxlen=config.get('history_frames', 3))
         self.num_actions = config.get('num_actions', 7)
@@ -31,7 +32,6 @@ class CarlaRLEnv(CarlaWorldAPI):
         self.t_gap = 2
         self.distance_default = 4
 
-        self.user_set_point=config.get('target_speed', 30)
         self.config = config
 
         self.episodeReward=0
@@ -43,19 +43,31 @@ class CarlaRLEnv(CarlaWorldAPI):
         self.history_size =self.frames.maxlen * 4 + 2 # state, reward, done
         self.episodeHistory = []
 
+        self.frame= 0
+        self.world.on_tick(self.on_world_tick)
+
+        self._player.train()
 
     def render(self):
         pass
     def plot(self):
         pass
 
-    def reset(self):
-        super().reset()
-        self.addAgent(CarlaAgents.CarlaAgentRL(self.world.player, num_actions=self.num_actions))
-        self.step(int((self.num_actions + 1) / 2))
+    def reset(self,map=None, layers=carla.MapLayer.All):
+        super().reset(map=None, layers=carla.MapLayer.Buildings | carla.MapLayer.Ground | carla.MapLayer.Foliage )
 
+        self._player.train()
+        sp = np.random.rand()*70+30 # random set point between 30 and 100 km/h
+        self.getPlayer().setTargetSpeed(sp/3.6)
+        print(f"Set target speed to {int(sp)} km/h [{int(sp/3.6)} m/s]")
         #vehicleId, distance = self.getClosestVechicle()
-        distance, _ = self.getDistanceAlongPath()
+        distance, _ = distanceAlongPath(
+            self.getGlobalPath(),
+            self.getGlobalBoundingBoxes(),
+            self.getPlayer().getWidth(),
+            self.world,
+            debug=self.debug
+        )
         self.frames = deque(maxlen=self.config.get('history_frames', 3))
         while len(self.frames) < self.config.get('history_frames', 3):
             self.frames.append(self.__getState(distance))
@@ -67,23 +79,28 @@ class CarlaRLEnv(CarlaWorldAPI):
         state = np.array(list(self.frames)).flatten()
         #save prev episode if not empty
         if len(self.episodeHistory) > 5:
-            with open("../CarlaEpisodeData/counter","r") as counter:
-                count = int(counter.read())
-            count += 1
-            with open("../CarlaEpisodeData/counter","w") as counter:
-                counter.write(str(count))
-            filename = "../CarlaEpisodeData/"+str(count).zfill(6) + "_episode_data.data"
-            np.save(filename,np.asarray(self.episodeHistory))
+            #with open("../CarlaEpisodeData/counter","r") as counter:
+            #    count = int(counter.read())
+            #count += 1
+            #with open("../CarlaEpisodeData/counter","w") as counter:
+            #    counter.write(str(count))
+            #filename = "../CarlaEpisodeData/"+str(count).zfill(6) + "_episode_data.data"
+            #np.save(filename,np.asarray(self.episodeHistory))
+            pass
         self.episodeHistory = []
+
+        self.world.on_tick(self.on_world_tick)
         return state
+
+    def on_world_tick(self, timestamp):
+        self.frame = timestamp.frame_count
 
     def step(self, action: int):
         # step state
-        control = super().step(action)
+        distance, vehicleId = super().step(action)
         self.stepCount += 1
 
         #vehicleId, distance = self.getClosestVechicle()
-        distance, vehicleId = self.getDistanceAlongPath(debug=self.debug)
         if self.debug:
             print(f"Distance:{distance}")
         self.frames.append(self.__getState(distance))
@@ -96,7 +113,7 @@ class CarlaRLEnv(CarlaWorldAPI):
         done = self.__isTerminal(distance)
 
         # info
-        info = self.__info()
+        info = self.__info(distance, vehicleId)
 
         self.episodeReward += reward
         self.prev_action = action
@@ -107,43 +124,48 @@ class CarlaRLEnv(CarlaWorldAPI):
         self.episodeHistory.append(np.concatenate((state , np.array([reward, done]))))
 
         if self.debug:
-            print(f"User Request: {self.user_set_point}. Speed limit: {self.agent.getSpeedLimit()}")
+            print(f"User Request: {self._player.getTargetSpeed()}. Speed limit: {self._player.getSpeedLimit()}")
         return state, reward, done, info
 
     def eval(self):
         #set environment in evaluation mode:
         self.evaluation = True
+
     def train(self):
         self.evaluation = False
 
 
     def __getState(self, distance):
         distance = np.clip(distance, 0, 100)
-        return distance, min(self.user_set_point, self.agent.getSpeedLimit()), self.agent.getVel().length(), \
-                             self.prev_action
+        return distance, self._player.getTargetSpeed(), self.getPlayer().getSpeed(), self.prev_action
 
     def __getReward(self, action, distance, vehicleId):
-        history = self.world.collision_sensor.get_collision_history()
-        history = [history[key] for key in history.keys()]
-        if len(history) == 0:
+        state = self.get_sensor("CollisionSensor").getState()
+        if state is None:
             isCollision = False
         else:
-            isCollision = history[-1] > 0
+            state_frame, state_vehicle = state
+            if not state_frame == self.frame:
+                isCollision = False
+            else:
+                isCollision = not state_vehicle == ""
 
         distance_penalty = 2 if (distance < self.__getSafeDistance()) else 0
+        distance_penalty += 15 if distance < 2 else 0 #aditional penalty when getting tooooo close to car (before
+        # collision)
 
         target_speed = self.__getTargetSpeed(distance, vehicleId)
-        e = target_speed - self.agent.getVel().length()
+        e = target_speed - self._player.getSpeed()
         m_t = 1 if e * e <= 0.25 else 0
 
         # u = deviation from previous action => encourage low changes in speed
         if _DISCRETE:
-            u = self.agent.actions[action] - self.agent.actions[self.prev_action]
+            u = self._player.actions[action] - self._player.actions[self.prev_action]
         else:
             u = action - self.prev_action
         # https://nl.mathworks.com/help/reinforcement-learning/ug/train-ddpg-agent
         # -for-adaptive-cruise-control.html
-        reward = -(0.1 * e * e + u * u) + m_t - distance_penalty + self.reward_offset - isCollision * 10
+        reward = -(0.1 * e * e + 8 * u * u) + m_t - distance_penalty + self.reward_offset - isCollision * 0
         # speed_reward = -sigmoid(abs(dv/5))*2+2
 
         # combined_reward = distance_reward*sigmoid(-distance+10)+\
@@ -153,12 +175,15 @@ class CarlaRLEnv(CarlaWorldAPI):
 
     def __isTerminal(self, distance):
         #check for collision:
-        history = self.world.collision_sensor.get_collision_history()
-        history = [history[key] for key in history.keys()]
-        if len(history) == 0:
+        state = self.get_sensor("CollisionSensor").getState()
+        if state is None:
             isCollision = False
         else:
-            isCollision = history[-1] > 0
+            state_frame, state_vehicle = state
+            if not state_frame < self.frame:
+                isCollision = False
+            else:
+                isCollision = not state_vehicle == ""
 
 
         #is terminal
@@ -174,32 +199,42 @@ class CarlaRLEnv(CarlaWorldAPI):
             # (distance > 1000 and self.agent.getSpeed() >= self.car.getSpeed()) or \
         return done
 
-    def __info(self):
-        return {} #empty dict
+    def __info(self, distance , vehicleId):
+        info = {
+            'speed':self._player.getSpeed(),
+            'set_target_speed':self._player.getTargetSpeed(),
+            'optimal_speed': self.__getTargetSpeed(distance, vehicleId),
+            'detla V': self._player.getSpeed() - self.__getTargetSpeed(distance, vehicleId),
+            'distance': distance,
+        }
+        return info
 
 
     def __getSafeDistance(self):
-        return self.t_gap * abs(self.agent.getVel().length()) + self.distance_default
+        return self.t_gap * abs(self.getPlayer().getSpeed()) + self.distance_default
 
     def __getTargetSpeed(self, distance, leadCarId):
         if (distance == np.Inf or leadCarId == -1):
-            return min(self.user_set_point, self.agent.getSpeedLimit())
+            return self.getPlayer().getTargetSpeed()
         save_distance = self.__getSafeDistance()
-        lead_car_speed = self.getVehicleSpeed(leadCarId).length()
+        #print(f"LeadCar:{leadCarId}")
+        lead_car_speed = self.world.get_actor(leadCarId).get_velocity().length()
 
         # smooth transition of target speed:
         # v1 when far away, v2 when near
         # alpha = 1 when distance > save distance
         # alpha = -1 when distance < save distance
-        v1 = min(self.user_set_point, self.agent.getSpeedLimit())
-        v2 = min(lead_car_speed, min(self.user_set_point, self.agent.getSpeedLimit()))
-        v = self.agent.getVel().length()
+        v1 = self.getPlayer().getTargetSpeed()
+        v2 = min(lead_car_speed, self.getPlayer().getTargetSpeed())
+        v = self.getPlayer().getSpeed()
         speed = v if not abs(v) < 1e-6 else 1e-5
         speed = max(abs(speed), 4)
 
         alpha = _sigmoid((distance - save_distance) / abs(speed)) * 2 - 1
         target_speed = alpha * v1 + (1 - alpha) * v2
 
+        #target speed never below zero
+        target_speed = max(0, target_speed)
         return target_speed
 
 
@@ -260,19 +295,20 @@ def main():
         type=int)
 
     args = argparser.parse_args()
+    args.fps = 20
 
     config = {
         'device': 'cuda',
         'batch_size': 2048,
-        'mini_batch': 24,  # only update once after n experiences
-        'num_frames': 100000,
+        'mini_batch': 4,  # only update once after n experiences
+        'num_frames': 1000000,
         'gamma': 0.90,
         'replay_size': 250000,
         'lr': 0.0003,
-        'reward_offset': 1.5,
+        'reward_offset': 2.5,
         #epsilon greedy
         'epsilon_start':0.5,
-        'epsilon_final': 0.05,
+        'epsilon_final': 0.04,
         'epsilon_decay':9000,
         'target_update_freq':2000,
         'history_frames': 3,
@@ -281,17 +317,17 @@ def main():
         'hidden': [128, 512, 512, 128, 64],
         'debug':False,
     }
+    args.agent_config = config
 
     worldapi=None
-    Qlearner.ENABLE_WANDB = False
+    Qlearner.ENABLE_WANDB = True
     try:
         #worldapi = CarlaRLEnv(host="192.168.0.99", config=config, args=args, show = False, debug = False)
-        worldapi = CarlaRLEnv(host="127.0.0.1", config=config, args=args, show = True, debug = False)
+        worldapi = CarlaRLEnvFast(config, args)
         #,width=1920, height=1080)
         # fullscreen=True)
-        worldapi.spawnVehicles(number_of_vehicles = 50)
-        worldapi.addAgent(CarlaAgents.CarlaAgentRL(worldapi.world.player, num_actions=config.get('num_actions', 11)))
-        print(worldapi.agent.getPos())
+        worldapi.spawn(vehicles=50, walkers = 0)
+        print(worldapi._player.getTransform().location)
 
         #config['num_inputs'] = len(worldapi.reset())  # always correct, but expensive in a carla environent
         qlearning = Qlearner(worldapi, DQN, config)
@@ -310,7 +346,7 @@ def main():
         traceback.print_exc()
     finally:
         if worldapi:
-            worldapi.cleanup()
+            worldapi.destroy()
 
     pass
 

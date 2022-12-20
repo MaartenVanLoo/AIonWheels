@@ -4,6 +4,7 @@ import os
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 import traceback
 
+import carla
 import easydict
 from  easydict import EasyDict
 
@@ -16,6 +17,7 @@ def parse_args() ->EasyDict:
     parser = argparse.ArgumentParser(description='The Implementation using PyTorch')
     parser.add_argument('--host', type=str, default="127.0.0.1",
                         help='The host ip running carla. By default the localhost is used')
+    parser.add_argument('--debug', '-d',action='store_true', help="Enable debug mode")
 
     config = EasyDict(vars(parser.parse_args()))
     config.fps = 20

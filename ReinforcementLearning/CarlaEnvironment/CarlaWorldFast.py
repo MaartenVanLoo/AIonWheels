@@ -3,25 +3,20 @@ import threading
 import time
 
 import carla
-
-from FinalIntegration.Utils.CarlaAgent import CarlaAgent
+from .utils.dist import distanceAlongPath
 from FinalIntegration.Utils.Sensor import Sensor, FollowCamera, Lidar, Camera, CollisionSensor
-from FinalIntegration.Utils.TrafficGenerator import generateTraffic
-from FinalIntegration.ReinforcementLearning.RL_Module import RL_Module
-from .dist import distanceAlongPath
-from ..DeepLearningLidar.DeepLearningLidar import DeeplearningLidar
-from ..DeepLearningRecognition.DL_Recognition_module import DeepLearningRecognition
-
+from .CarlaAgentFast import CarlaAgent
 import numpy.random as random
+from .utils.TrafficGenerator import generateTraffic
 
-
-class CarlaWorld(object):
+class CarlaWorldFast(object):
     def __init__(self, args):
         self.args = args
         self.client = carla.Client(args.host, 2000)
         self.client.set_timeout(100.0)
         self.client.load_world("Town03_Opt")
         self.world = self.client.get_world()
+        self.map = self.world.get_map()
         self.traffic_manager = self.client.get_trafficmanager()
         self.fps = args.fps
         self._synchronous()
@@ -34,19 +29,14 @@ class CarlaWorld(object):
         self.lidar_transform = carla.Transform(carla.Location(x=0, y=0, z=1.80), carla.Rotation(pitch=0, yaw=0, roll=0))
         self.camera_transform = carla.Transform(carla.Location(x=1.1, y=0, z=1), carla.Rotation(pitch=0, yaw=0, roll=0))
 
-        self._player = CarlaAgent(self.world, args)
+        self._player = CarlaAgent(self.world, args.agent_config)
         self.sensors["FollowCamera"] = FollowCamera(self._player.getVehicle(), self.world)
         self.sensors["CollisionSensor"] = CollisionSensor(self._player.getVehicle(), self.world)
-        self.sensors["Lidar"] = Lidar(self._player.getVehicle(), self.world, self.lidar_transform)
-        self.sensors["Camera"] = Camera(self._player.getVehicle(), self.world, self.camera_transform)
+        #self.sensors["Lidar"] = Lidar(self._player.getVehicle(), self.world, self.lidar_transform)
+        #self.sensors["Camera"] = Camera(self._player.getVehicle(), self.world, self.camera_transform)
 
         # update world:
         self.world.tick()
-
-        # AI modules:
-        self.rl_module = RL_Module(self, args.rl_config)
-        self.dl_lidar = DeeplearningLidar(self, args.dl_lidar_config)
-        self.dl_recognition = DeepLearningRecognition(self, args.dl_recognition_config)
 
         # hud
         self.HUD = None
@@ -56,31 +46,33 @@ class CarlaWorld(object):
     def getPlayer(self) -> CarlaAgent:
         return self._player
 
-    def step(self):
+    def step(self, action: int):
         start = time.time()
         for sensor in self.sensors.values():
             sensor.step()
         stop = time.time()
-        print(f"Sensor update time:\t\t\t{(stop - start) * 1000:3.0f} ms")
-        distance = self.dl_lidar.getDistance()
-        distance, _ = distanceAlongPath(
+        #print(f"Sensor update time:\t\t\t{(stop - start) * 1000:3.0f} ms")
+        distance, idx = distanceAlongPath(
             self.getGlobalPath(),
             self.getGlobalBoundingBoxes(),
             self.getPlayer().getWidth(),
             self.world,
             debug=self.debug
         )
+        if idx != -1:
+            idx = self.world.get_actors(self.vehicle_list)[idx].id
+
         distance -= self._player.getLength()
-        action = self.rl_module.getAction(distance)
         self._player.step(action, debug=False)
 
         start = time.time()
         self.world.tick()
         stop = time.time()
-        print(f"Carla engine tick time:\t\t{(stop - start) * 1000:3.0f} ms")
+        #print(f"Carla engine tick time:\t\t{(stop - start) * 1000:3.0f} ms")
         # update hud if required
         if self.HUD:
             self.HUD.render(self)
+        return distance, idx
 
     def reset(self, map=None, layers=carla.MapLayer.All):
         # get variables to reset after reload
@@ -100,19 +92,41 @@ class CarlaWorld(object):
         # reset carla
         if map is None or map not in self.client.get_available_maps():
             maps = self.client.get_available_maps()
+            #maps = ["Town03_Opt", "Town04_Opt"]
             maps = [map for map in maps if "Opt" in map] #filter for opt maps
             map = random.choice(maps)
-        maps = ["Town03_Opt", "Town04_Opt"]
+
         print(f"Loading map: {map}")
-        self.client.load_world(map, reset_settings=False, map_layers=layers)
-        self.world = self.client.get_world()
-
-
+        if layers == carla.MapLayer.All:
+            self.client.load_world(map, reset_settings=True, map_layers=layers)
+        else:
+            self.client.load_world(map, reset_settings=True, map_layers=carla.MapLayer.NONE)
+            self.world = self.client.get_world()
+            if layers & carla.MapLayer.Buildings:
+                self.world.load_map_layer(carla.MapLayer.Buildings)
+            if layers & carla.MapLayer.Decals:
+                self.world.load_map_layer(carla.MapLayer.Decals)
+            if layers & carla.MapLayer.Foliage:
+                self.world.load_map_layer(carla.MapLayer.Foliage)
+            if layers & carla.MapLayer.Ground:
+                self.world.load_map_layer(carla.MapLayer.Ground)
+            if layers & carla.MapLayer.ParkedVehicles:
+                self.world.load_map_layer(carla.MapLayer.ParkedVehicles)
+            if layers & carla.MapLayer.Particles:
+                self.world.load_map_layer(carla.MapLayer.Particles)
+            if layers & carla.MapLayer.Props:
+                self.world.load_map_layer(carla.MapLayer.Props)
+            if layers & carla.MapLayer.StreetLights:
+                self.world.load_map_layer(carla.MapLayer.StreetLights)
+            if layers & carla.MapLayer.Walls:
+                self.world.load_map_layer(carla.MapLayer.Walls)
+        print(f"Map loaded: {map}")
         self._synchronous()
+        print(f"World set to synchronous")
 
         # rebuild sensors & agent:
-        self._player = CarlaAgent(self.world, self.args)
-        self.world.tick() #make sure the agent is created?
+        self._player = CarlaAgent(self.world, self.args.agent_config)
+
         for sensor in sensor_ids:
             if sensor == "FollowCamera":
                 self.sensors["FollowCamera"] = FollowCamera(self._player.getVehicle(), self.world)
@@ -132,32 +146,33 @@ class CarlaWorld(object):
         if hud_backup:
             self.attachHUD(hud_backup)
 
-        #restore module agent references:
-        self.rl_module._agent = self._player
-        self.dl_lidar._agent = self._player
-        self.dl_recognition._agent = self._player
-
         self.world.tick()
 
     def _synchronous(self):
         # Set Synchronous mode
+        self.world = self.client.get_world()
+        print("Get world object done")
+
+        self.traffic_manager = self.client.get_trafficmanager()
+        self.traffic_manager.set_synchronous_mode(True)
+
         settings = self.world.get_settings()
         settings.synchronous_mode = True
         settings.fixed_delta_seconds = 1.0 / self.fps
-        settings.no_rendering_mode = False  # otherwise gpu sensors will stop working
         self.world.apply_settings(settings)
-        self.traffic_manager.set_synchronous_mode(True)
         self.world.tick()
-        self.map = self.world.get_map()
+        self.map = self.world.get_map();
+        print("Get map object done")
 
     def _asynchronous(self):
         # Set asynchronous mode
+        self.traffic_manager.set_synchronous_mode(False)
+
         settings = self.world.get_settings()
         settings.synchronous_mode = False
-        settings.fixed_delta_seconds = 0.0
-        settings.no_rendering_mode = False  # otherwise gpu sensors will stop working
+        #settings.fixed_delta_seconds = 0.0
+        #settings.no_rendering_mode = False  # otherwise gpu sensors will stop working
         self.world.apply_settings(settings)
-        self.traffic_manager.set_synchronous_mode(False)
         self.world.wait_for_tick()
 
     def destroy(self):

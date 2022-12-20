@@ -45,18 +45,19 @@ class CarlaAgent(BasicAgent):
         self.actions = np.linspace(-1, 1, config.get('num_actions', 101))
         self._target_speed = config.get('target_speed', 15)  # m/s
 
-        # self behavior
+        #self behavior
         self.behavior = easydict.EasyDict()
         self.behavior.ignore_speed_limit = False
         self.behavior.training = True
 
-    def eval(self, evaluation=True, ignore_limit=False):
-        self.behavior.training = not evaluation
-        self.behavior.ignore_speed_limit = ignore_limit
 
-    def train(self, training=True, ignore_limit=False):
+    def eval(self, evaluation = True):
+        self.behavior.training = not evaluation
+
+    def train(self, training = True):
         self.behavior.training = training
-        self.behavior.ignore_speed_limit = ignore_limit
+
+
 
     def step(self, action: int, debug=True):
         assert (len(self.actions) > action >= 0, "Specified action out of bounds")
@@ -103,8 +104,7 @@ class CarlaAgent(BasicAgent):
             return min(self._target_speed, self._vehicle.get_speed_limit() / 3.6)
 
     def getSpeedLimit(self):
-        return self._vehicle.get_speed_limit() / 3.6  # m/s
-
+        return self._vehicle.get_speed_limit()/3.6 #m/s
     def getSpeed(self):
         """Return the current velocity of the car in m/S"""
         vel = self._vehicle.get_velocity()
@@ -119,11 +119,9 @@ class CarlaAgent(BasicAgent):
     def getWidth(self):
         """returns half of the width"""
         return self._vehicle.bounding_box.extent.y
-
     def getHeight(self):
         """returns half of the height"""
         return self._vehicle.bounding_box.extent.z
-
     def getLength(self):
         """returns half of the length"""
         return self._vehicle.bounding_box.extent.x
@@ -164,7 +162,7 @@ class CarlaAgent(BasicAgent):
                 start_waypoint = self._local_planner.get_plan()[-1][0]
                 clean_queue = False
             else:
-                start_waypoint = self._map.get_waypoint(self._vehicle.get_location())
+                start_waypoint =self._map.get_waypoint(self._vehicle.get_location())
                 clean_queue = True
         elif len(self._local_planner.get_plan()) > 1:
             start_waypoint = self._local_planner.get_plan()[-1][0]
