@@ -1,6 +1,6 @@
 #Docker pull and run command:
 #sudo docker pull xosmium/aionwheels
-#sudo docker run -itd --name=AIonWheels --mount type=bind,source=<DATASET_DIR>,target=/home/user/application/dataset --mount type=bind,source=<CHECKPOINTS_DIR>,target=/home/user/application/checkpoints xosmium/aionwheels
+#sudo docker run -itd --name=AIonWheels --mount type=bind,source=<DATASET_DIR>,target=/home/user/application/dataset --mount type=bind,source=<CHECKPOINTS_DIR>,target=/home/user/application/checkpoints s107661/aionwheels
 
 FROM anibali/pytorch:1.8.1-cuda11.1-ubuntu20.04
 #FROM python:3.8.5
