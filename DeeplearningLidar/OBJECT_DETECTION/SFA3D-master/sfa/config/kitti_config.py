@@ -6,12 +6,12 @@ import numpy as np
 # Pedestrian and Person_Sitting ==> Pedestrian Class
 # TODO:Swap Pedestrian and Car => when using single class, only CAR is used! (not pedestrian)
 CLASS_NAME_TO_ID = {
-    'Pedestrian': 0,
-    'Car': 1,
+    'Pedestrian': 1,
+    'Car': 0,
     'Cyclist': 2,
-    'Van': 1,
+    'Van': 0,
     'Truck': -3,
-    'Person_sitting': 0,
+    'Person_sitting': 1,
     'Tram': -99,
     'Misc': -99,
     'DontCare': -1

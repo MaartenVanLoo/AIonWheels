@@ -45,8 +45,7 @@ def parse_test_configs():
                         help='The name using for saving logs, models,...')
     parser.add_argument('-a', '--arch', type=str, default='fpn_resnet_18', metavar='ARCH',
                         help='The name of the model architecture')
-    parser.add_argument('--pretrained_path', type=str,
-                        default='../checkpoints/fpn_resnet_18/Model_fpn_resnet_18_epoch_70.pth', metavar='PATH',
+    parser.add_argument('--pretrained_path', type=str,default='../checkpoints/fpn_resnet_18/Model_fpn_resnet_18_epoch_5.pth', metavar='PATH',
                              #default='../checkpoints/fpn_resnet_18/fpn_resnet_18_epoch_300.pth', metavar='PATH',
                         help='the path of the pretrained checkpoint')
     parser.add_argument('--K', type=int, default=50,
@@ -82,7 +81,7 @@ def parse_test_configs():
 
     configs.imagenet_pretrained = False
     configs.head_conv = 64
-    configs.num_classes = 2
+    configs.num_classes = 1
     configs.num_center_offset = 2
     configs.num_z = 1
     configs.num_dim = 3
