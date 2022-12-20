@@ -235,9 +235,6 @@ def main(town, num_of_vehicles, num_of_walkers, num_of_frames):
                 i = 0
                 # Save the image -- for export
                 # Initialize the exporter
-                image_path = 'output/camera_output/' + town + '/' + '%06d' % image.frame
-                image.save_to_disk(image_path + '.png')
-                writer = Writer(image_path + '.png', image_w, image_h)
 
                 boxes = []
                 for npc in world.get_actors():
@@ -284,8 +281,61 @@ def main(town, num_of_vehicles, num_of_walkers, num_of_frames):
                                     # Add the object to the frame (ensure it is inside the image)
                                 if x_min > 0 and x_max < image_w and y_min > 0 and y_max < image_h:
                                     boxes.append([x_min, y_min, x_max, y_max, classification])
-                                i += 1
 
+            i += 1
+            if i == 3:
+                # Compare the bounding boxes to every other bounding box
+                # Filter out bad boxes
+                for box in boxes:
+                    for other_box in boxes:
+                        # If the boxes are the same, skip
+                        if box != other_box:
+                            box_w = box[2] - box[0]
+                            box_h = box[3] - box[1]
+                            other_box_w = other_box[2] - other_box[0]
+                            other_box_h = other_box[3] - other_box[1]
+                            # Check if box is fully contained in other_box
+                            if other_box[0] <= box[0] and other_box[1] <= box[1] and other_box[2] >= box[2] and \
+                                    other_box[3] >= box[3]:
+                                # If the box is fully contained, remove it
+                                boxes.remove(box)
+                                break
+                        """
+                            # If the box is 80% contained in other_box, remove it
+                            elif (other_box[0] <= box[0] and other_box[2] <= (box[2]+(box_w*0.2))) and (other_box[1] <= box[1] and other_box[3] <= (box[3]+(box_h*0.2))):
+                                boxes.remove(box)
+                                break
+                            elif (other_box[0] >= (box[0]-(box_w*0.2)) and other_box[2] >= box[2]) and (other_box[1] <= box[1] and other_box[3] <= (box[3]+(box_h*0.2))):
+                                boxes.remove(box)
+                                break
+                            elif (other_box[0] <= box[0] and other_box[2] <= (box[2]+(box_w*0.2))) and (other_box[1] >= (box[1]-(box_h*0.2)) and other_box[3] >= box[3]):
+                                boxes.remove(box)
+                                break
+                            elif (other_box[0] >= (box[0]-(box_w*0.2)) and other_box[2] >= box[2]) and (other_box[1] >= (box[1]-(box_h*0.2)) and other_box[3] >= box[3]):
+                                boxes.remove(box)
+                                break
+                            elif (other_box[0] <= box[0]+(box_w*0.2) and other_box[2] >= box[2]-(box_w*0.2)) and (other_box[1] <= box[1] and other_box[3] >= box[3]):
+                                boxes.remove(box)
+                                break
+                            elif (other_box[0] <= box[0] and other_box[2] >= box[2]) and (other_box[1] <= box[1]+(box_h*0.2) and other_box[3] >= box[3]-(box_h*0.2)):
+                                boxes.remove(box)
+                                break
+
+                            # Check if box is contained in multiple other_boxes
+                            if other_box[0] <= box[0]:
+                                xmin_bool = True
+                            if other_box[1] <= box[1]:
+                                ymin_bool = True
+                            if other_box[2] >= box[2]:
+                                xmax_bool = True
+                            if other_box[3] >= box[3]:
+                                ymax_bool = True
+                    if xmin_bool and ymin_bool and xmax_bool and ymax_bool:
+                        boxes.remove(box)
+                    """
+                image_path = 'output/camera_output/' + town + '/' + '%06d' % image.frame
+                image.save_to_disk(image_path + '.png')
+                writer = Writer(image_path + '.png', image_w, image_h)
                 for box in boxes:
                     cv2.line(img, (int(box[0]), int(box[1])), (int(box[2]), int(box[1])), (0, 0, 255, 255), 1)
                     cv2.line(img, (int(box[0]), int(box[3])), (int(box[2]), int(box[3])), (0, 0, 255, 255), 1)
