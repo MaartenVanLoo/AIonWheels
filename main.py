@@ -68,7 +68,7 @@ if __name__ == "__main__":
         'num_direction': 2,  # sin, cos,
         'num_layers': 18,
 
-        'debug':False,
+        'debug':True,
     }
     dl_recognition_config = {
 
