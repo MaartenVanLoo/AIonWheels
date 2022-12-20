@@ -52,7 +52,7 @@ def main():
     var = vars(cnf)
     wandb_config["kitti_config"] = {k:v for k, v in var.items() if not k.startswith('__')} #log config in wandb
 
-    wandb.login(key='6b0fafd9e35822ffee32959be7f2a8b645727f48')
+    wandb.login(key='6b0fafd9e35822ffee32959be7f2a8b645727f48') #L E A K E D
     wandb.init(project="AI_ON_WHEELS_DL_LIDAR", entity="distributed_ai",
                config = configs
                )
