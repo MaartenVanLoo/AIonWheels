@@ -148,8 +148,47 @@ def merge_rgb_to_bev(img_rgb, img_bev, output_width):
     ret_img_bev = cv2.resize(img_bev, (output_width, output_bev_h))
 
     out_img = np.zeros((output_rgb_h + output_bev_h, output_width, 3), dtype=np.uint8)
-    # Upper: RGB --> BEV
+    # Left: RGB --> BEV
     out_img[:output_rgb_h, ...] = ret_img_rgb
     out_img[output_rgb_h:, ...] = ret_img_bev
 
+    return out_img
+
+def merge_rgb_to_bev_bev(img_rgb, pred_bev,real_bev , output_height):
+    img_rgb_h, img_rgb_w = img_rgb.shape[:2]
+    ratio_rgb = output_height / img_rgb_h
+    output_rgb_w = int(ratio_rgb * img_rgb_w)
+    ret_img_rgb = cv2.resize(img_rgb, (output_rgb_w, output_height))
+
+    img_bev_h, img_bev_w = pred_bev.shape[:2]
+    ratio_bev = output_height / img_bev_h
+    pred_output_bev_w = int(ratio_bev * img_bev_w)
+
+    img_bev_h, img_bev_w = real_bev.shape[:2]
+    ratio_bev = output_height / img_bev_h
+    real_output_bev_w = int(ratio_bev * img_bev_w)
+    assert(pred_output_bev_w == real_output_bev_w) #this means both were not created by the same program!,
+    # they should always be the same!
+
+    ret_pred_img_bev = cv2.resize(pred_bev, (real_output_bev_w, output_height))
+    ret_real_img_bev = cv2.resize(real_bev, (real_output_bev_w, output_height))
+
+    out_img = np.zeros((output_height,output_rgb_w + real_output_bev_w + pred_output_bev_w, 3), dtype=np.uint8)
+    # Left: RGB --> REAL_BEV --> PRED_BEV
+    out_img[:,:output_rgb_w, ...] = ret_img_rgb
+    out_img[:,output_rgb_w:output_rgb_w+real_output_bev_w, ...] = ret_real_img_bev
+    out_img[:,output_rgb_w+real_output_bev_w:, ...] = ret_pred_img_bev
+
+    font = cv2.FONT_HERSHEY_DUPLEX
+    real_scale: float = output_height / 500
+    pred_scale: float = output_height / 500
+    real_text: str = "Real"
+    pred_text: str = "Prediction"
+    real_size = cv2.getTextSize(real_text, font,real_scale, int(real_scale))[0]
+    pred_size = cv2.getTextSize(pred_text, font,pred_scale, int(pred_scale))[0]
+    real_pos: (int,int) = (int(output_rgb_w + real_output_bev_w/2 - real_size[0]/2),real_size[1]+2)
+    pred_pos: (int,int) = (int(output_rgb_w+3*real_output_bev_w/2 - pred_size[0]/2),pred_size[1]+2)
+
+    cv2.putText(out_img, real_text,real_pos ,font , real_scale, (255, 255, 255),1)
+    cv2.putText(out_img, pred_text,pred_pos ,font, pred_scale, (255, 255, 255), 1)
     return out_img

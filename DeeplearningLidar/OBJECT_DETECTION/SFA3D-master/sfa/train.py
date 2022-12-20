@@ -44,10 +44,18 @@ from losses.losses import Compute_Loss
 
 from torchsummary import summary
 def main():
+    configs = parse_train_configs()
+
+    import config.kitti_config as cnf
+    wandb_config = configs.copy()
+
+    var = vars(cnf)
+    wandb_config["kitti_config"] = {k:v for k, v in var.items() if not k.startswith('__')} #log config in wandb
+
     wandb.login(key='6b0fafd9e35822ffee32959be7f2a8b645727f48')
     wandb.init(project="AI_ON_WHEELS_DL_LIDAR", entity="distributed_ai",
+               config = configs
                )
-    configs = parse_train_configs()
 
     # Re-produce results
     if configs.seed is not None:

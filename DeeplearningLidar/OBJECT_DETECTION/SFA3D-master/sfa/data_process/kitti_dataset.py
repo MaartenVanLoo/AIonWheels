@@ -288,7 +288,7 @@ if __name__ == '__main__':
     configs.input_size = (608, 608)
     configs.hm_size = (152, 152)
     configs.max_objects = 50
-    configs.num_classes = 3
+    configs.num_classes = 2
     configs.output_width = 500
 
     configs.dataset_dir = os.path.join('../../', 'dataset', 'kitti')

@@ -35,9 +35,9 @@ from utils.evaluation_utils import decode, post_processing, draw_predictions, co
 from utils.torch_utils import _sigmoid
 import config.kitti_config as cnf
 from data_process.transformation import lidar_to_camera_box
-from utils.visualization_utils import merge_rgb_to_bev, show_rgb_image_with_boxes
+from utils.visualization_utils import merge_rgb_to_bev, show_rgb_image_with_boxes, merge_rgb_to_bev_bev
 from data_process.kitti_data_utils import Calibration
-
+from data_process.kitti_bev_utils import drawRotatedBox
 
 def parse_test_configs():
     parser = argparse.ArgumentParser(description='Testing config for the Implementation')
@@ -46,7 +46,7 @@ def parse_test_configs():
     parser.add_argument('-a', '--arch', type=str, default='fpn_resnet_18', metavar='ARCH',
                         help='The name of the model architecture')
     parser.add_argument('--pretrained_path', type=str,
-                        default='../checkpoints/fpn_resnet_18/Model_fpn_resnet_18_epoch_25.pth', metavar='PATH',
+                        default='../checkpoints/fpn_resnet_18/Model_fpn_resnet_18_epoch_70.pth', metavar='PATH',
                              #default='../checkpoints/fpn_resnet_18/fpn_resnet_18_epoch_300.pth', metavar='PATH',
                         help='the path of the pretrained checkpoint')
     parser.add_argument('--K', type=int, default=50,
@@ -131,6 +131,40 @@ def calculate_distance(kitti_dets):
 
 
 if __name__ == '__main__':
+    def draw_output_map(bev_map, detections):
+        # Draw prediction in the image
+        pred_map = (bev_map.squeeze().permute(1, 2, 0).numpy() * 255).astype(np.uint8)
+        pred_map = cv2.resize(pred_map, (cnf.BEV_WIDTH, cnf.BEV_HEIGHT))
+        pred_map = draw_predictions(pred_map, detections.copy(), configs.num_classes)
+
+        if (len(detections) > 0):
+            print(detections[0])  # vehicle detection
+
+        # Rotate the bev_map
+        pred_map = cv2.rotate(pred_map, cv2.ROTATE_180)
+        # flip bev_map (lidar data) horizontally to allign with the image above
+        pred_map = cv2.flip(pred_map, 1)
+        return pred_map
+
+    def draw_real_map(bev_map, labels):
+        real_map = (bev_map.squeeze().permute(1, 2, 0).numpy() * 255).astype(np.uint8)
+        real_map = cv2.resize(real_map, (cnf.BEV_HEIGHT, cnf.BEV_WIDTH))
+
+        for box_idx, (cls_id, x, y, z, h, w, l, yaw) in enumerate(labels):
+            # Draw rotated box
+            yaw = -yaw
+            y1 = int((x - cnf.boundary['minX']) / cnf.DISCRETIZATION)
+            x1 = int((y - cnf.boundary['minY']) / cnf.DISCRETIZATION)
+            w1 = int(w / cnf.DISCRETIZATION)
+            l1 = int(l / cnf.DISCRETIZATION)
+
+            drawRotatedBox(real_map, x1, y1, w1, l1, yaw, cnf.colors[int(cls_id)])
+        # Rotate the bev_map
+        real_map = cv2.rotate(real_map, cv2.ROTATE_180)
+        real_map = cv2.flip(real_map, 1)
+        return real_map
+
+
     configs = parse_test_configs()
 
     model = create_model(configs)
@@ -150,6 +184,8 @@ if __name__ == '__main__':
     with torch.no_grad():
         for batch_idx, batch_data in enumerate(test_dataloader):
             metadatas, bev_maps, img_rgbs = batch_data
+            #load labels:
+            labels, has_labels = test_dataloader.dataset.get_label(batch_idx)
             input_bev_maps = bev_maps.to(configs.device, non_blocking=True).float()
             t1 = time_synchronized()
             outputs = model(input_bev_maps)
@@ -163,16 +199,9 @@ if __name__ == '__main__':
             t2 = time_synchronized()
 
             detections = detections[0]  # only first batch
-            # Draw prediction in the image
-            bev_map = (bev_maps.squeeze().permute(1, 2, 0).numpy() * 255).astype(np.uint8)
-            bev_map = cv2.resize(bev_map, (cnf.BEV_WIDTH, cnf.BEV_HEIGHT))
-            bev_map = draw_predictions(bev_map, detections.copy(), configs.num_classes)
 
-            if (len(detections)>0):
-                print(detections[0]) #vehicle detection
-
-            # Rotate the bev_map
-            bev_map = cv2.rotate(bev_map, cv2.ROTATE_180)
+            pred_image = draw_output_map(bev_maps, detections)
+            real_image = draw_real_map(bev_maps, labels)
 
             img_path = metadatas['img_path'][0]
             img_rgb = img_rgbs[0].numpy()
@@ -182,15 +211,8 @@ if __name__ == '__main__':
             #print(detections)
             kitti_dets = convert_det_to_real_values(detections, configs.num_classes)
 
-            #calculate_distance(kitti_dets)
-
-            #if len(kitti_dets) > 0:
-            #    kitti_dets[:, 1:] = lidar_to_camera_box(kitti_dets[:, 1:], calib.V2C, calib.R0, calib.P2)
-            #    img_bgr = show_rgb_image_with_boxes(img_bgr, kitti_dets, calib)
-
-            #flip bev_map (lidar data) horizontally to allign with the image above
-            bev_map =cv2.flip(bev_map,1)
-            out_img = merge_rgb_to_bev(img_bgr, bev_map, output_width=configs.output_width)
+            #out_img = merge_rgb_to_bev(img_bgr, bev_map, output_width=configs.output_width)
+            out_img = merge_rgb_to_bev_bev(img_rgb, pred_image, real_image, 400)
             #out_img = bev_map
             print('\tDone testing the {}th sample, time: {:.1f}ms, speed {:.2f}FPS'.format(batch_idx, (t2 - t1) * 1000,
                                                                                            1 / (t2 - t1)))
@@ -204,7 +226,7 @@ if __name__ == '__main__':
                         fourcc = cv2.VideoWriter_fourcc(*'MJPG')
                         out_cap = cv2.VideoWriter(
                             os.path.join(configs.results_dir, '{}.avi'.format(configs.output_video_fn)),
-                            fourcc, 30, (out_cap_w, out_cap_h))
+                            fourcc, 24, (out_cap_w, out_cap_h))
 
                     out_cap.write(out_img)
                 else:
