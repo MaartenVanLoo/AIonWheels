@@ -127,11 +127,11 @@ def parse_train_configs():
     configs.input_size = (608, 608)
     configs.hm_size = (152, 152)
     configs.down_ratio = 4
-    configs.max_objects = 50
+    configs.max_objects = 20                    #TODO: CHANE TO 20????????????????????????????
 
     configs.imagenet_pretrained = True
     configs.head_conv = 64
-    configs.num_classes = 2 #TODO: change to 2?
+    configs.num_classes = 1                     #TODO: change to 1 ???????????????????????????
     configs.num_center_offset = 2
     configs.num_z = 1
     configs.num_dim = 3
