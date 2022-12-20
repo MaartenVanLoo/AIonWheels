@@ -1,18 +1,5 @@
-import operator
-import os
-import random
-from bisect import bisect
-from collections import deque, namedtuple
-
 import torch
-import math
-import numpy as np
-from tqdm import tqdm
 
-import wandb
-
-import matplotlib
-import matplotlib.pyplot as plt
 
 _mov_average_size = 10  # moving average of last 10 epsiodes
 ENABLE_WANDB = False
@@ -44,34 +31,10 @@ class DQN(torch.nn.Module):
         return self.model(x)
 
     def act(self, state, epsilon=0.0):
-        if self.frame_idx > 0:
-            #Repeat random action
-            self.frame_idx -= 1
-            #print(f"Random Action: {self.prev_action}")
-            return self.prev_action
-        elif self.frame_idx < 0:
-            #Take own policy:
-            self.frame_idx += 1
-            with torch.no_grad():
-                state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
+        with torch.no_grad():
+            state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
             q_value = self.forward(state)
-            action = q_value.max(1)[1].data[0].cpu().numpy().tolist()  # argmax over actions
-            #print(f"Policy Action: {action}")
-            return action
-
-
-        if random.random() > epsilon:
-            with torch.no_grad():
-                state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
-            q_value = self.forward(state)
-            action = q_value.max(1)[1].data[0].cpu().numpy().tolist()  # argmax over actions
-            self.frame_idx = -5
-            #print(f"Policy Action: {action}")
-        else:
-            self.frame_idx = 5
-            action = random.randint(0, self.num_actions - 1)
-            #print(f"Random Action: {self.prev_action}")
-
+        action = q_value.max(1)[1].data[0].cpu().numpy().tolist()  # argmax over actions
         self.prev_action = action
         return action
 

@@ -19,7 +19,7 @@ def parse_args() ->EasyDict:
     parser.add_argument('--debug', '-d',action='store_true', help="Enable debug mode")
 
     config = EasyDict(vars(parser.parse_args()))
-    config.fps = 20
+    config.fps = 5
     config.debug = False
     return config
 
@@ -32,8 +32,6 @@ def main(args):
     try:
         carlaWorld.spawn(50,0)
         for frame in range(100000):
-            if frame%1000==0:
-                carlaWorld.reset(map = None, layers= carla.MapLayer.All )
             carlaWorld.step()
     except:
         traceback.print_exc()
@@ -52,7 +50,7 @@ if __name__ == "__main__":
         'num_inputs': 12,  # =size of states!
         'num_actions': 101,
         'hidden': [128, 512, 512, 128, 64],
-        'debug': False,
+        'debug': True,
     }
     dl_lidar_config = {
     }
