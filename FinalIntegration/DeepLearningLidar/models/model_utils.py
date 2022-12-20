@@ -16,6 +16,6 @@ def create_model(config):
     print('using ResNet architecture with feature pyramid')
 
     model = get_pose_net(num_layers=config.get('num_layers'), heads=heads, head_conv=config.get('head_conv'),
-                                        imagenet_pretrained=config.get('imagenet_pretrained'))
+                                        imagenet_pretrained=config.get('imagenet_pretrained'), config=config)
 
     return model

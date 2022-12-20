@@ -23,14 +23,9 @@ import torch.nn.functional as F
 
 BN_MOMENTUM = 0.1
 
-model_urls = {
-    'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
-    'resnet34': 'https://download.pytorch.org/models/resnet34-333f7ec4.pth',
-    'resnet50': 'https://download.pytorch.org/models/resnet50-19c8e357.pth',
-    'resnet101': 'https://download.pytorch.org/models/resnet101-5d3b4d8f.pth',
-    'resnet152': 'https://download.pytorch.org/models/resnet152-b121ed2d.pth',
-}
-
+#model_urls = {
+#    'resnet18': main.dl_lidar_config.get('model_path')
+#}
 
 def conv3x3(in_planes, out_planes, stride=1):
     """3x3 convolution with padding"""
@@ -211,7 +206,7 @@ class PoseResNet(nn.Module):
         ret_outs = (outs * softmax_outs).sum(dim=-1)
         return ret_outs
 
-    def init_weights(self, num_layers, pretrained=True):
+    def init_weights(self, num_layers, pretrained=True, config=None):
         if pretrained:
             # TODO: Check initial weights for head later
             for fpn_idx in [0, 1, 2]:  # 3 FPN layers
@@ -229,8 +224,11 @@ class PoseResNet(nn.Module):
                                     nn.init.normal_(m.weight, std=0.001)
                                     nn.init.constant_(m.bias, 0)
             # pretrained_state_dict = torch.load(pretrained)
-            url = model_urls['resnet{}'.format(num_layers)]
-            pretrained_state_dict = model_zoo.load_url(url)
+            #url = config.get('model_path')
+            url = "C:\\Users\\arafa\\OneDrive\\Documenten\\GitHub\\AIonWheels\\FinalIntegration\\models\\Utils_fpn_resnet_250.pth"
+            print("URL: ", url)
+            #pretrained_state_dict = model_zoo.load_url(url)
+            pretrained_state_dict = torch.load(url)
             print('=> loading pretrained model {}'.format(url))
             self.load_state_dict(pretrained_state_dict, strict=False)
 
@@ -242,9 +240,9 @@ resnet_spec = {18: (BasicBlock, [2, 2, 2, 2]),
                152: (Bottleneck, [3, 8, 36, 3])}
 
 
-def get_pose_net(num_layers, heads, head_conv, imagenet_pretrained):
+def get_pose_net(num_layers, heads, head_conv, imagenet_pretrained, config):
     block_class, layers = resnet_spec[num_layers]
 
     model = PoseResNet(block_class, layers, heads, head_conv=head_conv)
-    model.init_weights(num_layers, pretrained=imagenet_pretrained)
+    model.init_weights(num_layers, pretrained=imagenet_pretrained, config=config)
     return model

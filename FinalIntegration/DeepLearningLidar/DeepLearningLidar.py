@@ -19,7 +19,7 @@ class DeeplearningLidar(object):
 
         self.device = torch.device(self.config.get('device', 'cuda') if torch.cuda.is_available() else 'cpu')
         #TODO: load trained model
-        self._model = create_model(self.config)
+        self._model = create_model(self.config).to(self.device)
         #self._model.eval() #set model in evaluation mode
         self._model_name = "/"
         self.bev_map = None
@@ -45,8 +45,10 @@ class DeeplearningLidar(object):
         self.bev_map = makeBEVMap(lidarData, cnf, cnf.boundary)
         self.bev_image = (self.bev_map.transpose(1, 2, 0) * 255).astype(np.uint8)
 
+        torch_map = torch.from_numpy(self.bev_map).to(self.device)
+        torch_map = torch_map.unsqueeze(0).float()
         #Todo: forward model
-        outputs = self._model(self.bev_map)
+        outputs = self._model(torch_map)
         #Todo: decode result
         result = decode(outputs['hm_cen'], outputs['cen_offset'], outputs['direction'], outputs['z_coor'],
                                 outputs['dim'], K=self.config.get('K'))
