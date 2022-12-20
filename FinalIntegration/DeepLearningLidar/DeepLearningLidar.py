@@ -6,7 +6,7 @@ import torch
 
 import FinalIntegration.DeepLearningLidar.config.kitti_config as cnf
 import numpy as np
-from models.model_utils import create_model
+from .models.model_utils import create_model
 
 class DeeplearningLidar(object):
     def __init__(self, carlaWorld, config = None) -> None:
@@ -19,7 +19,7 @@ class DeeplearningLidar(object):
 
         self.device = torch.device(self.config.get('device', 'cuda') if torch.cuda.is_available() else 'cpu')
         #TODO: load trained model
-        self._model = create_model(self.config.get('model_path'))
+        self._model = create_model(self.config)
         #self._model.eval() #set model in evaluation mode
         self._model_name = "/"
         self.bev_map = None
