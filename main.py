@@ -60,7 +60,6 @@ if __name__ == "__main__":
         'num_dim': 3,
         'num_direction': 2,  # sin, cos,
         'num_layers': 18,
-        'head_conv': 64
     }
     dl_recognition_config = {
 
