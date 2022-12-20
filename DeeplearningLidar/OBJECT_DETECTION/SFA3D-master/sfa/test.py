@@ -82,7 +82,7 @@ def parse_test_configs():
 
     configs.imagenet_pretrained = False
     configs.head_conv = 64
-    configs.num_classes = 2
+    configs.num_classes = 1
     configs.num_center_offset = 2
     configs.num_z = 1
     configs.num_dim = 3
