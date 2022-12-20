@@ -2,7 +2,6 @@ import time
 
 from data_process.kitti_bev_utils import makeBEVMap, get_filtered_lidar
 from utils.evaluation_utils import decode
-from config.lidar_config import parse_test_configs
 import torch
 
 import FinalIntegration.DeepLearningLidar.config.kitti_config as cnf
@@ -33,7 +32,6 @@ class DeeplearningLidar(object):
 
     def getDistance(self):
         start = time.time()
-        config = parse_test_configs()
         sensor = self._carlaWorld.get_sensor("Lidar")
         if sensor is None:
             print(f"Inference time DL Lidar:\t{(time.time() - start) * 1000:3.0f} ms")
@@ -51,7 +49,7 @@ class DeeplearningLidar(object):
         outputs = self._model(self.bev_map)
         #Todo: decode result
         result = decode(outputs['hm_cen'], outputs['cen_offset'], outputs['direction'], outputs['z_coor'],
-                                outputs['dim'], K=config.K)
+                                outputs['dim'], K=self.config.get('K'))
 
         print(f"Inference time DL Lidar:\t{(time.time() - start) * 1000:3.0f} ms")
 
