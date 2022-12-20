@@ -58,7 +58,7 @@ class CarlaAgent(BasicAgent):
         self.behavior.training = training
         self.behavior.ignore_speed_limit = ignore_limit
 
-    def step(self, action: int, debug=True):
+    def step(self, action: int, debug=False):
         assert (len(self.actions) > action >= 0, "Specified action out of bounds")
 
         if self.requires_plan():

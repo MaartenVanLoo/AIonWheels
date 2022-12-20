@@ -1,9 +1,12 @@
 from __future__ import division
 import os
 import sys
+
+import numpy as np
 import torch
 import torch.nn.functional as F
 
+import FinalIntegration.DeepLearningLidar.config.kitti_config as cnf
 
 
 def decode(hm_cen, cen_offset, direction, z_coor, dim, K=40):
@@ -74,3 +77,39 @@ def _topk(scores, K=40):
     topk_xs = _gather_feat(topk_xs.view(batch, -1, 1), topk_ind).view(batch, K)
 
     return topk_score, topk_inds, topk_clses, topk_ys, topk_xs
+
+def get_yaw(direction):
+    return np.arctan2(direction[:, 0:1], direction[:, 1:2])
+
+def post_processing(detections, num_classes=3, down_ratio=4, peak_thresh=0.2):
+    """
+    :param detections: [batch_size, K, 10]
+    # (scores x 1, xs x 1, ys x 1, z_coor x 1, dim x 3, direction x 2, clses x 1)
+    # (scores-0:1, xs-1:2, ys-2:3, z_coor-3:4, dim-4:7, direction-7:9, clses-9:10)
+    :return:
+    """
+    # TODO: Need to consider rescale to the original scale: x, y
+
+    ret = []
+    for i in range(detections.shape[0]):
+        top_preds = {}
+        classes = detections[i, :, -1]
+        for j in range(num_classes):
+            inds = (classes == j)
+            # x, y, z, h, w, l, yaw
+            top_preds[j] = np.concatenate([
+                detections[i, inds, 0:1],
+                detections[i, inds, 1:2] * down_ratio,
+                detections[i, inds, 2:3] * down_ratio,
+                detections[i, inds, 3:4],
+                detections[i, inds, 4:5],
+                detections[i, inds, 5:6] / cnf.bound_size_y * cnf.BEV_WIDTH,
+                detections[i, inds, 6:7] / cnf.bound_size_x * cnf.BEV_HEIGHT,
+                get_yaw(detections[i, inds, 7:9]).astype(np.float32)], axis=1)
+            # Filter by peak_thresh
+            if len(top_preds[j]) > 0:
+                keep_inds = (top_preds[j][:, 0] > peak_thresh)
+                top_preds[j] = top_preds[j][keep_inds]
+        ret.append(top_preds)
+
+    return ret

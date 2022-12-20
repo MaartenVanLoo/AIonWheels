@@ -72,7 +72,7 @@ class CarlaWorld(object):
         )
         distance -= self._player.getLength()
         action = self.rl_module.getAction(distance)
-        self._player.step(action, debug=False)
+        self._player.step(action, debug=self.debug)
 
         start = time.time()
         self.world.tick()

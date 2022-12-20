@@ -224,8 +224,9 @@ class PoseResNet(nn.Module):
                                     nn.init.normal_(m.weight, std=0.001)
                                     nn.init.constant_(m.bias, 0)
             # pretrained_state_dict = torch.load(pretrained)
-            #url = config.get('model_path')
-            url = "C:\\Users\\arafa\\OneDrive\\Documenten\\GitHub\\AIonWheels\\FinalIntegration\\models\\Utils_fpn_resnet_250.pth"
+            url = config.get('model_path')
+            #url = "C:\\Users\\arafa\\OneDrive\\Documenten\\GitHub\\AIonWheels\\FinalIntegration\\models
+            # \\Utils_fpn_resnet_250.pth"
             print("URL: ", url)
             #pretrained_state_dict = model_zoo.load_url(url)
             pretrained_state_dict = torch.load(url)

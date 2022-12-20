@@ -1,31 +1,34 @@
 import argparse
 import logging
 import os
-os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
+
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 import traceback
 
 import carla
 import easydict
-from  easydict import EasyDict
+from easydict import EasyDict
 
 from FinalIntegration.CarlaEnvironment.HUD import HUD
 from FinalIntegration.Utils.Sensor import FollowCamera, Lidar, CollisionSensor, Camera
-from FinalIntegration.Utils.CarlaAgent import  CarlaAgent
+from FinalIntegration.Utils.CarlaAgent import CarlaAgent
 from FinalIntegration.CarlaEnvironment.CarlaWorld import CarlaWorld
 
-def parse_args() ->EasyDict:
+
+def parse_args() -> EasyDict:
     parser = argparse.ArgumentParser(description='The Implementation using PyTorch')
     parser.add_argument('--host', type=str, default="127.0.0.1",
                         help='The host ip running carla. By default the localhost is used')
-    parser.add_argument('--debug', '-d',action='store_true', help="Enable debug mode")
+    parser.add_argument('--debug', '-d', action='store_true', help="Enable debug mode")
 
     config = EasyDict(vars(parser.parse_args()))
     config.fps = 20
     config.debug = False
     return config
 
+
 def main(args):
-    #create world
+    # create world
     carlaWorld = CarlaWorld(args)
 
     hud = HUD(1400, 700)
@@ -44,16 +47,18 @@ def main(args):
 if __name__ == "__main__":
     args = parse_args()
     rl_config = {
-        'model_path' : os.path.dirname(os.path.abspath(__file__)) + "/FinalIntegration/models/pious-blaze-154.pth",
+        'model_path': os.path.dirname(os.path.abspath(__file__)) +
+                      "/FinalIntegration/models/ethereal-spaceship-160.pth",
         'history_frames': 3,
         'num_inputs': 12,  # =size of states!
         'num_actions': 101,
         'hidden': [128, 512, 512, 128, 64],
-        'debug': False,
+        'debug': False, #Doesn't do anything
     }
     dl_lidar_config = {
-        'K': 50,         #the number of top K
-        'model_path': os.path.dirname(os.path.abspath(__file__)) + "/FinalIntegration/models/Utils_fpn_resnet_250.pth",
+        'K': 50,  # the number of top K
+        'model_path': os.path.dirname(os.path.abspath(__file__)) +
+                      "/FinalIntegration/models/Model_fpn_resnet_18_epoch_110.pth",
         'imagenet_pretrained': True,
         'head_conv': 64,
         'num_classes': 1,
@@ -62,6 +67,8 @@ if __name__ == "__main__":
         'num_dim': 3,
         'num_direction': 2,  # sin, cos,
         'num_layers': 18,
+
+        'debug':False,
     }
     dl_recognition_config = {
 
