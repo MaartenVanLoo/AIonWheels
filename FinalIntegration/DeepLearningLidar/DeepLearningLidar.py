@@ -1,7 +1,7 @@
 import time
 
-from data_process.kitti_bev_utils import makeBEVMap, get_filtered_lidar
-from utils.evaluation_utils import decode
+from .data_process.kitti_bev_utils import makeBEVMap, get_filtered_lidar
+from .utils.evaluation_utils import decode
 import torch
 
 import FinalIntegration.DeepLearningLidar.config.kitti_config as cnf
@@ -18,8 +18,8 @@ class DeeplearningLidar(object):
         self._agent = carlaWorld.getPlayer()
 
         self.device = torch.device(self.config.get('device', 'cuda') if torch.cuda.is_available() else 'cpu')
-        #TODO: aaanvullen
-        self._model = create_model(config)
+        #TODO: load trained model
+        self._model = create_model(self.config.get('model_path'))
         #self._model.eval() #set model in evaluation mode
         self._model_name = "/"
         self.bev_map = None

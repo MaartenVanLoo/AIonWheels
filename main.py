@@ -49,7 +49,8 @@ if __name__ == "__main__":
         'debug': False,
     }
     dl_lidar_config = {
-        'K': 50 #the number of top K
+        'K': 50,         #the number of top K
+        'model_path': os.path.dirname(os.path.abspath(__file__)) + "/FinalIntegration/models/Utils_fpn_resnet_250.pth"
     }
     dl_recognition_config = {
 
