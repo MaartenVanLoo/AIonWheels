@@ -1,6 +1,6 @@
 import time
 
-from .data_process.kitti_bev_utils import makeBEVMap,get_filtered_lidar
+from data_process.kitti_bev_utils import makeBEVMap, get_filtered_lidar
 import torch
 
 import FinalIntegration.DeepLearningLidar.config.kitti_config as cnf
