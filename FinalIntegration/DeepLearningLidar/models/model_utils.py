@@ -3,21 +3,18 @@ import sys
 
 from .fpn_resnet import get_pose_net
 
-def create_model(configs):
+def create_model(config):
     """Create model based on architecture name"""
-    num_layers = 18
-    head_conv = 64
     heads = {
-        'hm_cen': 1,
-        'cen_offset': 2,
-        'direction': 2,
-        'z_coor': 1,
-        'dim': 3
+        'hm_cen': config.get('num_classes'),
+        'cen_offset': config.get('num_center_offset'),
+        'direction': config.get('num_direction'),
+        'z_coor': config.get('num_z'),
+        'dim': config.get('num_dim')
     }
-    imagenet_pretrained = True
 
     print('using ResNet architecture with feature pyramid')
-    model = get_pose_net(num_layers=num_layers, heads=heads, head_conv=head_conv,
-                                        imagenet_pretrained=imagenet_pretrained)
+    model = get_pose_net(num_layers=config.get('num_layer'), heads=heads, head_conv=config.get('head_conv'),
+                                        imagenet_pretrained=config.get('imagenet_pretrained'))
 
     return model
