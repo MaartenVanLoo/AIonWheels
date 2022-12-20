@@ -32,7 +32,8 @@ class CarlaWorld(object):
         self.walker_list = []
 
         self.lidar_transform = carla.Transform(carla.Location(x=0, y=0, z=1.80), carla.Rotation(pitch=0, yaw=0, roll=0))
-        self.camera_transform = carla.Transform(carla.Location(x=1.1, y=0, z=1), carla.Rotation(pitch=0, yaw=0, roll=0))
+        self.camera_transform = carla.Transform(carla.Location(x=1.2, y=0, z=1.05), carla.Rotation(pitch=0, yaw=0,
+                                                                                                 roll=0))
 
         self._player = CarlaAgent(self.world, args)
         self.sensors["FollowCamera"] = FollowCamera(self._player.getVehicle(), self.world)
@@ -62,6 +63,7 @@ class CarlaWorld(object):
             sensor.step()
         stop = time.time()
         print(f"Sensor update time:\t\t\t{(stop - start) * 1000:3.0f} ms")
+        self.dl_recognition.detect()
         distance = self.dl_lidar.getDistance()
         distance, _ = distanceAlongPath(
             self.getGlobalPath(),

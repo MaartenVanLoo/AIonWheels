@@ -44,7 +44,8 @@ def main(args):
 if __name__ == "__main__":
     args = parse_args()
     rl_config = {
-        'model_path' : os.path.dirname(os.path.abspath(__file__)) + "/FinalIntegration/models/pious-blaze-154.pth",
+        'model_path' : os.path.dirname(os.path.abspath(__file__)) +
+                       "/FinalIntegration/models/ethereal-spaceship-160.pth",
         'history_frames': 3,
         'num_inputs': 12,  # =size of states!
         'num_actions': 101,
@@ -64,7 +65,11 @@ if __name__ == "__main__":
         'num_layers': 18,
     }
     dl_recognition_config = {
-
+        'model_path':os.path.dirname(os.path.abspath(__file__)) + "/FinalIntegration/models/weights.pt",
+        'hubconf_path':os.path.dirname(os.path.abspath(__file__)) + "/FinalIntegration/DeepLearningRecognition",
+        'conf_threshold':0.25, #minimum confidence for object to be detected
+        'iou_threshold':0.45,
+        'max_detections':10,
     }
 
     args.rl_config = rl_config
