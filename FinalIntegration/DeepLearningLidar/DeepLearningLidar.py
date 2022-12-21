@@ -145,7 +145,7 @@ class DeeplearningLidar(object):
 
                 #debug:
                 if self.debug:
-                    self._carlaWorld.world.debug.draw_box(bb, bb.rotation, life_time =0.5)
+                    self._carlaWorld.world.debug.draw_box(bb, bb.rotation,  life_time=0.1,thickness=0.05, color=carla.Color(g=0, r=0, b=200))
 
         if self.debug:
             #debug player bb:
@@ -181,5 +181,5 @@ class DeeplearningLidar(object):
             boxes.append(bb)
 
             # debug:
-            self._carlaWorld.world.debug.draw_box(bb, bb.rotation, life_time=0.5, color=carla.Color(g=255))
+            self._carlaWorld.world.debug.draw_box(bb, bb.rotation, life_time=0.1,thickness=0.05, color=carla.Color(g=0, r=0, b=200))
         return boxes
