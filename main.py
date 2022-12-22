@@ -23,7 +23,7 @@ def parse_args() -> EasyDict:
 
     config = EasyDict(vars(parser.parse_args()))
     config.fps = 20
-    config.debug = False
+    config.debug = True
     return config
 
 
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     dl_lidar_config = {
         'K': 50,  # the number of top K
         'model_path': os.path.dirname(os.path.abspath(__file__)) +
-                      "/FinalIntegration/models/Model_fpn_resnet_18_epoch_110.pth",
+                      "/FinalIntegration/models/1C_20OBj_Lidar.pth",
         'imagenet_pretrained': True,
         'head_conv': 64,
         'num_classes': 1,

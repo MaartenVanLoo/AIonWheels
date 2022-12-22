@@ -62,14 +62,18 @@ class CarlaWorld(object):
             sensor.step()
         stop = time.time()
         print(f"Sensor update time:\t\t\t{(stop - start) * 1000:3.0f} ms")
-        distance = self.dl_lidar.getDistance()
-        distance, _ = distanceAlongPath(
-            self.getGlobalPath(),
-            self.getGlobalBoundingBoxes(),
-            self.getPlayer().getWidth(),
-            self.world,
-            debug=self.debug
-        )
+        self.dl_lidar.detect()
+        if self.dl_lidar.detected_boxes is None:
+            distance = 110
+        else:
+            distance, _ = distanceAlongPath(
+                self.getGlobalPath(),
+                self.dl_lidar.detected_boxes,
+                #self.getGlobalBoundingBoxes(),
+                self.getPlayer().getWidth(),
+                self.world,
+                debug=self.debug
+            )
         distance -= self._player.getLength()
         action = self.rl_module.getAction(distance)
         self._player.step(action, debug=self.debug)

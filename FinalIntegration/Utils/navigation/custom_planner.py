@@ -297,7 +297,7 @@ def _compute_connection(current_waypoint, next_waypoint, threshold=35):
 
 
 
-def _draw_path(world, path, fading = .99):
+def _draw_path(world, path, fading = .95):
     offset = carla.Location(0.1)
     points = [p[0].transform.location+offset for p in path]
     alpha = 20
@@ -307,7 +307,7 @@ def _draw_path(world, path, fading = .99):
         begin.z += 0.1
         end.z += 0.1
         color = carla.Color(0,5,0,a=int(alpha))
-        world.debug.draw_line(begin, end, thickness = 1, color = color, life_time = 2)
+        world.debug.draw_line(begin, end, thickness = 1, color = color, life_time = 1.1)
 
         # update alpha
         alpha *= fading

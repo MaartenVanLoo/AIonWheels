@@ -15,7 +15,7 @@ class Ray(object):
         world.debug.draw_line(carla.Vector3D(start),
                                     carla.Vector3D(end),
                                     thickness=0.1,
-                                    color=carla.Color(5, 0, 0, 20), life_time=1)
+                                    color=carla.Color(5, 0, 0, 20), life_time=0.15)
         """assume ray in bb space"""
         """
         #world.debug.draw_line(self.origin, self.origin + self.direction)

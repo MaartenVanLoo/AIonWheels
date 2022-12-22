@@ -1,3 +1,4 @@
+import os
 import time
 
 import carla
@@ -9,7 +10,9 @@ import torch
 
 import FinalIntegration.DeepLearningLidar.config.kitti_config as cnf
 import numpy as np
-from .models.model_utils import create_model
+
+from .models.fpn_resnet import get_pose_net
+
 
 def _sigmoid(x):
     return torch.clamp(x.sigmoid_(), min=1e-4, max=1 - 1e-4)
@@ -29,7 +32,7 @@ class DeeplearningLidar(object):
 
         self.device = torch.device(self.config.get('device', 'cuda') if torch.cuda.is_available() else 'cpu')
         #TODO: load trained model
-        self._model = create_model(self.config).to(self.device)
+        self._model = self.create_model(self.config).to(self.device)
         self._model.eval() #set model in evaluation mode
         self._model_name = "/"
         self.bev_map = None
@@ -40,12 +43,30 @@ class DeeplearningLidar(object):
           [255, 120, 120], [0, 120, 0], [120, 255, 255], [120, 0, 255]]
 
         self.distance = 110
+        self.detected_boxes = None
 
+    def create_model(self,config):
+        """Create model based on architecture name"""
+        heads = {
+            'hm_cen': config.get('num_classes'),
+            'cen_offset': config.get('num_center_offset'),
+            'direction': config.get('num_direction'),
+            'z_coor': config.get('num_z'),
+            'dim': config.get('num_dim')
+        }
+
+        print('using ResNet architecture with feature pyramid')
+
+        model = get_pose_net(num_layers=config.get('num_layers'), heads=heads, head_conv=config.get('head_conv'),
+                             imagenet_pretrained=config.get('imagenet_pretrained'), config=config)
+        _, self._model_name = os.path.split(config.get('model_path'))
+
+        return model
 
     def getModelName(self)->str:
         return self._model_name
 
-    def getDistance(self):
+    def detect(self):
         start = time.time()
         sensor = self._carlaWorld.get_sensor("Lidar")
         if sensor is None:
@@ -76,7 +97,6 @@ class DeeplearningLidar(object):
             self.bev_image = self._draw_output_map(self.bev_image, detections)
             self.detected_boxes = self._create_bounding_boxes(detections)
         print(f"Inference time DL Lidar:\t{(time.time() - start) * 1000:3.0f} ms")
-
 
     def _draw_output_map(self,bev_map, detections):
         # Draw prediction in the image
@@ -145,7 +165,8 @@ class DeeplearningLidar(object):
 
                 #debug:
                 if self.debug:
-                    self._carlaWorld.world.debug.draw_box(bb, bb.rotation,  life_time=0.1,thickness=0.05, color=carla.Color(g=0, r=0, b=200))
+                    self._carlaWorld.world.debug.draw_box(bb, bb.rotation,  life_time=0.11,thickness=0.05,
+                                                          color=carla.Color(g=0, r=0, b=200))
 
         if self.debug:
             #debug player bb:
@@ -178,7 +199,6 @@ class DeeplearningLidar(object):
             bb.rotation.pitch += lidar_transform.rotation.pitch
             bb.rotation.yaw += lidar_transform.rotation.yaw
             bb.rotation.roll += lidar_transform.rotation.roll
-            boxes.append(bb)
 
             # debug:
             self._carlaWorld.world.debug.draw_box(bb, bb.rotation, life_time=0.1,thickness=0.05, color=carla.Color(g=0, r=0, b=200))
