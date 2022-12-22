@@ -98,8 +98,8 @@ class Camera(Sensor):
         library = self.world.get_blueprint_library()
         camera_bp = library.find('sensor.camera.rgb')
 
-        camera_bp.set_attribute('image_size_x', '600')
-        camera_bp.set_attribute('image_size_y', '400')
+        camera_bp.set_attribute('image_size_x', '640')
+        camera_bp.set_attribute('image_size_y', '640')
         camera_bp.set_attribute('fov', '100')  # 72 degrees # Always fov on width even if width is different than height
         camera_bp.set_attribute('sensor_tick', str(1/20))  # 20Hz camera
         camera_bp.set_attribute('gamma', '2.2')

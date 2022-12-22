@@ -2,6 +2,7 @@ import glob
 import os
 import sys
 import time
+import shutil
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -15,9 +16,13 @@ import carla
 import argparse
 import logging
 import random
+import generate_traffic
 
 
 def main():
+    if os.path.exists('images'):
+        shutil.rmtree('images') #delete the old images folder if it exists
+
     argparser = argparse.ArgumentParser(
         description=__doc__)
     argparser.add_argument(
@@ -48,14 +53,21 @@ def main():
         ego_obs = None
         ego_gnss = None
         ego_imu = None
+        sem_cam = None
+
 
         # --------------
         # Start recording
         # --------------
-        """
+        
         client.start_recorder('~/tutorial/recorder/recording01.log')
-        """
-
+        
+        # --------------
+        # Spawn npcs (added by us)
+        # --------------
+        
+        #spawn_npc.create_npcs(150, 70)
+        
         # --------------
         # Spawn ego vehicle
         # --------------
@@ -87,12 +99,28 @@ def main():
         cam_bp = world.get_blueprint_library().find('sensor.camera.rgb')
         cam_bp.set_attribute("image_size_x",str(1920))
         cam_bp.set_attribute("image_size_y",str(1080))
-        cam_bp.set_attribute("fov",str(105))
+        cam_bp.set_attribute("fov",str(30))
         cam_location = carla.Location(2,0,1)
-        cam_rotation = carla.Rotation(0,180,0)
+        cam_rotation = carla.Rotation(0,0,0)
         cam_transform = carla.Transform(cam_location,cam_rotation)
         ego_cam = world.spawn_actor(cam_bp,cam_transform,attach_to=ego_vehicle, attachment_type=carla.AttachmentType.Rigid)
-        ego_cam.listen(lambda image: image.save_to_disk('~/tutorial/output/%.6d.jpg' % image.frame))
+        ego_cam.listen(lambda image: image.save_to_disk('images/rgb_output/%.6d.jpg' % image.frame))
+        
+        # --------------
+        # Add a new semantic segmentation camera to my ego
+        # --------------
+
+        sem_bp = None
+        sem_bp = world.get_blueprint_library().find('sensor.camera.semantic_segmentation')
+        sem_bp.set_attribute("image_size_x",str(1920))
+        sem_bp.set_attribute("image_size_y",str(1080))
+        sem_bp.set_attribute("fov",str(30))
+        sem_location = carla.Location(2,0,1)
+        sem_rotation = carla.Rotation(0,0,0)
+        sem_transform = carla.Transform(sem_location,sem_rotation)
+        sem_cam = world.spawn_actor(sem_bp,sem_transform,attach_to=ego_vehicle, attachment_type=carla.AttachmentType.Rigid)
+        # This time, a color converter is applied to the image, to get the semantic segmentation view
+        sem_cam.listen(lambda image1: image1.save_to_disk('images/sem_output/%.6d.jpg' % image1.frame,carla.ColorConverter.CityScapesPalette))
 
 
         # --------------
@@ -171,11 +199,11 @@ def main():
         # --------------
         # Place spectator on ego spawning
         # --------------
-        """
+        
         spectator = world.get_spectator()
         world_snapshot = world.wait_for_tick()
         spectator.set_transform(ego_vehicle.get_transform())
-        """
+        
 
         # --------------
         # Enable autopilot for ego vehicle
@@ -189,6 +217,7 @@ def main():
         # --------------
         while True:
             world_snapshot = world.wait_for_tick()
+
 
     finally:
         # --------------
@@ -223,4 +252,4 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         pass
     finally:
-        print('\nDone with tutorial_ego.')
+        print('\nDone with images_ego.')

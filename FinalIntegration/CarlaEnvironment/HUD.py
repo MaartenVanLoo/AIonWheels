@@ -208,23 +208,27 @@ class HUD(object):
             v_offset += 18
 
     def _render_detection(self, carlaWorld):
-        sensor = carlaWorld.get_sensor("Camera")
+        #first try to get the DL image:
         pos = (
-            self.info_width + self.spacing + self.image_frame.get_width()/2,
-            self.margin[1] + self.image_frame.get_height()/2
+            self.info_width + self.spacing + self.image_frame.get_width() / 2,
+            self.margin[1] + self.image_frame.get_height() / 2
         )
         image_rect = self.image_frame.get_rect(center=pos)
         self.display.blit(self.image_frame, image_rect)
-        if sensor is None:
-            self.__noDataImage("No camera found",center=pos)
-            return  #no sensor found
-        image = sensor.getState()
+        image = carlaWorld.dl_recognition.detected_image
         if image is None:
-            self.__noDataImage("No camera data found",center=pos)
-            return  # no image found
+            sensor = carlaWorld.get_sensor("Camera")
+            if sensor is None:
+                self.__noDataImage("No camera found",center=pos)
+                return  #no sensor found
+            image = sensor.getState()
+            if image is None:
+                self.__noDataImage("No camera data found",center=pos)
+                return  # no image found
         #scale image:
         image = image_resize(image,width=self.frame_content_dim[0], height=self.frame_content_dim[1])
         surface = pygame.surfarray.make_surface(image.swapaxes(0, 1))
+
         surface_rect = surface.get_rect(center=pos)
         self.display.blit(surface, surface_rect)
         pass
