@@ -3,6 +3,7 @@ import os
 import cv2
 import torch
 
+from .models.common import DetectMultiBackend
 from .utils.plots import Annotator, Colors
 from .utils.general import non_max_suppression
 import numpy as np
@@ -52,6 +53,7 @@ class DeepLearningRecognition(object):
 
         tensor = torch.tensor(image).to(self.device)
         tensor = tensor.unsqueeze(0).permute(0, 3, 1, 2).float()
+        tensor /= 255
         y = self._model.forward(tensor)
 
         if isinstance(y, (list, tuple)):
@@ -84,9 +86,13 @@ class DeepLearningRecognition(object):
         if not (os.path.exists(filename) and os.path.isfile(filename)):
             print("Model file not found")
             return None
-        model = torch.hub.load(hubconf_path, 'custom', path=filename, source='local')
+        if not (os.path.exists(hubconf_path + "/hubconf.py")):
+            print("Hubconf not found")
+            return None
+        #model = torch.hub.load(hubconf_path, 'custom', path=filename, source='local')
         #from .models.experimental import attempt_load
         #model = attempt_load(filename)
+        model = DetectMultiBackend(filename, device=self.device)
         return model
 
     def getModelName(self) -> str:
