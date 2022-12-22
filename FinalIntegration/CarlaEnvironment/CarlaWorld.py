@@ -35,12 +35,17 @@ class CarlaWorld(object):
         self.camera_transform = carla.Transform(carla.Location(x=1.2, y=0, z=1.05), carla.Rotation(pitch=0, yaw=0,
                                                                                                  roll=0))
 
+        self.forced_start=args.forced_start
+        self.emergency_brake=args.emergency_brake
+
         self._player = CarlaAgent(self.world, args)
         self._player.eval()
         self.sensors["FollowCamera"] = FollowCamera(self._player.getVehicle(), self.world)
         self.sensors["CollisionSensor"] = CollisionSensor(self._player.getVehicle(), self.world)
         self.sensors["Lidar"] = Lidar(self._player.getVehicle(), self.world, self.lidar_transform)
         self.sensors["Camera"] = Camera(self._player.getVehicle(), self.world, self.camera_transform)
+
+
 
         # update world:
         self.world.tick()
@@ -57,6 +62,13 @@ class CarlaWorld(object):
 
     def getPlayer(self) -> CarlaAgent:
         return self._player
+
+
+    def emergencyBrake(self,distance):
+        if distance<self.emergency_brake:
+            return self.rl_module._agent.actions[0]
+        else:
+            return self.rl_module.getAction(distance)
 
     def step(self):
         start = time.time()
@@ -78,7 +90,7 @@ class CarlaWorld(object):
                 debug=self.debug
             )
         distance -= self._player.getLength()
-        action = self.rl_module.getAction(distance)
+        action = self.emergencyBrake(distance)
         self._player.step(action, debug=self.debug)
 
         start = time.time()
@@ -144,7 +156,11 @@ class CarlaWorld(object):
         self.dl_lidar._agent = self._player
         self.dl_recognition._agent = self._player
 
-        self.world.tick()
+        for i in self.forced_start:
+            self.rl_module.getAction(100)
+            action = self.rl_module._agent.actions[-1]
+            self._player.step(action, debug=self.debug)
+            self.world.tick()
 
     def _synchronous(self):
         # Set Synchronous mode
