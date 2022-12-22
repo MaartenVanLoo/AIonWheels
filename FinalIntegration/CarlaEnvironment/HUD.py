@@ -9,7 +9,7 @@ import numpy as np
 import pygame
 from pygame.locals import KMOD_CTRL
 from pygame.locals import K_ESCAPE
-from pygame.locals import K_q, K_f, K_F12
+from pygame.locals import K_q, K_f, K_F12, K_r
 
 from .CarlaWorld import CarlaWorld
 import carla
@@ -77,6 +77,7 @@ class HUD(object):
         self.options = options
 
         self.logger = logging.getLogger("AIonWheels")
+        self.carlaWorld = None
 
     def on_world_tick(self, timestamp):
         """Gets informations from the world at every tick"""
@@ -353,6 +354,10 @@ class KeyboardControl(object):
                 if self._is_exit_full_screen(event.key):
                     self._exit_fullscreen()
                     continue
+                if event.key == K_r:
+                    if self.hud.carlaWorld is None:
+                        return
+                    self.hud.carlaWorld.reset()
 
             if event.type == pygame.VIDEORESIZE:
                 w = event.w

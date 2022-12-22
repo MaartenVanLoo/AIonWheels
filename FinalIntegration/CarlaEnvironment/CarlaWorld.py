@@ -38,7 +38,7 @@ class CarlaWorld(object):
         self._player.eval()
         self.sensors["FollowCamera"] = FollowCamera(self._player.getVehicle(), self.world)
         self.sensors["CollisionSensor"] = CollisionSensor(self._player.getVehicle(), self.world)
-        #self.sensors["Lidar"] = Lidar(self._player.getVehicle(), self.world, self.lidar_transform)
+        self.sensors["Lidar"] = Lidar(self._player.getVehicle(), self.world, self.lidar_transform)
         #self.sensors["Camera"] = Camera(self._player.getVehicle(), self.world, self.camera_transform)
 
         # update world:
@@ -207,12 +207,14 @@ class CarlaWorld(object):
             print("Could not attach HUD. HUD is already attached to another world")
             return
         self.HUD = hud
+        self.HUD.carlaWorld = self
         self.HUD.id = self.world.on_tick(self.HUD.on_world_tick)
 
     def disableHUD(self):
         if self.HUD:
             self.world.remove_on_tick(self.HUD.id)
             self.HUD.id = -1
+            self.HUD.carlaWorld = None
             self.HUD = None
 
     def getGlobalPath(self):

@@ -21,7 +21,7 @@ def parse_args() ->EasyDict:
     parser.add_argument('--debug', '-d',action='store_true', help="Enable debug mode")
 
     config = EasyDict(vars(parser.parse_args()))
-    config.fps = 5
+    config.fps = 20
     config.debug = False
     return config
 
@@ -34,8 +34,6 @@ def main(args):
     try:
         carlaWorld.spawn(50,0)
         for frame in range(100000):
-            if frame%1000==0:
-                carlaWorld.reset(map = None, layers= carla.MapLayer.All )
             carlaWorld.step()
     except:
         traceback.print_exc()
