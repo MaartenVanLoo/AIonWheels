@@ -1,9 +1,9 @@
 .idea/
 .vscode/
 *.sw*
-
+*__pycache__*
 #ignore wandb folders
-wandb/
+*wandb/
 # ignore pytorch checkpoints (do not exclude .pth files,
 # these models are Final models which we can use in production)
 *.pt

@@ -1,5 +1,6 @@
 import operator
 import os
+import pathlib
 import random
 from bisect import bisect
 from collections import deque, namedtuple
@@ -7,14 +8,15 @@ from collections import deque, namedtuple
 import torch
 import math
 import numpy as np
+from tqdm import tqdm
+
 import wandb
 
-from Environment import SimpleACC
 import matplotlib
 import matplotlib.pyplot as plt
 
 _mov_average_size = 10  # moving average of last 10 epsiodes
-ENABLE_WANDB=False
+ENABLE_WANDB=True
 #matplotlib.use("Tkagg")
 
 class DQN(torch.nn.Module):
@@ -25,6 +27,11 @@ class DQN(torch.nn.Module):
         self.num_inputs = config.get('num_inputs', 3)
         self._hidden = config.get('hidden', [128, 128])
         self.num_actions = config.get('num_actions', 7)
+
+        self.debug = config.get('debug', False)
+
+        self.frame_idx = 0
+        self.prev_action = None
 
         modules = []
         modules.append(torch.nn.Linear(self.num_inputs, self._hidden[0]))
@@ -40,13 +47,39 @@ class DQN(torch.nn.Module):
         return self.model(x)
 
     def act(self, state, epsilon=0.0):
+        if self.frame_idx > 0:
+            #Repeat random action
+            self.frame_idx -= 1
+            if self.debug:
+                print(f"Random Action: {self.prev_action}")
+            return self.prev_action
+        elif self.frame_idx < 0:
+            #Take own policy:
+            self.frame_idx += 1
+            with torch.no_grad():
+                state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
+            q_value = self.forward(state)
+            action = q_value.max(1)[1].data[0].cpu().numpy().tolist()  # argmax over actions
+            if self.debug:
+                print(f"Policy Action: {action}")
+            return action
+
+
         if random.random() > epsilon:
             with torch.no_grad():
                 state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
             q_value = self.forward(state)
             action = q_value.max(1)[1].data[0].cpu().numpy().tolist()  # argmax over actions
+            self.frame_idx = -5
+            if self.debug:
+                print(f"Policy Action: {action}")
         else:
+            self.frame_idx = 5
             action = random.randint(0, self.num_actions - 1)
+            if self.debug:
+                print(f"Random Action: {self.prev_action}")
+
+        self.prev_action = action
         return action
 
 
@@ -262,10 +295,15 @@ class Qlearner:
         #self.__episode_rewards_ax = self.__episode_rewards_fig.add_subplot(1,1,1)
 
         self.wandb_enabled = False
+        self.model_name = "TrainedModel.pth"
         self.initwandb()
 
 
+
     def save(self,filename: str)->None:
+        path = pathlib.Path(filename)
+        if not path.parent.exists():
+            os.makedirs(path.parent)
         torch.save(self.currentDQN.state_dict(), filename)
         pass
 
@@ -276,11 +314,15 @@ class Qlearner:
 
     def __update_target(self):
         self.targetDQN.load_state_dict(self.currentDQN.state_dict())
+        #soft update: TODO: CODE NOT CHECKED! verify if this code works
+        #tau = 1e-3
+        #for target_param, local_param in zip(self.targetDQN.parameters(), self.currentDQN.parameters()):
+        #    target_param.data.copy_(tau*local_param.data + (1-tau) * target_param.data)
 
     def __epsilon_by_frame(self, frame):
-        epsilon_start = 1.0
-        epsilon_final = 0.02
-        epsilon_decay = 500000
+        epsilon_start = self.config.get('epsilon_start',0.1)
+        epsilon_final = self.config.get('epsilon_final',0.002)
+        epsilon_decay = self.config.get('epsilon_decay',10000)
         return epsilon_final + (epsilon_start - epsilon_final) * math.exp(-1. * frame / epsilon_decay)
 
     def __update(self):
@@ -318,7 +360,7 @@ class Qlearner:
 
         state = self.env.reset()
         n_experiences = 0
-        for frame_idx in range(1, self.num_frames + 1):
+        for frame_idx in tqdm(range(1, self.num_frames + 1)):
             self.metrics = {}
             self.currentDQN.eval()
             epsilon = self.__epsilon_by_frame(frame_idx)
@@ -328,6 +370,8 @@ class Qlearner:
 
             next_state, reward, done, info = self.env.step(action)
             self.metrics['reward']=reward
+            for key, value in info.items():
+                self.metrics[key]=value
 
             if 'collision' in info.keys():
                 collisions += int(info['collision'])
@@ -352,7 +396,7 @@ class Qlearner:
                 if random.random()>0.5: # avoid plotting everything
                     #self.env.plot()
                     pass
-                self.metrics['episode_length'] = env.stepCount
+                self.metrics['episode_length'] = self.env.stepCount
                 state = self.env.reset()
                 all_rewards.append(episode_reward)
                 movingAverage.append(sum(all_rewards[-_mov_average_size:]) / min(_mov_average_size, len(all_rewards)))
@@ -383,13 +427,13 @@ class Qlearner:
                 plt.title("Episode rewards")
                 #plt.show(block = False)
                 pass
-            # update target every 20000 frames
-            if frame_idx % 20000 == 0:
+            # update target every 1000 frames
+            if frame_idx % self.config.get('target_update_freq',20000) == 0:
                 self.__update_target()
-            # save network every 20 000 frames
+            # save network every 100 000 frames
             if frame_idx % 100000 == 0:
                 self.save(f"DQN_{frame_idx}.pt")
-
+                self.save(f"models/checkpoint_{frame_idx}_" + self.model_name)
             if (self.wandb_enabled):
                 wandb.log(self.metrics)
                 self.metrics={}
@@ -407,7 +451,7 @@ class Qlearner:
         while True:
             with torch.no_grad():
                 action = self.currentDQN.act(state)
-                env.step(action)
+                self.env.step(action)
                 next_state, reward, done, info = self.env.step(action)
 
                 state = next_state
@@ -443,31 +487,7 @@ class Qlearner:
         os.environ["WANDB_API_KEY"] ='827fc9095ed2096f0d61efa2cca1450526099892'
 
         wandb.login()
-        wandb.init(project="AIonWheels", tags="qLearning",config=self.config)
+        run = wandb.init(project="AIonWheels_RL", tags="qLearning",config=self.config)
         self.wandb_enabled = True
+        self.model_name = run.name + ".pth"
 
-if __name__ == "__main__":
-    # config = optional, default values have been set in the qlearning framework
-    config = {
-        'device': 'cuda',
-        'batch_size': 2048,
-        'mini_batch': 24,  # only update once after n experiences
-        'num_frames': 2000000,
-        'gamma': 0.90,
-        'replay_size': 250000,
-        'lr':0.0003,
-        'reward_offset':1.5,
-
-        'history_frames': 3,
-        'num_inputs': 6,  # =size of states!
-        'num_actions': 11,
-        'hidden': [128,512, 512, 128, 64],
-    }
-    env = SimpleACC(config)
-    config['num_inputs'] = len(env.reset()) # always correct :D
-
-    qlearning = Qlearner(env, DQN, config)
-    #qlearning.train()
-    #qlearning.save("models/TrainedModel.pth")
-    qlearning.load("DQN_600000.pt")
-    qlearning.eval()

@@ -1,0 +1,12 @@
+pytorch
+torchvision
+torchsummary
+easydict
+opencv-python
+numpy
+tensorboard
+scikit-learn
+wget
+tqdm
+matplotlib
+wandb
