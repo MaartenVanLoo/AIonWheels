@@ -151,7 +151,8 @@ class CarlaRLEnvFast(CarlaWorldFast):
                 isCollision = not state_vehicle == ""
 
         distance_penalty = 2 if (distance < self.__getSafeDistance()) else 0
-        distance_penalty += 15 if distance < 2 else 0 #aditional penalty when getting tooooo close to car (before
+        distance_penalty += 10 * (4 - distance) if distance < 4 else 0 #aditional penalty when getting tooooo close to
+        # car (before
         # collision)
 
         target_speed = self.__getTargetSpeed(distance, vehicleId)
@@ -165,7 +166,7 @@ class CarlaRLEnvFast(CarlaWorldFast):
             u = action - self.prev_action
         # https://nl.mathworks.com/help/reinforcement-learning/ug/train-ddpg-agent
         # -for-adaptive-cruise-control.html
-        reward = -(0.1 * e * e + 8 * u * u) + m_t - distance_penalty + self.reward_offset - isCollision * 0
+        reward = -(0.1 * e * e + 10 * u * u) + m_t - distance_penalty + self.reward_offset - isCollision * 50
         # speed_reward = -sigmoid(abs(dv/5))*2+2
 
         # combined_reward = distance_reward*sigmoid(-distance+10)+\
@@ -301,7 +302,7 @@ def main():
         'device': 'cuda',
         'batch_size': 2048,
         'mini_batch': 4,  # only update once after n experiences
-        'num_frames': 1000000,
+        'num_frames': 100000,
         'gamma': 0.90,
         'replay_size': 250000,
         'lr': 0.0003,
@@ -320,7 +321,7 @@ def main():
     args.agent_config = config
 
     worldapi=None
-    Qlearner.ENABLE_WANDB = True
+    Qlearner.ENABLE_WANDB = False
     try:
         #worldapi = CarlaRLEnv(host="192.168.0.99", config=config, args=args, show = False, debug = False)
         worldapi = CarlaRLEnvFast(config, args)
@@ -331,11 +332,12 @@ def main():
 
         #config['num_inputs'] = len(worldapi.reset())  # always correct, but expensive in a carla environent
         qlearning = Qlearner(worldapi, DQN, config)
-        #qlearning.load("../models/eternal-river-81.pth") # base model
+        qlearning.load("../models/eternal-river-81.pth") # base model
         #qlearning.load("../CarlaEnvironment/models/eager-capybara-144.pth")
+        #qlearning.load("../CarlaEnvironment/models/fresh-cpybara-170.pth")
 
         qlearning.train()
-        qlearning.save("models/" + qlearning.model_name)
+        #qlearning.save("models/" + qlearning.model_name)
         #qlearning.eval()
         #qlearning.save("../models/TrainedModel_meadow-63_carla.pth")
         #qlearning.save("../models/prime-sun-67_carla.pth")

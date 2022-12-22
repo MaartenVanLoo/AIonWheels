@@ -43,7 +43,7 @@ class CarlaAgent(BasicAgent):
 
         # RL specific settings:
         self.actions = np.linspace(-1, 1, config.get('num_actions', 101))
-        self._target_speed = config.get('target_speed', 15)  # m/s
+        self._target_speed = config.get('target_speed', 50)  # m/s
 
         # self behavior
         self.behavior = easydict.EasyDict()

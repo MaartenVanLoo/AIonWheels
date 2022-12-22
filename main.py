@@ -14,28 +14,28 @@ from FinalIntegration.Utils.Sensor import FollowCamera, Lidar, CollisionSensor, 
 from FinalIntegration.Utils.CarlaAgent import CarlaAgent
 from FinalIntegration.CarlaEnvironment.CarlaWorld import CarlaWorld
 
-
-def parse_args() -> EasyDict:
+def parse_args() ->EasyDict:
     parser = argparse.ArgumentParser(description='The Implementation using PyTorch')
     parser.add_argument('--host', type=str, default="127.0.0.1",
                         help='The host ip running carla. By default the localhost is used')
-    parser.add_argument('--debug', '-d', action='store_true', help="Enable debug mode")
+    parser.add_argument('--debug', '-d',action='store_true', help="Enable debug mode")
 
     config = EasyDict(vars(parser.parse_args()))
-    config.fps = 20
-    config.debug = True
+    config.fps = 5
+    config.debug = False
     return config
-
 
 def main(args):
     # create world
     carlaWorld = CarlaWorld(args)
 
-    hud = HUD(1400, 700)
+    hud = HUD(1400,700)
     carlaWorld.attachHUD(hud)
     try:
-        carlaWorld.spawn(50, 0)
+        carlaWorld.spawn(50,0)
         for frame in range(100000):
+            if frame%1000==0:
+                carlaWorld.reset(map = None, layers= carla.MapLayer.All )
             carlaWorld.step()
     except:
         traceback.print_exc()

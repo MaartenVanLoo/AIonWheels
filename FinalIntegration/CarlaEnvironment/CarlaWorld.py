@@ -20,7 +20,7 @@ class CarlaWorld(object):
         self.args = args
         self.client = carla.Client(args.host, 2000)
         self.client.set_timeout(100.0)
-        self.client.load_world("Town03_Opt")
+        self.client.load_world("Town04_Opt")
         self.world = self.client.get_world()
         self.traffic_manager = self.client.get_trafficmanager()
         self.fps = args.fps
@@ -35,10 +35,11 @@ class CarlaWorld(object):
         self.camera_transform = carla.Transform(carla.Location(x=1.1, y=0, z=1), carla.Rotation(pitch=0, yaw=0, roll=0))
 
         self._player = CarlaAgent(self.world, args)
+        self._player.eval()
         self.sensors["FollowCamera"] = FollowCamera(self._player.getVehicle(), self.world)
         self.sensors["CollisionSensor"] = CollisionSensor(self._player.getVehicle(), self.world)
-        self.sensors["Lidar"] = Lidar(self._player.getVehicle(), self.world, self.lidar_transform)
-        self.sensors["Camera"] = Camera(self._player.getVehicle(), self.world, self.camera_transform)
+        #self.sensors["Lidar"] = Lidar(self._player.getVehicle(), self.world, self.lidar_transform)
+        #self.sensors["Camera"] = Camera(self._player.getVehicle(), self.world, self.camera_transform)
 
         # update world:
         self.world.tick()
