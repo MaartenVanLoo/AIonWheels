@@ -6,6 +6,7 @@ import time
 
 import cv2
 import numpy as np
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 import pygame
 from pygame.locals import KMOD_CTRL
 from pygame.locals import K_ESCAPE
