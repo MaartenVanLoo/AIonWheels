@@ -70,7 +70,7 @@ if __name__ == "__main__":
         'debug':False,
     }
     dl_recognition_config = {
-        'model_path':os.path.dirname(os.path.abspath(__file__)) + "/FinalIntegration/models/weights.pt",
+        'model_path':os.path.dirname(os.path.abspath(__file__)) + "/FinalIntegration/models/best22_12.pt",
         'hubconf_path':os.path.dirname(os.path.abspath(__file__)) + "/FinalIntegration/DeepLearningRecognition",
         'conf_threshold':0.25, #minimum confidence for object to be detected
         'iou_threshold':0.45,
