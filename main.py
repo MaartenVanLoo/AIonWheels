@@ -20,10 +20,9 @@ def parse_args() ->EasyDict:
                         help='The host ip running carla. By default the localhost is used')
     parser.add_argument('--debug', '-d',action='store_true', help="Enable debug mode")
     config = EasyDict(vars(parser.parse_args()))
-    config.fps = 5
+    config.fps = 10
     config.emergency_brake = 2
     config.forced_start = 10
-    config.fps = 20
     config.debug = False
     return config
 
@@ -68,7 +67,7 @@ if __name__ == "__main__":
         'num_direction': 2,  # sin, cos,
         'num_layers': 18,
 
-        'debug':True,
+        'debug':False,
     }
     dl_recognition_config = {
         'model_path':os.path.dirname(os.path.abspath(__file__)) + "/FinalIntegration/models/best22_12.pt",

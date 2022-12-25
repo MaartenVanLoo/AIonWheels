@@ -9,7 +9,7 @@ import numpy as np
 import pygame
 from pygame.locals import KMOD_CTRL
 from pygame.locals import K_ESCAPE
-from pygame.locals import K_q, K_f, K_F12, K_r
+from pygame.locals import K_q, K_f, K_F12, K_r, K_0,K_1, K_2, K_3, K_4, K_5, K_6, K_7
 
 from .CarlaWorld import CarlaWorld
 import carla
@@ -362,6 +362,8 @@ class KeyboardControl(object):
                     if self.hud.carlaWorld is None:
                         return
                     self.hud.carlaWorld.reset()
+                if self._load_map(event.key):
+                    return
 
             if event.type == pygame.VIDEORESIZE:
                 w = event.w
@@ -372,6 +374,35 @@ class KeyboardControl(object):
                     self.hud.background = pygame.transform.scale(pygame.image.load(self.hud.background_path), (w, h))
                 else:
                     self.hud.background = None
+    def _load_map(self, key):
+        if self.hud.carlaWorld is None:
+            return False
+        maps = [
+            "/Game/Carla/Maps/Town10HD_Opt",
+            "/Game/Carla/Maps/Town01_Opt",
+            "/Game/Carla/Maps/Town02_Opt",
+            "/Game/Carla/Maps/Town03_Opt",
+            "/Game/Carla/Maps/Town04_Opt",
+            "/Game/Carla/Maps/Town05_Opt",
+            "/Game/Carla/Maps/Town06_Opt",
+            "/Game/Carla/Maps/Town07_Opt"]
+        if key == K_0:
+            self.hud.carlaWorld.reset(maps[0])
+        elif key == K_1:
+            self.hud.carlaWorld.reset(maps[1])
+        elif key == K_2:
+            self.hud.carlaWorld.reset(maps[2])
+        elif key == K_3:
+            self.hud.carlaWorld.reset(maps[3])
+        elif key == K_4:
+            self.hud.carlaWorld.reset(maps[4])
+        elif key == K_5:
+            self.hud.carlaWorld.reset(maps[5])
+        elif key == K_6:
+            self.hud.carlaWorld.reset(maps[6])
+        elif key == K_7:
+            self.hud.carlaWorld.reset(maps[7])
+
 
     def _enter_fullscreen(self):
         if self.hud.options & pygame.FULLSCREEN:

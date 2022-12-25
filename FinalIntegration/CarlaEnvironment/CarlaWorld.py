@@ -45,7 +45,7 @@ class CarlaWorld(object):
         self.sensors["Lidar"] = Lidar(self._player.getVehicle(), self.world, self.lidar_transform)
         self.sensors["Camera"] = Camera(self._player.getVehicle(), self.world, self.camera_transform)
 
-
+        self.emergency_brake_state = False
 
         # update world:
         self.world.tick()
@@ -64,11 +64,13 @@ class CarlaWorld(object):
         return self._player
 
 
-    def emergencyBrake(self,distance):
-        if distance<self.emergency_brake:
-            return self.rl_module._agent.actions[0]
+    def emergencyBrake(self,distance, action):
+        if distance<self.emergency_brake + 1/self.fps * self.getPlayer().getSpeed():
+            self.emergency_brake_state = True
+            return 0
         else:
-            return self.rl_module.getAction(distance)
+            self.emergency_brake_state = False
+            return action
 
     def step(self):
         start = time.time()
@@ -90,7 +92,8 @@ class CarlaWorld(object):
                 debug=self.debug
             )
         distance -= self._player.getLength()
-        action = self.emergencyBrake(distance)
+        action = self.rl_module.getAction(distance)
+        action = self.emergencyBrake(distance, action)
         self._player.step(action, debug=self.debug)
 
         start = time.time()
@@ -131,6 +134,7 @@ class CarlaWorld(object):
 
         # rebuild sensors & agent:
         self._player = CarlaAgent(self.world, self.args)
+        self._player.eval()
         self.world.tick() #make sure the agent is created?
         for sensor in sensor_ids:
             if sensor == "FollowCamera":
@@ -156,10 +160,9 @@ class CarlaWorld(object):
         self.dl_lidar._agent = self._player
         self.dl_recognition._agent = self._player
 
-        for i in self.forced_start:
+        for i in range(self.forced_start):
             self.rl_module.getAction(100)
-            action = self.rl_module._agent.actions[-1]
-            self._player.step(action, debug=self.debug)
+            self._player.step(len(self._player.actions)-1, debug=self.debug)
             self.world.tick()
 
     def _synchronous(self):
