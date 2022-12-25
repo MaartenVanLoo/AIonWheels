@@ -5,22 +5,40 @@ import time
 import carla
 
 from FinalIntegration.Utils.CarlaAgent import CarlaAgent
-from FinalIntegration.Utils.Sensor import Sensor, FollowCamera, Lidar, Camera, CollisionSensor
+from FinalIntegration.Utils.Sensor import Sensor, FollowCamera, Lidar, Camera, CollisionSensor, AsyncCamera
 from FinalIntegration.Utils.TrafficGenerator import generateTraffic
 from FinalIntegration.ReinforcementLearning.RL_Module import RL_Module
 from .dist import distanceAlongPath
 from ..DeepLearningLidar.DeepLearningLidar import DeeplearningLidar
 from ..DeepLearningRecognition.DL_Recognition_module import DeepLearningRecognition
+from ..DeepLearningRecognition.DL_Recognition_Distributed import DistributedRecognition
 
 import numpy.random as random
 
+
+def set_cuda_sync_mode(mode):
+    """
+    Set the CUDA device synchronization mode: auto, spin, yield or block.
+    auto: Chooses spin or yield depending on the number of available CPU cores.
+    spin: Runs one CPU core per GPU at 100% to poll for completed operations.
+    yield: Gives control to other threads between polling, if any are waiting.
+    block: Lets the thread sleep until the GPU driver signals completion.
+    """
+    import ctypes
+    try:
+        ctypes.CDLL('libcudart.dll').cudaSetDeviceFlags(
+            {'auto': 0, 'spin': 1, 'yield': 2, 'block': 4}[mode])
+    except Exception as e:
+        print(e)
+        print('Could not set cuda device flag')
+        pass
 
 class CarlaWorld(object):
     def __init__(self, args):
         self.args = args
         self.client = carla.Client(args.host, 2000)
         self.client.set_timeout(100.0)
-        self.client.load_world("Town04_Opt")
+        #self.client.load_world("Town04_Opt")
         self.world = self.client.get_world()
         self.traffic_manager = self.client.get_trafficmanager()
         self.fps = args.fps
@@ -40,7 +58,8 @@ class CarlaWorld(object):
         self.sensors["FollowCamera"] = FollowCamera(self._player.getVehicle(), self.world)
         self.sensors["CollisionSensor"] = CollisionSensor(self._player.getVehicle(), self.world)
         self.sensors["Lidar"] = Lidar(self._player.getVehicle(), self.world, self.lidar_transform)
-        self.sensors["Camera"] = Camera(self._player.getVehicle(), self.world, self.camera_transform)
+        #self.sensors["Camera"] = Camera(self._player.getVehicle(), self.world, self.camera_transform)
+        self.sensors["Camera"] = AsyncCamera(self._player.getVehicle(), self.world, self.camera_transform)
 
         # update world:
         self.world.tick()
@@ -48,12 +67,15 @@ class CarlaWorld(object):
         # AI modules:
         self.rl_module = RL_Module(self, args.rl_config)
         self.dl_lidar = DeeplearningLidar(self, args.dl_lidar_config)
-        self.dl_recognition = DeepLearningRecognition(self, args.dl_recognition_config)
+        #self.dl_recognition = DeepLearningRecognition(self, args.dl_recognition_config)
+        self.dl_recognition = DistributedRecognition(self, args.dl_recognition_config)
 
         # hud
         self.HUD = None
 
         self.debug = args.debug if 'debug' in args else False
+
+        #set_cuda_sync_mode('block')
 
     def getPlayer(self) -> CarlaAgent:
         return self._player
@@ -63,7 +85,7 @@ class CarlaWorld(object):
         for sensor in self.sensors.values():
             sensor.step()
         stop = time.time()
-        print(f"Sensor update time:\t\t\t{(stop - start) * 1000:3.0f} ms")
+        print(f"Sensor update time:\t\t\t\t{(stop - start) * 1000:4.0f} ms")
         self.dl_recognition.detect()
         self.dl_lidar.detect()
         if self.dl_lidar.detected_boxes is None:
@@ -84,7 +106,7 @@ class CarlaWorld(object):
         start = time.time()
         self.world.tick()
         stop = time.time()
-        print(f"Carla engine tick time:\t\t{(stop - start) * 1000:3.0f} ms")
+        print(f"Carla engine tick time:\t\t\t{(stop - start) * 1000:4.0f} ms")
         # update hud if required
         if self.HUD:
             self.HUD.render(self)

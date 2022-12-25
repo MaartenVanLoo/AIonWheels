@@ -1,13 +1,16 @@
 import math
-import queue
+from queue import PriorityQueue
+from multiprocessing import Queue as mpQueue
 import weakref
 
 import carla
 import numpy as np
+
+
 class Sensor(object):
-    def __init__(self, parent: carla.Actor, world:carla.World, transform : carla.Transform) -> None:
+    def __init__(self, parent: carla.Actor, world: carla.World, transform: carla.Transform) -> None:
         super().__init__()
-        self._queue = queue.PriorityQueue()
+        self._queue = PriorityQueue()
         self.parent = parent
         self.world = world
         self.transform = transform
@@ -15,8 +18,8 @@ class Sensor(object):
         self.state = None
 
     @staticmethod
-    def sensor_callback(frame, timestamp,sensor_transform , data, sensor_queue):
-        sensor_queue.put((frame,data))
+    def sensor_callback(frame, timestamp, sensor_transform, data, sensor_queue):
+        sensor_queue.put((frame, data))
 
     def step(self):
         pass
@@ -29,23 +32,21 @@ class Sensor(object):
             self.sensor.destroy()
 
 
-
 class Lidar(Sensor):
-    def __init__(self,parent: carla.Actor, world:carla.World, transform : carla.Transform) -> None:
-        super().__init__(parent, world,transform)
+    def __init__(self, parent: carla.Actor, world: carla.World, transform: carla.Transform) -> None:
+        super().__init__(parent, world, transform)
         self.bp = self._getBlueprint()
         self.sensor = world.spawn_actor(self.bp, self.transform, attach_to=self.parent)
         self.sensor.listen(
-            lambda data: Sensor.sensor_callback(data.frame, data.timestamp,data.transform, data, self._queue))
+            lambda data: Sensor.sensor_callback(data.frame, data.timestamp, data.transform, data, self._queue))
 
         self._all_points = np.empty(shape=(0), dtype=np.float32)
 
-        #packet counter
+        # packet counter
         self.i_packet = 0
         settings = world.get_settings()
         self.packet_per_frame = 1 / (
-                    self.bp.get_attribute('rotation_frequency').as_float() * settings.fixed_delta_seconds)
-
+                self.bp.get_attribute('rotation_frequency').as_float() * settings.fixed_delta_seconds)
 
     def step(self):
         while not self._queue.empty():
@@ -57,8 +58,8 @@ class Lidar(Sensor):
             self.i_packet += 1
             if self.i_packet >= self.packet_per_frame:
                 self.i_packet = 0
-                #when frame is finished, update state:
-                self.state = self._all_points.reshape(-1, 4) #Todo
+                # when frame is finished, update state:
+                self.state = self._all_points.reshape(-1, 4)  # Todo
                 self._all_points = np.empty(shape=(0), dtype=np.float32)
 
     def _getBlueprint(self):
@@ -70,13 +71,14 @@ class Lidar(Sensor):
         lidar_bp.set_attribute('rotation_frequency', '20')
         lidar_bp.set_attribute('upper_fov', str(3))
         lidar_bp.set_attribute('lower_fov', str(-24.8))
+        lidar_bp.set_attribute('sensor_tick', '0.05') #1/rotation_frequency
+
         return lidar_bp
 
 
-
 class Camera(Sensor):
-    def __init__(self,parent: carla.Actor,world:carla.World, transform : carla.Transform) -> None:
-        super().__init__(parent,world,transform)
+    def __init__(self, parent: carla.Actor, world: carla.World, transform: carla.Transform) -> None:
+        super().__init__(parent, world, transform)
         self.bp = self._getBlueprint()
         self.sensor = world.spawn_actor(self.bp, self.transform, attach_to=self.parent)
         self.sensor.listen(
@@ -86,7 +88,7 @@ class Camera(Sensor):
         while not self._queue.empty():
             frame, image = self._queue.get()
             print(image)
-            #only when no more images are available, last image is current state
+            # only when no more images are available, last image is current state
             if self._queue.empty():
                 array = np.frombuffer(image.raw_data, dtype=np.dtype("uint8"))
                 array = np.reshape(array, (image.height, image.width, 4))
@@ -101,26 +103,53 @@ class Camera(Sensor):
         camera_bp.set_attribute('image_size_x', '640')
         camera_bp.set_attribute('image_size_y', '640')
         camera_bp.set_attribute('fov', '100')  # 72 degrees # Always fov on width even if width is different than height
-        camera_bp.set_attribute('sensor_tick', str(1/20))  # 20Hz camera
+        camera_bp.set_attribute('sensor_tick', str(1 / 20))  # 20Hz camera
         camera_bp.set_attribute('gamma', '2.2')
-        #camera_bp.set_attribute('motion_blur_intensity', '0')
-        #camera_bp.set_attribute('motion_blur_max_distortion', '0')
-        #camera_bp.set_attribute('motion_blur_min_object_screen_size', '0')
-        camera_bp.set_attribute('shutter_speed', '200')  # 1 ms shutter_speed
         camera_bp.set_attribute('bloom_intensity', '0.675')
         camera_bp.set_attribute('lens_flare_intensity', '0.675')
-        #camera_bp.set_attribute('lens_k', '0')
-        #camera_bp.set_attribute('lens_kcube', '0')
-        #camera_bp.set_attribute('lens_x_size', '0')
-        #camera_bp.set_attribute('lens_y_size', '0')
         return camera_bp
 
 
+class AsyncCamera(Sensor):
 
+    def __init__(self, parent: carla.Actor, world: carla.World, transform: carla.Transform) -> None:
+        super().__init__(parent, world, transform)
+        self._queue = mpQueue() # override default priority queue
+        self.bp = self._getBlueprint()
+        self.sensor = world.spawn_actor(self.bp, self.transform, attach_to=self.parent)
+        self.sensor.listen(
+            lambda data: AsyncCamera.sensor_callback(data.frame, data.timestamp, data.transform, data, self._queue))
+
+    @staticmethod
+    def sensor_callback(frame, timestamp, sensor_transform, data, sensor_queue):
+        array = np.frombuffer(data.raw_data, dtype=np.dtype("uint8"))
+        array = np.reshape(array, (data.height, data.width, 4))
+        array = array[:, :, :3]
+        array = array[:, :, ::-1]
+        sensor_queue.put((frame, array))
+
+    def _getBlueprint(self):
+        library = self.world.get_blueprint_library()
+        camera_bp = library.find('sensor.camera.rgb')
+
+        camera_bp.set_attribute('image_size_x', '640')
+        camera_bp.set_attribute('image_size_y', '640')
+        camera_bp.set_attribute('fov', '100')  # 72 degrees # Always fov on width even if width is different than height
+        camera_bp.set_attribute('sensor_tick', str(1 / 20))  # 20Hz camera
+        camera_bp.set_attribute('gamma', '2.2')
+        camera_bp.set_attribute('bloom_intensity', '0.675')
+        camera_bp.set_attribute('lens_flare_intensity', '0.675')
+        return camera_bp
+
+    def step(self):
+        pass
+
+    def getQueue(self):
+        return self._queue
 
 class FollowCamera(Sensor):
-    def __init__(self, parent: carla.Actor,world:carla.World) -> None:
-        super().__init__(parent, world,carla.Transform())
+    def __init__(self, parent: carla.Actor, world: carla.World) -> None:
+        super().__init__(parent, world, carla.Transform())
 
     def step(self):
         self.transform = self.parent.get_transform()
@@ -140,7 +169,6 @@ class CollisionSensor(Sensor):
         weak_self = weakref.ref(self)
         self.sensor.listen(lambda event: CollisionSensor._on_collision(weak_self, event))
 
-
     @staticmethod
     def _on_collision(weak_self, event):
         """On collision method"""
@@ -148,7 +176,7 @@ class CollisionSensor(Sensor):
         if not self:
             return
         actor_type = self._get_actor_display_name(event.other_actor)
-        #self.hud.notification('Collision with %r' % actor_type)
+        # self.hud.notification('Collision with %r' % actor_type)
         print(f'Collision with {actor_type}')
         self.state = (event.frame, f'Collision with {actor_type}')
         impulse = event.normal_impulse
@@ -166,6 +194,3 @@ class CollisionSensor(Sensor):
         """Method to get actor display name"""
         name = ' '.join(actor.type_id.replace('_', '.').title().split('.')[1:])
         return (name[:truncate - 1] + u'\u2026') if len(name) > truncate else name
-
-
-

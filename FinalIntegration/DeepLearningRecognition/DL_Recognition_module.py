@@ -1,4 +1,8 @@
+import multiprocessing
 import os
+import queue
+import time
+from typing import Optional, Callable, Any, Tuple, Mapping
 
 import cv2
 import torch
@@ -20,11 +24,11 @@ class DeepLearningRecognition(object):
 
         self.device = torch.device(self.config.get('device', 'cuda') if torch.cuda.is_available() else 'cpu')
         #self.device = torch.device('cpu')
+        self._model_name = "/"
         self._model = self._load_model(config.get("model_path",""), config.get("hubconf_path","")).to(self.device)
         self._model.eval()
         self.names = self._model.names
 
-        self._model_name = "/"
 
         self.detections = None
         self.detected_image = None
@@ -41,13 +45,16 @@ class DeepLearningRecognition(object):
         self.hide_confidence = self.config.get("hide_confidence",False)
 
     def detect(self):
+        start = time.time()
         # Load image from sensor
         sensor = self._carlaWorld.get_sensor("Camera")
 
         if sensor is None:
+            print(f"Inference time object detection:{(time.time() - start)*1000:4.0f} ms")
             return
         image = sensor.getState().copy()
         if image is None:
+            print(f"Inference time object detection:{(time.time() - start)*1000:4.0f} ms")
             return
         image = cv2.resize(image, (640,640))
 
@@ -81,6 +88,7 @@ class DeepLearningRecognition(object):
 
         self.detections = image
         self.detected_image = annotator.result()
+        print(f"Inference time object detection:{(time.time() - start)*1000:4.0f} ms")
 
     def _load_model(self, filename, hubconf_path):
         if not (os.path.exists(filename) and os.path.isfile(filename)):
@@ -92,6 +100,7 @@ class DeepLearningRecognition(object):
         #model = torch.hub.load(hubconf_path, 'custom', path=filename, source='local')
         #from .models.experimental import attempt_load
         #model = attempt_load(filename)
+        _, self._model_name = os.path.split(filename)
         model = DetectMultiBackend(filename, device=self.device)
         return model
 
@@ -100,5 +109,8 @@ class DeepLearningRecognition(object):
 
     def from_numpy(self, x):
         return torch.from_numpy(x).to(self.device) if isinstance(x, np.ndarray) else x
+
+
+
 
 

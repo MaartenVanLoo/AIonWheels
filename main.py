@@ -56,7 +56,7 @@ if __name__ == "__main__":
     dl_lidar_config = {
         'K': 50,  # the number of top K
         'model_path': os.path.dirname(os.path.abspath(__file__)) +
-                      "/FinalIntegration/models/1C_20OBj_Lidar.pth",
+                      "/FinalIntegration/models/Model_fpn_resnet_18_epoch_110.pth",
         'imagenet_pretrained': True,
         'head_conv': 64,
         'num_classes': 1,
@@ -66,10 +66,10 @@ if __name__ == "__main__":
         'num_direction': 2,  # sin, cos,
         'num_layers': 18,
 
-        'debug':True,
+        'debug':False,
     }
     dl_recognition_config = {
-        'model_path':os.path.dirname(os.path.abspath(__file__)) + "/FinalIntegration/models/best22_12.pt",
+        'model_path':os.path.dirname(os.path.abspath(__file__)) + "/FinalIntegration/models/weights.pt",
         'hubconf_path':os.path.dirname(os.path.abspath(__file__)) + "/FinalIntegration/DeepLearningRecognition",
         'conf_threshold':0.25, #minimum confidence for object to be detected
         'iou_threshold':0.45,

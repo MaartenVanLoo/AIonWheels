@@ -21,7 +21,7 @@ class RL_Module(object):
         self.device = torch.device(self.config.get('device', 'cuda') if torch.cuda.is_available() else 'cpu')
         self._model = DQN(self.config).to(self.device)
         self._model.eval() #set model in evaluation mode (not training mode)
-        self._model_name = "None"
+        self._model_name = "/"
 
         # if config contains a saved filepath, load this model
         path = self.config.get("model_path", "")
@@ -42,7 +42,7 @@ class RL_Module(object):
         action = self._model.act(state)
         self.prev_action = action
         stop = time.time()
-        print(f"Inference time RL:\t\t\t{(stop - start)*1000:3.0f} ms")
+        print(f"Inference time RL:\t\t\t\t{(stop - start)*1000:4.0f} ms")
         return action
 
     def __loadModel(self, filename) -> None:
