@@ -19,9 +19,10 @@ def parse_args() ->EasyDict:
     parser.add_argument('--host', type=str, default="127.0.0.1",
                         help='The host ip running carla. By default the localhost is used')
     parser.add_argument('--debug', '-d',action='store_true', help="Enable debug mode")
-
     config = EasyDict(vars(parser.parse_args()))
-    config.fps = 20
+    config.fps = 10
+    config.emergency_brake = 2
+    config.forced_start = 10
     config.debug = False
     return config
 

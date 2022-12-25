@@ -10,4 +10,3 @@ wandb
 *wandb/
 # ignore pytorch checkpoints (do not exclude .pth files,
 # these models are Final models which we can use in production)
-*.pt

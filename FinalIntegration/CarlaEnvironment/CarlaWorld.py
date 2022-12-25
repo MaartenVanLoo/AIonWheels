@@ -53,6 +53,9 @@ class CarlaWorld(object):
         self.camera_transform = carla.Transform(carla.Location(x=1.2, y=0, z=1.05), carla.Rotation(pitch=0, yaw=0,
                                                                                                  roll=0))
 
+        self.forced_start=args.forced_start
+        self.emergency_brake=args.emergency_brake
+
         self._player = CarlaAgent(self.world, args)
         self._player.eval()
         self.sensors["FollowCamera"] = FollowCamera(self._player.getVehicle(), self.world)
@@ -60,6 +63,8 @@ class CarlaWorld(object):
         self.sensors["Lidar"] = Lidar(self._player.getVehicle(), self.world, self.lidar_transform)
         #self.sensors["Camera"] = Camera(self._player.getVehicle(), self.world, self.camera_transform)
         self.sensors["Camera"] = AsyncCamera(self._player.getVehicle(), self.world, self.camera_transform)
+
+        self.emergency_brake_state = False
 
         # update world:
         self.world.tick()
@@ -79,6 +84,15 @@ class CarlaWorld(object):
 
     def getPlayer(self) -> CarlaAgent:
         return self._player
+
+
+    def emergencyBrake(self,distance, action):
+        if distance<self.emergency_brake + 1/self.fps * self.getPlayer().getSpeed():
+            self.emergency_brake_state = True
+            return 0
+        else:
+            self.emergency_brake_state = False
+            return action
 
     def step(self):
         start = time.time()
@@ -101,6 +115,7 @@ class CarlaWorld(object):
             )
         distance -= self._player.getLength()
         action = self.rl_module.getAction(distance)
+        action = self.emergencyBrake(distance, action)
         self._player.step(action, debug=self.debug)
 
         start = time.time()
@@ -141,6 +156,7 @@ class CarlaWorld(object):
 
         # rebuild sensors & agent:
         self._player = CarlaAgent(self.world, self.args)
+        self._player.eval()
         self.world.tick() #make sure the agent is created?
         for sensor in sensor_ids:
             if sensor == "FollowCamera":
@@ -166,7 +182,10 @@ class CarlaWorld(object):
         self.dl_lidar._agent = self._player
         self.dl_recognition._agent = self._player
 
-        self.world.tick()
+        for i in range(self.forced_start):
+            self.rl_module.getAction(100)
+            self._player.step(len(self._player.actions)-1, debug=self.debug)
+            self.world.tick()
 
     def _synchronous(self):
         # Set Synchronous mode
