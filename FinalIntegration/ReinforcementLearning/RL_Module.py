@@ -34,10 +34,14 @@ class RL_Module(object):
 
 
 
-    def getAction(self, distance):
+    def getAction(self, distance, speed_limit = 999.9, red_light = False, orange_light= False, green_light = True):
+        #change speed limit based on red_light
+
+
+
         start = time.time()
         distance = np.clip(distance,0,100)
-        self.frames.append(self.__getState(distance))
+        self.frames.append(self.__getState(distance, speed_limit))
         state = np.array(list(self.frames)).flatten()
         action = self._model.act(state)
         self.prev_action = action
@@ -54,8 +58,8 @@ class RL_Module(object):
         else:
             print(f"Could not load RL model")
 
-    def __getState(self, distance):
-        return distance, self._agent.getTargetSpeed(), self._agent.getSpeed(), self.prev_action
+    def __getState(self, distance, speed_limit = 999.9):
+        return distance, min(self._agent.getTargetSpeed(), speed_limit), self._agent.getSpeed(), self.prev_action
         pass
 
 

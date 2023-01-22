@@ -45,7 +45,7 @@ class DeepLearningRecognition(object):
         self.hide_confidence = self.config.get("hide_confidence",False)
 
         #adjust speed
-        self.current_max_speed = 30
+        self.current_max_speed = None
         self.is_orange_light = False
         self.is_red_light = False
 

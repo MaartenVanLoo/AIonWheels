@@ -87,8 +87,6 @@ class CarlaWorld(object):
 
         self.debug = args.debug if 'debug' in args else False
 
-        #set_cuda_sync_mode('block')
-
     def getPlayer(self) -> CarlaAgent:
         return self._player
 
@@ -107,8 +105,13 @@ class CarlaWorld(object):
             sensor.step()
         stop = time.time()
         print(f"Sensor update time:\t\t\t\t{(stop - start) * 1000:4.0f} ms")
+        print(f"Sensor update time:\t\t\t{(stop - start) * 1000:3.0f} ms")
+
+        #update vision and lidar models
         self.dl_recognition.detect()
         self.dl_lidar.detect()
+
+        #find distance based on lidar
         if self.dl_lidar.detected_boxes is None:
             distance = 110
         else:
@@ -120,8 +123,15 @@ class CarlaWorld(object):
                 self.world,
                 debug=self.debug
             )
-        distance -= self._player.getLength()
-        action = self.rl_module.getAction(distance)
+        distance -= self._player.getLength() #correct distance for vehicle length
+
+        #get parameters for RL model:
+        red = self.dl_recognition.is_red_light
+        orange = self.dl_recognition.is_orange_light
+        green = not (red or orange)
+        speed_limit = self.dl_recognition.current_max_speed if self.dl_recognition.current_max_speed is None else \
+            self.getPlayer().getSpeedLimit()
+        action = self.rl_module.getAction(distance,speed_limit, red, orange, green)
         action = self.emergencyBrake(distance, action)
         self._player.step(action, debug=self.debug)
 
