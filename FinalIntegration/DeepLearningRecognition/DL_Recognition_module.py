@@ -40,6 +40,11 @@ class DeepLearningRecognition(object):
         self.hide_labels = self.config.get("hide_labels",False)
         self.hide_confidence = self.config.get("hide_confidence",False)
 
+        #adjust speed
+        self.current_max_speed = 30
+        self.is_orange_light = False
+        self.is_red_light = False
+
     def detect(self):
         # Load image from sensor
         sensor = self._carlaWorld.get_sensor("Camera")
@@ -94,6 +99,21 @@ class DeepLearningRecognition(object):
         #model = attempt_load(filename)
         model = DetectMultiBackend(filename, device=self.device)
         return model
+
+    #name is het name of the detected object
+    def speedLimit(name, self):
+        if name == "traffic_sign_30":
+            self.current_max_speed = 30
+        elif name == "traffic_sign_60":
+            self.current_max_speed = 60
+        elif name == "traffic_sign_90":
+            self.current_max_speed = 90
+
+    def speedTrafficLights(name, self):
+        if name == "traffic_light_yellow":
+            self.is_orange_light = True
+        elif name == "traffic_light_red":
+            self.is_red_light = True
 
     def getModelName(self) -> str:
         return self._model_name
