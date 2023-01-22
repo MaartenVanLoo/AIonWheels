@@ -67,7 +67,7 @@ class DeepLearningRecognition(object):
             pred = self.from_numpy(y)
         pred = non_max_suppression(pred, self.conf_thres, self.iou_thres, None, False, max_det=self.max_detect)
 
-
+        detected_objects = []
         annotator = Annotator(image.copy(),line_width=self.line_thickness, example=str(self.names))
         for i, det in enumerate(pred):
             #print results
@@ -82,9 +82,14 @@ class DeepLearningRecognition(object):
                 c = int(cls) #class
                 label = None if self.hide_labels else \
                     (self.names[c] if self.hide_confidence else f'{self.names[c]}'f' {conf:.2f}')
+                detected_objects.append(self.names[c])
                 annotator.box_label(xyxy, label, color=self.colors(c, True))
 
-        self.detections = image
+            #check for signs and lights:
+        self.speedLimit(detected_objects)
+        self.trafficLights(detected_objects)
+
+        self.detections = detected_objects
         self.detected_image = annotator.result()
 
     def _load_model(self, filename, hubconf_path):
@@ -101,19 +106,30 @@ class DeepLearningRecognition(object):
         return model
 
     #name is het name of the detected object
-    def speedLimit(name, self):
-        if name == "traffic_sign_30":
+    def speedLimit(self,detections):
+        if "traffic_sign_30" in detections:
+            print("Detected:traffic_sign_30")
             self.current_max_speed = 30
-        elif name == "traffic_sign_60":
+        elif "traffic_sign_60" in detections:
+            print("Detected:traffic_sign_60")
             self.current_max_speed = 60
-        elif name == "traffic_sign_90":
+        elif "traffic_sign_90" in detections:
+            print("Detected:traffic_sign_90")
             self.current_max_speed = 90
 
-    def speedTrafficLights(name, self):
-        if name == "traffic_light_yellow":
+    def trafficLights(self,detections):
+        if "traffic_light_yellow" in detections:
+            print("Detected:orange_light")
             self.is_orange_light = True
-        elif name == "traffic_light_red":
+        else:
+            self.is_orange_light = False
+
+        if "traffic_light_red" in detections:
+            print("Detected:red_light")
             self.is_red_light = True
+        else:
+            self.is_red_light = False
+
 
     def getModelName(self) -> str:
         return self._model_name
