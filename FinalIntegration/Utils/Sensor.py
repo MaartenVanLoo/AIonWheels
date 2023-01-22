@@ -164,9 +164,6 @@ class Camera(Sensor):
         #camera_bp.set_attribute('lens_y_size', '0')
         return camera_bp
 
-    def step(self):
-        pass
-
 
 class AsyncCamera(Sensor):
 

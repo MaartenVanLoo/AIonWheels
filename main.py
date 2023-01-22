@@ -19,6 +19,7 @@ def parse_args() ->EasyDict:
     parser.add_argument('--host', type=str, default="127.0.0.1",
                         help='The host ip running carla. By default the localhost is used')
     parser.add_argument('--debug', '-d',action='store_true', help="Enable debug mode")
+    parser.add_argument('--MT',action='store_true', help='Enable multithreading')
     config = EasyDict(vars(parser.parse_args()))
     config.fps = 20
     config.emergency_brake = 2
@@ -70,7 +71,7 @@ if __name__ == "__main__":
         'debug':False,
     }
     dl_recognition_config = {
-        'model_path':os.path.dirname(os.path.abspath(__file__)) + "/FinalIntegration/models/best22_12.pt",
+        'model_path':os.path.dirname(os.path.abspath(__file__)) + "/FinalIntegration/models/best21_01.pt",
         'hubconf_path':os.path.dirname(os.path.abspath(__file__)) + "/FinalIntegration/DeepLearningRecognition",
         'conf_threshold':0.25, #minimum confidence for object to be detected
         'iou_threshold':0.45,

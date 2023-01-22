@@ -61,10 +61,12 @@ class CarlaWorld(object):
         self._player.eval()
         self.sensors["FollowCamera"] = FollowCamera(self._player.getVehicle(), self.world)
         self.sensors["CollisionSensor"] = CollisionSensor(self._player.getVehicle(), self.world)
-        #self.sensors["Lidar"] = Lidar(self._player.getVehicle(), self.world, self.lidar_transform)
-        self.sensors["Lidar"] = AsyncLidar(self._player.getVehicle(), self.world, self.lidar_transform)
-        #self.sensors["Camera"] = Camera(self._player.getVehicle(), self.world, self.camera_transform)
-        self.sensors["Camera"] = AsyncCamera(self._player.getVehicle(), self.world, self.camera_transform)
+        if (args.MT):
+            self.sensors["Lidar"] = AsyncLidar(self._player.getVehicle(), self.world, self.lidar_transform)
+            self.sensors["Camera"] = AsyncCamera(self._player.getVehicle(), self.world, self.camera_transform)
+        else:
+            self.sensors["Lidar"] = Lidar(self._player.getVehicle(), self.world, self.lidar_transform)
+            self.sensors["Camera"] = Camera(self._player.getVehicle(), self.world, self.camera_transform)
 
         self.emergency_brake_state = False
 
@@ -73,10 +75,12 @@ class CarlaWorld(object):
 
         # AI modules:
         self.rl_module = RL_Module(self, args.rl_config)
-        #self.dl_lidar = DeeplearningLidar(self, args.dl_lidar_config)
-        self.dl_lidar = DistributedLidar(self, args.dl_lidar_config)
-        #self.dl_recognition = DeepLearningRecognition(self, args.dl_recognition_config)
-        self.dl_recognition = DistributedRecognition(self, args.dl_recognition_config)
+        if (args.MT):
+            self.dl_lidar = DistributedLidar(self, args.dl_lidar_config)
+            self.dl_recognition = DistributedRecognition(self, args.dl_recognition_config)
+        else:
+            self.dl_lidar = DeeplearningLidar(self, args.dl_lidar_config)
+            self.dl_recognition = DeepLearningRecognition(self, args.dl_recognition_config)
 
         # hud
         self.HUD = None
