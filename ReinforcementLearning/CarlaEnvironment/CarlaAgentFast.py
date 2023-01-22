@@ -50,6 +50,7 @@ class CarlaAgent(BasicAgent):
         self.behavior.ignore_speed_limit = False
         self.behavior.training = True
 
+        self.vision_speed_limit = config.get("vision_speed_limit", False)
 
     def eval(self, evaluation = True):
         self.behavior.training = not evaluation
@@ -95,11 +96,14 @@ class CarlaAgent(BasicAgent):
         return self._vehicle
 
     def getTargetSpeed(self):
+        """Return target speed in m/s of agent"""
         if self.behavior.ignore_speed_limit:
             return self._target_speed
         elif self.behavior.training:
             return min(self._target_speed,
                        self._vehicle.get_speed_limit() * 1.6 / 3.6)  # increase speed limit for training, but avoid rediculus speeds causing crashes (however, 60 speed limits allow for >90!=> hopefully he learns the full range safe
+        elif (self.vision_speed_limit):
+            return self._target_speed
         else:
             return min(self._target_speed, self._vehicle.get_speed_limit() / 3.6)
 

@@ -53,6 +53,7 @@ if __name__ == "__main__":
         'num_actions': 101,
         'hidden': [128, 512, 512, 128, 64],
         'debug': False, #Doesn't do anything
+        'vision_speed_limit':False
     }
     dl_lidar_config = {
         'K': 50,  # the number of top K
