@@ -33,9 +33,9 @@ class DeeplearningLidar(object):
         self.device = torch.device(self.config.get('device', 'cuda') if torch.cuda.is_available() else 'cpu')
         #self.device = torch.device('cpu')
         #TODO: load trained model
+        self._model_name = "/"
         self._model = self.create_model(self.config).to(self.device)
         self._model.eval() #set model in evaluation mode
-        self._model_name = "/"
         self.bev_map = None
         self.bev_image = None
 
@@ -71,11 +71,11 @@ class DeeplearningLidar(object):
         start = time.time()
         sensor = self._carlaWorld.get_sensor("Lidar")
         if sensor is None:
-            print(f"Inference time DL Lidar:\t{(time.time() - start) * 1000:3.0f} ms")
+            print(f"Inference time DL Lidar:\t{(time.time() - start) * 1000:4.0f} ms")
             return self.distance #previous value
         lidarData = sensor.getState()
         if lidarData is None:
-            print(f"Inference time DL Lidar:\t{(time.time() - start) * 1000:3.0f} ms")
+            print(f"Inference time DL Lidar:\t{(time.time() - start) * 1000:4.0f} ms")
             return self.distance #no valid sensor state found
 
         lidarData = get_filtered_lidar(lidarData, cnf.boundary)
@@ -97,7 +97,7 @@ class DeeplearningLidar(object):
 
             self.bev_image = self._draw_output_map(self.bev_image, detections)
             self.detected_boxes = self._create_bounding_boxes(detections)
-        print(f"Inference time DL Lidar:\t{(time.time() - start) * 1000:3.0f} ms")
+        print(f"Inference time DL Lidar:\t\t{(time.time() - start) * 1000:4.0f} ms")
 
     def _draw_output_map(self,bev_map, detections):
         # Draw prediction in the image

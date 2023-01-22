@@ -7,6 +7,7 @@ os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 
 import cv2
 import numpy as np
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 import pygame
 from pygame.locals import KMOD_CTRL
 from pygame.locals import K_ESCAPE
@@ -121,7 +122,7 @@ class HUD(object):
         self._notifications.render(self.display)    # won't render without notification
         pygame.display.flip()
         stop = time.time()
-        print(f"HUD render time:\t\t\t{(stop - start) * 1000:3.0f} ms")
+        print(f"HUD render time:\t\t\t\t{(stop - start) * 1000:4.0f} ms")
         pass
 
     def _get_info(self, carlaWorld):
