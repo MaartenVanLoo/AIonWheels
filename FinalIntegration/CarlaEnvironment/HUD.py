@@ -3,6 +3,7 @@ import math
 import os
 import datetime
 import time
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 
 import cv2
 import numpy as np

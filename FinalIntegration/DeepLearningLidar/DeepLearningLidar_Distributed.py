@@ -1,5 +1,9 @@
+import logging
 import os
+import queue
+import threading
 import time
+import traceback
 
 import carla
 import cv2
@@ -17,7 +21,7 @@ from .models.fpn_resnet import get_pose_net
 def _sigmoid(x):
     return torch.clamp(x.sigmoid_(), min=1e-4, max=1 - 1e-4)
 
-class DeeplearningLidar(object):
+class DistributedLidar(object):
     def __init__(self, carlaWorld, config = None) -> None:
         if not config:
             config = dict()
@@ -31,20 +35,92 @@ class DeeplearningLidar(object):
         self._agent = carlaWorld.getPlayer()
 
         self.device = torch.device(self.config.get('device', 'cuda') if torch.cuda.is_available() else 'cpu')
-        #self.device = torch.device('cpu')
-        #TODO: load trained model
-        self._model = self.create_model(self.config).to(self.device)
-        self._model.eval() #set model in evaluation mode
-        self._model_name = "/"
-        self.bev_map = None
-        self.bev_image = None
 
-        self.num_classes = self.config.get('num_classes')
-        self.colors = [[0, 255, 255], [0, 0, 255], [255, 0, 0], [255, 120, 0],
-          [255, 120, 120], [0, 120, 0], [120, 255, 255], [120, 0, 255]]
+        self._model_name = "/"
+        self.bev_image = None
+        self.current_frame = -1
 
         self.distance = 110
         self.detected_boxes = None
+
+        self._worker_queue = queue.Queue()
+        self._logger = logging.getLogger()
+
+        self.sensor = self._carlaWorld.get_sensor("Lidar")
+        from FinalIntegration.Utils.Sensor import AsyncLidar
+        if not isinstance(self.sensor, AsyncLidar):
+            raise TypeError("Sensor must be an async Lidar")
+        # launching workers
+        self._workers = []
+        self._workers.append(LidarWorker(0, self.sensor, self))
+        #self._workers.append(RecognitionWorker(1, self.sensor, self))
+        for worker in self._workers:
+            worker.start()
+
+    def detect(self):
+        start = time.time()
+        while not self._worker_queue.empty():
+            frame, bev_im, detected_box = self._worker_queue.get()
+            if frame <= self.current_frame:
+                continue  # older sample, no need to store, can happen because of asynchronous processing
+            self.current_frame = frame
+            self.bev_image = bev_im
+            self.detected_boxes = detected_box
+        self._logger.info(f"Lidar detection {self.current_frame} :{(time.time() - start) * 1000:4.0f} ms")
+
+    def getModelName(self)->str:
+        return self._model_name
+    def setModelName(self, name :str)->None:
+        self._model_name = name
+
+
+
+
+
+
+
+class LidarWorker(threading.Thread):
+    def __init__(self, id, sensor, parent: DistributedLidar):
+        self._logger = logging.getLogger()
+        self._id = id
+        self._logger.debug(f"Loading Lidar worker - {id}")
+        super().__init__()
+        self.input_queue = sensor.getQueue()
+
+        self._output_queue = parent._worker_queue
+        self.device = parent.device
+        self.config = parent.config
+
+        self._model_name = "/"
+        self._model = self.create_model(self.config).to(self.device)
+        self._model.eval() #set model in evaluation mode
+        parent.setModelName(self._model_name)
+
+        self.num_classes = self.config.get('num_classes')
+        self.colors = [[0, 255, 255], [0, 0, 255], [255, 0, 0], [255, 120, 0],
+                       [255, 120, 120], [0, 120, 0], [120, 255, 255], [120, 0, 255]]
+
+        self._carlaWorld = parent._carlaWorld
+        self.debug = parent.debug
+
+
+    def run(self) -> None:
+        while True:
+            try:
+                frame, image = self.input_queue.get(block=True, timeout=60)
+                print(f"Lidar get frame: {frame}")
+                if not self.input_queue.empty():
+                    print(f"Lidar skipping frame: {frame}")
+                    continue
+            except Exception:
+                traceback.print_exc()
+                continue
+
+            s = torch.cuda.Stream()
+            with torch.cuda.stream(s):
+                bev_image, detected_boxes = self.detect(image)
+            self._output_queue.put((frame, bev_image, detected_boxes))
+            print(f"Lidar done with frame: {frame}")
 
     def create_model(self,config):
         """Create model based on architecture name"""
@@ -61,28 +137,16 @@ class DeeplearningLidar(object):
         model = get_pose_net(num_layers=config.get('num_layers'), heads=heads, head_conv=config.get('head_conv'),
                              imagenet_pretrained=config.get('imagenet_pretrained'), config=config)
         _, self._model_name = os.path.split(config.get('model_path'))
-
         return model
 
-    def getModelName(self)->str:
-        return self._model_name
-
-    def detect(self):
+    def detect(self, frame):
         start = time.time()
-        sensor = self._carlaWorld.get_sensor("Lidar")
-        if sensor is None:
-            print(f"Inference time DL Lidar:\t{(time.time() - start) * 1000:3.0f} ms")
-            return self.distance #previous value
-        lidarData = sensor.getState()
-        if lidarData is None:
-            print(f"Inference time DL Lidar:\t{(time.time() - start) * 1000:3.0f} ms")
-            return self.distance #no valid sensor state found
 
-        lidarData = get_filtered_lidar(lidarData, cnf.boundary)
-        self.bev_map = makeBEVMap(lidarData, cnf, cnf.boundary)
-        self.bev_image = (self.bev_map.transpose(1, 2, 0) * 255).astype(np.uint8)
+        frame = get_filtered_lidar(frame, cnf.boundary)
+        bev_map = makeBEVMap(frame, cnf, cnf.boundary)
+        bev_image = (bev_map.transpose(1, 2, 0) * 255).astype(np.uint8)
         with torch.no_grad():
-            torch_map = torch.from_numpy(self.bev_map).to(self.device)
+            torch_map = torch.from_numpy(bev_map).to(self.device)
             torch_map = torch_map.unsqueeze(0).float()
             #Todo: forward model
             outputs = self._model(torch_map)
@@ -90,14 +154,15 @@ class DeeplearningLidar(object):
             outputs['cen_offset'] = _sigmoid(outputs['cen_offset'])
             #Todo: decode result
             detections = decode(outputs['hm_cen'], outputs['cen_offset'], outputs['direction'], outputs['z_coor'],
-                                    outputs['dim'], K=self.config.get('K'))
+                                outputs['dim'], K=self.config.get('K'))
             detections = detections.cpu().numpy().astype(np.float32)
             detections = post_processing(detections, self.config.num_classes, self.config.down_ratio, self.config.peak_thresh)
             detections = detections[0]
 
-            self.bev_image = self._draw_output_map(self.bev_image, detections)
-            self.detected_boxes = self._create_bounding_boxes(detections)
-        print(f"Inference time DL Lidar:\t{(time.time() - start) * 1000:3.0f} ms")
+            bev_image = self._draw_output_map(bev_image, detections)
+            detected_boxes = self._create_bounding_boxes(detections)
+
+        return bev_image, detected_boxes
 
     def _draw_output_map(self,bev_map, detections):
         # Draw prediction in the image
@@ -204,3 +269,4 @@ class DeeplearningLidar(object):
             # debug:
             self._carlaWorld.world.debug.draw_box(bb, bb.rotation, life_time=0.1,thickness=0.05, color=carla.Color(g=0, r=0, b=200))
         return boxes
+

@@ -46,9 +46,10 @@ class DeepLearningRecognition(object):
 
         if sensor is None:
             return
-        image = sensor.getState().copy()
+        image = sensor.getState()
         if image is None:
             return
+        image = image.copy()
         image = cv2.resize(image, (640,640))
 
         tensor = torch.tensor(image).to(self.device)

@@ -5,11 +5,13 @@ import time
 import carla
 
 from FinalIntegration.Utils.CarlaAgent import CarlaAgent
-from FinalIntegration.Utils.Sensor import Sensor, FollowCamera, Lidar, Camera, CollisionSensor
+from FinalIntegration.Utils.Sensor import Sensor, FollowCamera, Lidar, Camera, CollisionSensor,AsyncCamera,AsyncLidar
 from FinalIntegration.Utils.TrafficGenerator import generateTraffic
 from FinalIntegration.ReinforcementLearning.RL_Module import RL_Module
 from .dist import distanceAlongPath
 from ..DeepLearningLidar.DeepLearningLidar import DeeplearningLidar
+from ..DeepLearningLidar.DeepLearningLidar_Distributed import DistributedLidar
+from ..DeepLearningRecognition.DL_Recognition_Distributed import DistributedRecognition
 from ..DeepLearningRecognition.DL_Recognition_module import DeepLearningRecognition
 
 import numpy.random as random
@@ -42,8 +44,10 @@ class CarlaWorld(object):
         self._player.eval()
         self.sensors["FollowCamera"] = FollowCamera(self._player.getVehicle(), self.world)
         self.sensors["CollisionSensor"] = CollisionSensor(self._player.getVehicle(), self.world)
-        self.sensors["Lidar"] = Lidar(self._player.getVehicle(), self.world, self.lidar_transform)
-        self.sensors["Camera"] = Camera(self._player.getVehicle(), self.world, self.camera_transform)
+        #self.sensors["Lidar"] = Lidar(self._player.getVehicle(), self.world, self.lidar_transform)
+        self.sensors["Lidar"] = AsyncLidar(self._player.getVehicle(), self.world, self.lidar_transform)
+        #self.sensors["Camera"] = Camera(self._player.getVehicle(), self.world, self.camera_transform)
+        self.sensors["Camera"] = AsyncCamera(self._player.getVehicle(), self.world, self.camera_transform)
 
         self.emergency_brake_state = False
 
@@ -52,8 +56,10 @@ class CarlaWorld(object):
 
         # AI modules:
         self.rl_module = RL_Module(self, args.rl_config)
-        self.dl_lidar = DeeplearningLidar(self, args.dl_lidar_config)
-        self.dl_recognition = DeepLearningRecognition(self, args.dl_recognition_config)
+        #self.dl_lidar = DeeplearningLidar(self, args.dl_lidar_config)
+        self.dl_lidar = DistributedLidar(self, args.dl_lidar_config)
+        #self.dl_recognition = DeepLearningRecognition(self, args.dl_recognition_config)
+        self.dl_recognition = DistributedRecognition(self, args.dl_recognition_config)
 
         # hud
         self.HUD = None
