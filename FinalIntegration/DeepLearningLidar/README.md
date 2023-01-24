@@ -64,6 +64,12 @@ kitti > training >
 *   First you can build and create a docker image using the dockerfile provided in AIonWheels/DeeplearningLidar/OBJECT_DETECTION/
 *   Using this docker image you can train your model as desired
 
+#### 2.3.3.1 Docker commands for training
+
+- Docker pull and run command:
+- sudo docker pull xosmium/aionwheels
+- sudo docker run -itd --name=AIonWheels --mount type=bind,source=<DATASET_DIR>,target=/home/user/application/dataset --mount type=bind,source=<CHECKPOINTS_DIR>,target=/home/user/- application/checkpoints s107661/aionwheels
+
 
 ### 2.4 Parallel Training
 
