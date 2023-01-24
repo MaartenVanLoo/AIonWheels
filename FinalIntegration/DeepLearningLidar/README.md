@@ -47,8 +47,7 @@ Please make sure that the final construction of the directory for the  dataset l
 
 kitti > training > 
 
-IMAGE OF DIRECTORY STRUCTURE 
-
+![](structure.PNG)
 
 ### 2.3. How to train
 
