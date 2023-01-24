@@ -5,7 +5,7 @@
 
 ---
 
-## Features
+## 1. Features
 - [x] Super fast and accurate 3D object detection based on LiDAR
 - [x] Fast training, fast inference
 - [x] An Anchor-free approach
@@ -80,6 +80,13 @@ python train.py --multiprocessing-distributed --world-size 1 --rank 0 --batch_si
     ```
     python train.py --dist-url 'tcp://IP_OF_NODE2:FREEPORT' --multiprocessing-distributed --world-size 2 --rank 1 --batch_size 64 --num_workers 8
     ```
+
+
+
+### 2.4 Testing
+
+
+### 2.5 Logs on Weights ands Biases
 
 
 
