@@ -19,18 +19,18 @@
 ## 2. Getting Started
 ### 2.1. Requirements
 
-torch==1.5.0
-torchvision==0.6.0
-torchsummary
-easydict==1.9
-opencv-python==4.2.0.34
-numpy==1.18.3
-tensorboard==2.2.1
-scikit-learn==0.22.2
-wget==3.2
-tqdm==4.54.0
-matplotlib==3.3.3
-wandb
+torch==1.5.0 <br>
+torchvision==0.6.0 <br>
+torchsummary <br>
+easydict==1.9 <br>
+opencv-python==4.2.0.34 <br>
+numpy==1.18.3 <br>
+tensorboard==2.2.1 <br>
+scikit-learn==0.22.2 <br>
+wget==3.2 <br>
+tqdm==4.54.0 <br>
+matplotlib==3.3.3 <br>
+wandb <br>
 
 
 
