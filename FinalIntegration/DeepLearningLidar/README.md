@@ -1,4 +1,4 @@
-# Super Fast and Accurate 3D Object Detection based on 3D LiDAR Point Clouds (SFA3D)
+# Adaptive Cruise Control LiDAR Object detection and distance estimation using SFA3D and CARLA
 
 [![python-image]][python-url]
 [![pytorch-image]][pytorch-url]
@@ -17,41 +17,53 @@
 
 
 ## 2. Getting Started
-### 2.1. Requirement
+### 2.1. Requirements
 
-The instructions for setting up a virtual environment is [here](https://github.com/maudzung/virtual_environment_python3).
+torch==1.5.0
+torchvision==0.6.0
+torchsummary
+easydict==1.9
+opencv-python==4.2.0.34
+numpy==1.18.3
+tensorboard==2.2.1
+scikit-learn==0.22.2
+wget==3.2
+tqdm==4.54.0
+matplotlib==3.3.3
+wandb
 
-```shell script
-git clone https://github.com/maudzung/SFA3D.git SFA3D
-cd SFA3D/
-pip install -r requirements.txt
-```
+
 
 ### 2.2. Data Preparation
-Download the 3D KITTI detection dataset from [here](http://www.cvlibs.net/datasets/kitti/eval_object.php?obj_benchmark=3d).
 
-generate data script + carla + saved files generate correct labels by running another script which one ask maarten
-...
-...
+*   Open an instance of the CARLA simulator for a chosen town
+*   Run the KITTI_data_generator.py file located in AIonWheels/DeeplearningLidar/METHOD2
+*   The generated data will be saved in a folder structure
 
+* To generate the correct labels on the CARLA dataset before starting the trainingsproces you have to run the GenerateLabels.py script located in AIonWheels/DeeplearningLidar/METHOD2/
+* An additional script named PNGtoJPG.py is available in the same directory and can be used to reduces the size of the dataset.
 
-Please make sure that you construct the source code & dataset directories structure as below.
+Please make sure that the final construction of the directory for the  dataset looks as below : 
+
+kitti > training > 
 
 IMAGE OF DIRECTORY STRUCTURE 
+
 
 ### 2.3. How to train
 
 #### 2.3.1. How to train on local machine
 
-train script
-blablabla
+*   Place the created folder in the dataset folder under SFA3D-master under the OBJECT DETECTION directory before running train.py
+*   run the train.py file
+*   You can add parameters while executing the train.py command to train with multiple GPU's in parallel (this is explained later in this document)
+
 
 #### 2.3.3. How to train on GPU Lab
 
-docker image
-blablabla
-
-
+*   Due to computationaly expensive costs you can consider running this project using a GPU Lab
+*   First you can build and create a docker image using the dockerfile provided in AIonWheels/DeeplearningLidar/OBJECT_DETECTION/
+*   Using this docker image you can train your model as desired
 
 
 ### 2.4 Parallel Training
@@ -86,17 +98,15 @@ python train.py --multiprocessing-distributed --world-size 1 --rank 0 --batch_si
 ### 2.4 Testing
 
 
+The trained models are per 5 epochs saved as snapshots. You can test the pre-trained model by running the test.py script provided in AIonWheels/DeeplearningLidar/OBJECT_DETECTION/
+
+
 ### 2.5 Logs on Weights ands Biases
+
+The logs of the losses during training can be visualised using Weights and Biases.
 
 
 
 ## References
 
-[1] CenterNet: [Objects as Points paper](https://arxiv.org/abs/1904.07850), [PyTorch Implementation](https://github.com/xingyizhou/CenterNet) <br>
-[2] RTM3D: [PyTorch Implementation](https://github.com/maudzung/RTM3D) <br>
-[3] Libra_R-CNN: [PyTorch Implementation](https://github.com/OceanPang/Libra_R-CNN)
-_The YOLO-based models with the same BEV maps input:_ <br>
-[4] Complex-YOLO: [v4](https://github.com/maudzung/Complex-YOLOv4-Pytorch), [v3](https://github.com/ghimiredhikura/Complex-YOLOv3), [v2](https://github.com/AI-liu/Complex-YOLO)
-*3D LiDAR Point pre-processing:* <br>
-[5] VoxelNet: [PyTorch Implementation](https://github.com/skyhehe123/VoxelNet-pytorch)
-
+[1] Object detection: [SFA3D](https://github.com/maudzung/SFA3D) <br>
