@@ -40,14 +40,21 @@ class CarlaWorld(object):
         self.client = carla.Client(args.host, 2000)
         self.client.set_timeout(100.0)
         print(self.client.get_available_maps())
-        #self.client.load_world("Town10HD_Opt")
-        self.client.load_world("Town01_Opt") #A basic town layout consisting of "T junctions".
-        #self.client.load_world("Town02_Opt") #Similar to Town01, but smaller.
-        #self.client.load_world("Town03_Opt") #The most complex town, with a 5-lane junction, a roundabout, unevenness, a tunnel, and more.
-        #self.client.load_world("Town04_Opt") #An infinite loop with a highway and a small town.
-        #self.client.load_world("Town05_Opt") #Squared-grid town with cross junctions and a bridge. It has multiple lanes per direction. Useful to perform lane changes.
-        #self.client.load_world("Town06_Opt") #Long highways with many highway entrances and exits. It also has a Michigan left.
-        #self.client.load_world("Town07_Opt") #	A rural environment with narrow roads, barns and hardly any traffic lights.
+
+        if args.demo0:
+            self.client.load_world("Town01_Opt")  # A basic town layout consisting of "T junctions".
+        elif args.demo1:
+            self.client.load_world("Town04_Opt") #An infinite loop with a highway and a small town.
+        else:
+            #self.client.load_world("Town10HD_Opt")
+            self.client.load_world("Town01_Opt") #A basic town layout consisting of "T junctions".
+            #self.client.load_world("Town02_Opt") #Similar to Town01, but smaller.
+            #self.client.load_world("Town03_Opt") #The most complex town, with a 5-lane junction, a roundabout,
+            # unevenness, a tunnel, and more.
+            #self.client.load_world("Town04_Opt") #An infinite loop with a highway and a small town.
+            #self.client.load_world("Town05_Opt") #Squared-grid town with cross junctions and a bridge. It has multiple lanes per direction. Useful to perform lane changes.
+            #self.client.load_world("Town06_Opt") #Long highways with many highway entrances and exits. It also has a Michigan left.
+            #self.client.load_world("Town07_Opt") #	A rural environment with narrow roads, barns and hardly any traffic lights.
 
         self.debug = args.debug if 'debug' in args else False
 

@@ -51,7 +51,12 @@ def main(args):
     print(f"Length: {carlaWorld.getPlayer().getLength()}")
     print(f"Height: {carlaWorld.getPlayer().getHeight()}")
     try:
-        carlaWorld.spawn(60,0)
+        if args.demo0:
+            carlaWorld.spawn(50,0)#40,0)
+        elif args.demo1:
+            carlaWorld.spawn(40,0)
+        else:
+            carlaWorld.spawn(50,0)
         for frame in range(100000):
             carlaWorld.step()
     except:
@@ -63,13 +68,18 @@ def main(args):
 def demo(args: EasyDict):
     #seed the random number generator according to the demos
     if args.demo0:
-        import time, numpy
-        seed = int(time.time())
-        seed = 1674656090
+        import time
+        #seed = int(time.time())
+        #seed = 1674656090 #has firetruck? (Town01_Opt)
+
+        seed = 1674680630 # "seems nice?" (Town01_Opt)
         print(f"Random seed:{seed}")
         np.random.seed(seed)
         pass
     elif args.demo1:
+        seed = 1674788632
+        print(f"Random seed:{seed}")
+        np.random.seed(seed)
         pass
     elif args.demo2:
         pass
