@@ -14,6 +14,8 @@ from FinalIntegration.Utils.Sensor import FollowCamera, Lidar, CollisionSensor, 
 from FinalIntegration.Utils.CarlaAgent import CarlaAgent
 from FinalIntegration.CarlaEnvironment.CarlaWorld import CarlaWorld
 
+import numpy as np
+
 def parse_args() ->EasyDict:
     parser = argparse.ArgumentParser(description='The Implementation using PyTorch')
     parser.add_argument('--host', type=str, default="127.0.0.1",
@@ -58,6 +60,21 @@ def main(args):
     if carlaWorld:
         carlaWorld.destroy()
 
+def demo(args: EasyDict):
+    #seed the random number generator according to the demos
+    if args.demo0:
+        import time, numpy
+        seed = int(time.time())
+        seed = 1674656090
+        print(f"Random seed:{seed}")
+        np.random.seed(seed)
+        pass
+    elif args.demo1:
+        pass
+    elif args.demo2:
+        pass
+    elif args.demo3:
+        pass
 
 if __name__ == "__main__":
     args = parse_args()
@@ -69,7 +86,6 @@ if __name__ == "__main__":
         'num_actions': 101,
         'hidden': [128, 512, 512, 128, 64],
         'debug': False, #Doesn't do anything
-
 
         'target_speed': 50, # m/s
 
@@ -101,4 +117,5 @@ if __name__ == "__main__":
     args.dl_lidar_config = dl_lidar_config
     args.dl_recognition_config = dl_recognition_config
 
+    demo(args)
     main(args)

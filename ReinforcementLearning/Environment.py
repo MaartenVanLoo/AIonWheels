@@ -603,33 +603,32 @@ class SimpleACC(gym.Env):
 
 
 if __name__ == "__main__":
-    if __name__ == "__main__":
-        # config = optional, default values have been set in the qlearning framework
-        config = {
-            'device': 'cuda',
-            'batch_size': 2048,
-            'mini_batch': 24,  # only update once after n experiences
-            'num_frames': 2000000,
-            'gamma': 0.90,
-            'replay_size': 250000,
-            'lr': 0.0003,
-            'reward_offset': 1.5,
+    # config = optional, default values have been set in the qlearning framework
+    config = {
+        'device': 'cuda',
+        'batch_size': 2048,
+        'mini_batch': 24,  # only update once after n experiences
+        'num_frames': 2000000,
+        'gamma': 0.90,
+        'replay_size': 250000,
+        'lr': 0.0003,
+        'reward_offset': 1.5,
 
-            'history_frames': 3,
-            'num_inputs': 6,  # =size of states!
-            'num_actions': 11,
-            'hidden': [128, 512, 512, 128, 64],
-            'debug': False,
-        }
-        env = SimpleACC(config)
-        config['num_inputs'] = len(env.reset())  # always correct :D
+        'history_frames': 3,
+        'num_inputs': 6,  # =size of states!
+        'num_actions': 11,
+        'hidden': [128, 512, 512, 128, 64],
+        'debug': False,
+    }
+    env = SimpleACC(config)
+    config['num_inputs'] = len(env.reset())  # always correct :D
 
-        qlearning = Qlearner(env, DQN, config)
+    qlearning = Qlearner(env, DQN, config)
 
-        qlearning.train()
-        qlearning.save("models/"+qlearning.model_name)
-        # qlearning.load("models/TrainedModel_11.pth")
-        qlearning.eval()
+    qlearning.train()
+    qlearning.save("models/"+qlearning.model_name)
+    # qlearning.load("models/TrainedModel_11.pth")
+    qlearning.eval()
 
     ##plot all different cars:
     #drivingCar = DrivingCar(1,0,0,0)
