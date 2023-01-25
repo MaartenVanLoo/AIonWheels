@@ -17,6 +17,7 @@ import numpy as np
 
 import logging
 
+
 class DistributedRecognition(object):
     def __init__(self, carlaWorld, config=None) -> None:
         if not config:
@@ -60,24 +61,38 @@ class DistributedRecognition(object):
         # launching workers
         self._workers = []
         self._workers.append(RecognitionWorker(0, self.sensor, self))
-        #self._workers.append(RecognitionWorker(1, self.sensor, self))
+        # self._workers.append(RecognitionWorker(1, self.sensor, self))
         for worker in self._workers:
+            self._model_name = worker.getModelName()
             worker.start()
 
+        # adjust speed
+        self.current_max_speed = None
+        self.is_orange_light = False
+        self.is_red_light = False
 
     def detect(self):
         start = time.time()
         while not self._worker_queue.empty():
-            frame, det, det_im = self._worker_queue.get()
+            frame, det, det_im, max_speed, red_light, orange_light = self._worker_queue.get()
             if frame <= self.current_frame:
                 continue  # older sample, no need to store, can happen because of asynchronous processing
+            # adjust speed
+            self.current_max_speed = self.current_max_speed if max_speed is None else max_speed
+            self.is_orange_light = self.is_orange_light if orange_light is None else orange_light
+            self.is_red_light = self.is_red_light if red_light is None else red_light
             self.current_frame = frame
             self.detections = det
             self.detected_image = det_im
-        self._logger.info(f"Object detection {self.current_frame} :{(time.time() - start) * 1000:4.0f} ms")
+        self._logger.info(f"Object detection {self.current_frame} :\t{(time.time() - start) * 1000:4.0f} ms")
 
     def getModelName(self) -> str:
         return self._model_name
+
+    def cleanup(self):
+        for worker in self._workers:
+            worker.stop()
+            worker.join()
 
 
 class RecognitionWorker(threading.Thread):
@@ -106,12 +121,24 @@ class RecognitionWorker(threading.Thread):
         self.model_path = parent.config.get("model_path", "")
         self.hubconf_path = parent.config.get("hubconf_path", "")
 
+        _, self._model_name = os.path.split(self.model_path)
+
+        # adjust speed
+        self.current_max_speed = None
+        self.is_orange_light = None
+        self.is_red_light = None
+        self.min_speed_confidence = 0.9
+
+        self.running = True
+
+    def stop(self):
+        self.running = False
 
     def run(self) -> None:
         self._model = self._load_model(self.model_path, self.hubconf_path)
         self._model.eval()
         self.names = self._model.names
-        while True:
+        while self.running:
             try:
                 frame, image = self.input_queue.get(block=True, timeout=60)
                 print(f"Recognition get image: {frame}")
@@ -124,7 +151,12 @@ class RecognitionWorker(threading.Thread):
             s = torch.cuda.Stream()
             with torch.cuda.stream(s):
                 detections, detected_image = self.detect(image)
-            self._output_queue.put((frame, detections, detected_image))
+            self._output_queue.put(
+                (frame, detections, detected_image, self.current_max_speed, self.is_red_light, self.is_orange_light))
+
+            #Todo: comment this line
+            #threading.Thread(target = self.saveImage, args = (frame, image,detected_image)).start()
+
             print(f"Done with image: {frame}")
 
     def _load_model(self, filename, hubconf_path):
@@ -155,6 +187,7 @@ class RecognitionWorker(threading.Thread):
             pred = self.from_numpy(y)
         pred = non_max_suppression(pred, self.conf_thres, self.iou_thres, None, False, max_det=self.max_detect)
 
+        detected_objects = []
         annotator = Annotator(image.copy(), line_width=self.line_thickness, example=str(self.names))
         for i, det in enumerate(pred):
             # print results
@@ -169,11 +202,62 @@ class RecognitionWorker(threading.Thread):
                 c = int(cls)  # class
                 label = None if self.hide_labels else \
                     (self.names[c] if self.hide_confidence else f'{self.names[c]}'f' {conf:.2f}')
+                detected_objects.append((self.names[c], conf))
                 annotator.box_label(xyxy, label, color=self.colors(c, True))
 
-        detections = image
+        self.speedLimit(detected_objects)
+        self.trafficLights(detected_objects)
+
+        detections = detected_objects
         detected_image = annotator.result()
+
+
+
         return detections, detected_image
 
     def from_numpy(self, x):
         return torch.from_numpy(x).to(self.device) if isinstance(x, np.ndarray) else x
+
+    def speedLimit(self, detections):
+        self.current_max_speed = None  # when not changed, this will be the final value
+        for detection in detections:
+            label = detection[0]
+            conf = detection[1]
+            if conf < self.min_speed_confidence:  # must be very certain before adjusting speed
+                continue
+            if "traffic_sign_30" in label:
+                print("Detected:traffic_sign_30")
+                self.current_max_speed = 30 / 3.6
+            elif "traffic_sign_60" in label:
+                print("Detected:traffic_sign_60")
+                self.current_max_speed = 60 / 3.6
+            elif "traffic_sign_90" in label:
+                print("Detected:traffic_sign_90")
+                self.current_max_speed = 90 / 3.6
+
+    def trafficLights(self, detections):
+        labels = []
+        for detection in detections:
+            labels.append(detection[0])
+            conf = detection[1]
+        if "traffic_light_orange" in labels:
+            print("Detected:orange_light")
+            self.is_orange_light = True
+        else:
+            self.is_orange_light = False
+
+        if "traffic_light_red" in labels:
+            print("Detected:red_light")
+            self.is_red_light = True
+        else:
+            self.is_red_light = False
+
+    def getModelName(self) -> str:
+        return self._model_name
+
+    def saveImage(self, frame, image, detected_image):
+        filename = f"{frame}_"
+        cv2.imwrite(filename + "original.png", image)
+        cv2.imwrite(filename + "detected.png", detected_image)
+
+

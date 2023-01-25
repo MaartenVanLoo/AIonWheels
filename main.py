@@ -20,21 +20,36 @@ def parse_args() ->EasyDict:
                         help='The host ip running carla. By default the localhost is used')
     parser.add_argument('--debug', '-d',action='store_true', help="Enable debug mode")
     parser.add_argument('--MT',action='store_true', help='Enable multithreading')
+
+    parser.add_argument('--demo0', action='store_true', help='run demo 0')
+    parser.add_argument('--demo1', action='store_true', help='run demo 1')
+    parser.add_argument('--demo2', action='store_true', help='run demo 2')
+    parser.add_argument('--demo3', action='store_true', help='run demo 3')
+
     config = EasyDict(vars(parser.parse_args()))
     config.fps = 20
     config.emergency_brake = 2
     config.forced_start = 10
     config.debug = False
+
+    config.radar_debug = False
+    config.crash_test = False
+
+
     return config
 
 def main(args):
     # create world
     carlaWorld = CarlaWorld(args)
 
-    hud = HUD(1400,700)
+    hud = HUD(1600,700)
     carlaWorld.attachHUD(hud)
+
+    print(f"Width : {carlaWorld.getPlayer().getWidth()}")
+    print(f"Length: {carlaWorld.getPlayer().getLength()}")
+    print(f"Height: {carlaWorld.getPlayer().getHeight()}")
     try:
-        carlaWorld.spawn(50,0)
+        carlaWorld.spawn(60,0)
         for frame in range(100000):
             carlaWorld.step()
     except:
@@ -48,13 +63,16 @@ if __name__ == "__main__":
     args = parse_args()
     rl_config = {
         'model_path': os.path.dirname(os.path.abspath(__file__)) +
-                      "/FinalIntegration/models/ethereal-spaceship-160.pth",
+                      "/FinalIntegration/models/ethereal-spaceship.pth",
         'history_frames': 3,
         'num_inputs': 12,  # =size of states!
         'num_actions': 101,
         'hidden': [128, 512, 512, 128, 64],
         'debug': False, #Doesn't do anything
-        'vision_speed_limit':False
+
+
+        'target_speed': 50, # m/s
+
     }
     dl_lidar_config = {
         'K': 50,  # the number of top K
@@ -74,7 +92,7 @@ if __name__ == "__main__":
     dl_recognition_config = {
         'model_path':os.path.dirname(os.path.abspath(__file__)) + "/FinalIntegration/models/best21_01.pt",
         'hubconf_path':os.path.dirname(os.path.abspath(__file__)) + "/FinalIntegration/DeepLearningRecognition",
-        'conf_threshold':0.25, #minimum confidence for object to be detected
+        'conf_threshold':0.45, #minimum confidence for object to be detected
         'iou_threshold':0.45,
         'max_detections':10,
     }

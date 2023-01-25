@@ -204,3 +204,6 @@ class DeeplearningLidar(object):
             # debug:
             self._carlaWorld.world.debug.draw_box(bb, bb.rotation, life_time=0.1,thickness=0.05, color=carla.Color(g=0, r=0, b=200))
         return boxes
+
+    def cleanup(self):
+        pass

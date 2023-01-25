@@ -62,12 +62,12 @@ def generateTraffic(world, client, traffic_manager, number_of_vehicles = 30,numb
     if not 'vehicle_filter' in args.keys():
         blueprints = [x for x in blueprints if int(x.get_attribute('number_of_wheels')) == 4]
         blueprints = [x for x in blueprints if not x.id.endswith('microlino')]
-        blueprints = [x for x in blueprints if not x.id.endswith('carlacola')]
+        #blueprints = [x for x in blueprints if not x.id.endswith('carlacola')]
         blueprints = [x for x in blueprints if not x.id.endswith('cybertruck')]
         blueprints = [x for x in blueprints if not x.id.endswith('t2')]
         blueprints = [x for x in blueprints if not x.id.endswith('sprinter')]
-        blueprints = [x for x in blueprints if not x.id.endswith('firetruck')]
-        blueprints = [x for x in blueprints if not x.id.endswith('ambulance')]
+        #blueprints = [x for x in blueprints if not x.id.endswith('firetruck')]
+        #blueprints = [x for x in blueprints if not x.id.endswith('ambulance')]
 
     blueprints = sorted(blueprints, key=lambda bp: bp.id)
 

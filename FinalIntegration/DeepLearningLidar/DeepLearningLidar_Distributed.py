@@ -66,14 +66,17 @@ class DistributedLidar(object):
             self.current_frame = frame
             self.bev_image = bev_im
             self.detected_boxes = detected_box
-        self._logger.info(f"Lidar detection {self.current_frame} :{(time.time() - start) * 1000:4.0f} ms")
+        self._logger.info(f"Lidar detection {self.current_frame} :\t{(time.time() - start) * 1000:4.0f} ms")
 
     def getModelName(self)->str:
         return self._model_name
     def setModelName(self, name :str)->None:
         self._model_name = name
 
-
+    def cleanup(self):
+        for worker in self._workers:
+            worker.stop()
+            worker.join()
 
 
 
@@ -103,9 +106,13 @@ class LidarWorker(threading.Thread):
         self._carlaWorld = parent._carlaWorld
         self.debug = parent.debug
 
+        self.running = True
+
+    def stop(self):
+        self.running = False
 
     def run(self) -> None:
-        while True:
+        while self.running:
             try:
                 frame, image = self.input_queue.get(block=True, timeout=60)
                 print(f"Lidar get frame: {frame}")
@@ -120,6 +127,8 @@ class LidarWorker(threading.Thread):
             with torch.cuda.stream(s):
                 bev_image, detected_boxes = self.detect(image)
             self._output_queue.put((frame, bev_image, detected_boxes))
+            #Todo: comment this line
+            #threading.Thread(target = self.saveImage, args = (frame, bev_image)).start()
             print(f"Lidar done with frame: {frame}")
 
     def create_model(self,config):
@@ -140,8 +149,6 @@ class LidarWorker(threading.Thread):
         return model
 
     def detect(self, frame):
-        start = time.time()
-
         frame = get_filtered_lidar(frame, cnf.boundary)
         bev_map = makeBEVMap(frame, cnf, cnf.boundary)
         bev_image = (bev_map.transpose(1, 2, 0) * 255).astype(np.uint8)
@@ -199,9 +206,8 @@ class LidarWorker(threading.Thread):
         for j in range(self.num_classes):
 
             for det in detections[j]:
-                _score, _y, _x, _z, _h, _w, _l, _yaw = det # TODO: swap x and y seems to work, WHYYYYY
-                #from pixel coordinates to global coordinates
-                #Todo: find this convertion !, check if below is correct
+                _score, _y, _x, _z, _h, _w, _l, _yaw = det
+
                 x_range = (cnf.boundary['minX'],cnf.boundary['maxX'])
                 y_range = (cnf.boundary['minY'],cnf.boundary['maxY'])
                 z_range = (cnf.boundary['minZ'],cnf.boundary['maxZ'])
@@ -234,12 +240,12 @@ class LidarWorker(threading.Thread):
                     self._carlaWorld.world.debug.draw_box(bb, bb.rotation,  life_time=0.11,thickness=0.05,
                                                           color=carla.Color(g=0, r=0, b=200))
 
+        """
         if self.debug:
             #debug player bb:
             own = np.array([1, 152, 304, 1.0, 1, 1, 1, lidar_transform.rotation.yaw])
             _score, _x, _y, _z, _h, _w, _l, _yaw = own
             # from pixel coordinates to global coordinates
-            # Todo: find this convertion !, check if below is correct
             x_range = (cnf.boundary['minX'], cnf.boundary['maxX'])
             y_range = (cnf.boundary['minY'], cnf.boundary['maxY'])
             z_range = (cnf.boundary['minZ'], cnf.boundary['maxZ'])
@@ -268,5 +274,9 @@ class LidarWorker(threading.Thread):
 
             # debug:
             self._carlaWorld.world.debug.draw_box(bb, bb.rotation, life_time=0.1,thickness=0.05, color=carla.Color(g=0, r=0, b=200))
+        """
         return boxes
 
+    def saveImage(self, frame, image):
+        filename = f"{frame}_"
+        cv2.imwrite(filename + "lidar.png", image)

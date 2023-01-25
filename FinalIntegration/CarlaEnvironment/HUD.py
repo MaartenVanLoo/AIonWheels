@@ -39,6 +39,13 @@ class HUD(object):
         self.background_path = os.path.realpath(os.path.dirname(__file__)) + "/background1.jpg"
         self.frame_path = os.path.realpath(os.path.dirname(__file__))+ "/HUD_frame2.png"
 
+        self.speed30 =     pygame.transform.scale(pygame.image.load(os.path.realpath(os.path.dirname(__file__)) + "/30.png"),(104,104))
+        self.speed60 =     pygame.transform.scale(pygame.image.load(os.path.realpath(os.path.dirname(__file__)) + "/60.png"),(104,104))
+        self.speed90 =     pygame.transform.scale(pygame.image.load(os.path.realpath(os.path.dirname(__file__)) + "/90.png"),(104,104))
+        self.lightRed =    pygame.transform.scale(pygame.image.load(os.path.realpath(os.path.dirname(__file__)) + "/Red_Light.png"),(150,300))
+        self.lightOrange = pygame.transform.scale(pygame.image.load(os.path.realpath(os.path.dirname(__file__)) + "/Orange_Light.png"),(150,300))
+        self.lightGreen =  pygame.transform.scale(pygame.image.load(os.path.realpath(os.path.dirname(__file__)) + "/Green_Light.png"),(150,300))
+
         if os.path.exists(self.icon_path) and os.path.isfile(self.icon_path):
             pygame.display.set_icon(pygame.image.load(self.icon_path))
         if os.path.exists(self.background_path) and os.path.isfile(self.background_path):
@@ -65,6 +72,9 @@ class HUD(object):
         self._font_mono = pygame.font.Font(mono, 12 if os.name == 'nt' else 14)
         self._notifications = FadingText(font, (width, 40), (0, height - 40), color = (0,0,0,0))
         self._warnings = FadingText(font, (width, 40), (0, height - 40), color = (201, 34, 34, 0))
+        self._fading_image = FadingIcon(None, (self.lightRed.get_width(),self.lightRed.get_height()),(
+            self.info_width + self.spacing * 3 + self.image_frame.get_width() * 2 + self.lightGreen.get_width() / 2,
+            self.margin[1] + self.lightRed.get_height() / 2))
 
         self.server_fps = 0
         self.frame = 0
@@ -114,12 +124,15 @@ class HUD(object):
         self._render_lidar(carlaWorld)      # lidar view
 
         self._collisionMessage(carlaWorld)  #popup messages on collision
-
+        self._emergencyMessage(carlaWorld)  #popup message on emergency brake
         #udpate fading
-        self._warnings.tick()
-        self._warnings.render(self.display)         # won't render without warning
         self._notifications.tick()
         self._notifications.render(self.display)    # won't render without notification
+        self._warnings.tick()
+        self._warnings.render(self.display)         # won't render without warning
+        self._fading_image.tick()
+        self._fading_image.render(self.display)
+
         pygame.display.flip()
         stop = time.time()
         print(f"HUD render time:\t\t\t\t{(stop - start) * 1000:4.0f} ms")
@@ -135,6 +148,12 @@ class HUD(object):
         heading += 'E' if 179.5 > transform.rotation.yaw > 0.5 else ''
         heading += 'W' if -0.5 > transform.rotation.yaw > -179.5 else ''
 
+        light = 'red' if carlaWorld.dl_recognition.is_red_light else ('orange' if carlaWorld.dl_recognition.is_orange_light else 'green')
+        if (carlaWorld.sensors.get("Radar","")):
+            radar_detection = "Close" if carlaWorld.sensors["Radar"].state else "None"
+        else:
+            radar_detection = "No sensor"
+
         self._info_text = [
             'Server:     % 16.0f FPS' % self.server_fps,
             'Client:     % 16.0f FPS' % self.clock.get_fps(),
@@ -144,18 +163,22 @@ class HUD(object):
             'Simulation time: % 15s' % datetime.timedelta(seconds=int(self.simulation_time)),
             '',
             'Loaded models:',
-            'RL model    % 20s' % carlaWorld.rl_module.getModelName(),
-            'DL lidar    % 20s' % carlaWorld.dl_lidar.getModelName(),
-            'DL classify % 20s' % carlaWorld.dl_recognition.getModelName(),
+            'RL model    %21s' % carlaWorld.rl_module.getModelName(),
+            'DL lidar    %21s' % carlaWorld.dl_lidar.getModelName(),
+            'DL classify %21s' % carlaWorld.dl_recognition.getModelName(),
             '',
             'Speed:       % 14.0f km/h' % (3.6 * math.sqrt(vel.x ** 2 + vel.y ** 2 + vel.z ** 2)),
             'Speed limit: % 14.0f km/h' % (carlaWorld.getPlayer().getSpeedLimit()*3.6),
             'Target speed:% 14.0f km/h' % (carlaWorld.getPlayer().getTargetSpeed()*3.6),
             'Distance:    % 17.2f m'  % (carlaWorld.rl_module.frames[-1][0]),
+            #'',
+            #'Light :      %20s' %(light),
+            #'Limit :      %14.0f km/h' %(carlaWorld.dl_recognition.current_max_speed*3.6),
+            #'Radar :      %20s' %(radar_detection),
             '',
             u'Heading:   % 16.0f\N{DEGREE SIGN} % 2s' % (transform.rotation.yaw, heading),
             'Location:   % 20s' % ('(% 5.1f, % 5.1f)' % (transform.location.x, transform.location.y)),
-            'Height:     % 18.0f m' % transform.location.z,
+            #'Height:     % 18.0f m' % transform.location.z,
             '']
 
         if isinstance(control, carla.VehicleControl):
@@ -170,7 +193,7 @@ class HUD(object):
         ]
 
     def _render_info(self,carlaWorld):
-        max_info_height = min(500, self.dim[1]- self.margin[1])
+        max_info_height = min(500, self.dim[1] - self.margin[1])
         self._get_info(carlaWorld)
         info_surface = pygame.Surface((self.info_width, max_info_height))
         info_surface.set_alpha(50)
@@ -233,7 +256,30 @@ class HUD(object):
 
         surface_rect = surface.get_rect(center=pos)
         self.display.blit(surface, surface_rect)
-        pass
+
+
+        #display speed limit:
+        pos = (
+            self.info_width + self.spacing * 3 + self.image_frame.get_width() * 2 + self.lightGreen.get_width() / 2,
+            self.margin[1] + self.image_frame.get_height() - self.speed30.get_height()/2
+        )
+        limit = carlaWorld.dl_recognition.current_max_speed;
+        if limit == 30/3.6:
+            image_rect = self.speed30.get_rect(center=pos)
+            self.display.blit(self.speed30, image_rect)
+        elif limit == 60/3.6:
+            image_rect = self.speed60.get_rect(center=pos)
+            self.display.blit(self.speed60, image_rect)
+        elif limit == 90/3.6:
+            image_rect = self.speed90.get_rect(center=pos)
+            self.display.blit(self.speed90, image_rect)
+
+        #display light
+        if carlaWorld.dl_recognition.is_red_light:
+            self._fading_image.set_image(self.lightRed)
+        elif carlaWorld.dl_recognition.is_orange_light:
+            self._fading_image.set_image(self.lightOrange)
+
 
     def _render_lidar(self, carlaWorld):
         pos = (
@@ -282,7 +328,10 @@ class HUD(object):
         if last_collision == self.frame:
             self.warning(message, frames = 40)
 
-
+    def _emergencyMessage(self, carlaWorld):
+        if carlaWorld.emergency_brake_state:
+            #emergency brake is enabled
+            self.notification("Emergency brake enabled",40)
 
 
     def notification(self, text, frames=40.0):
@@ -291,6 +340,7 @@ class HUD(object):
 
     def warning(self, text, frames = 40.0):
         self._warnings.set_text(text, frames=frames)
+
     @staticmethod
     def _get_actor_display_name(actor, truncate=250):
         """Method to get actor display name"""
@@ -336,6 +386,36 @@ class FadingText(object):
             return
         display.blit(self.surface, self.pos)
 
+class FadingIcon(object):
+    """ Class for fading text """
+
+    def __init__(self, image, dim, pos):
+        """Constructor method"""
+        self.image = None
+        self.dim = dim
+        self.pos = pos
+        self.frames_left = 0
+        self.surface = pygame.Surface(self.dim)
+
+    def set_image(self, image, frames=40.0):
+        """Set fading text"""
+        self.image = image
+        #self.surface = pygame.Surface(self.dim)
+        self.frames_left = frames
+        self.surface.blit(self.image, (0,0))
+
+    def tick(self):
+        """Fading text method for every tick"""
+        self.frames_left = max(0.0, self.frames_left - 1)
+        if self.frames_left > 0:
+            self.image.set_alpha(int(max(300.0 * ((self.frames_left - 1) / 40), 0.0)))
+
+    def render(self, display):
+        """Render fading text method"""
+        if self.frames_left == 0:
+            return
+        image_rect = self.image.get_rect(center=self.pos)
+        display.blit(self.image, image_rect)
 # ==============================================================================
 # -- KeyboardControl -----------------------------------------------------------
 # ==============================================================================
