@@ -31,6 +31,7 @@ def generateTraffic(world, client, traffic_manager, number_of_vehicles = 30,numb
     if args is None:
         args = dict()
 
+
     logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 
     vehicles_list = []
