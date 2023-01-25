@@ -87,7 +87,6 @@ if __name__ == "__main__":
         'hidden': [128, 512, 512, 128, 64],
         'debug': False, #Doesn't do anything
 
-
         'target_speed': 50, # m/s
 
     }
