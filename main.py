@@ -52,9 +52,9 @@ def main(args):
     print(f"Height: {carlaWorld.getPlayer().getHeight()}")
     try:
         if args.demo0:
-            carlaWorld.spawn(50,0)#40,0)
-        elif args.demo1:
             carlaWorld.spawn(40,0)
+        elif args.demo1:
+            carlaWorld.spawn(70,0)
         else:
             carlaWorld.spawn(50,0)
         for frame in range(100000):
@@ -76,8 +76,8 @@ def demo(args: EasyDict):
         print(f"Random seed:{seed}")
         np.random.seed(seed)
         pass
-    elif args.demo1:
-        seed = 1674788632
+    elif args.demo1: #show different speeds
+        seed = 16874102
         print(f"Random seed:{seed}")
         np.random.seed(seed)
         pass
